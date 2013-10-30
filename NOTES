@@ -1,35 +1,95 @@
-1. readline works like this:
+ 1. readline works like this:
 
-   * The internal function rl_completion_matches() uses an
-     application-supplied "generator" function to generate the list of
-     possible matches, and then returns the array of these matches.
-     The caller should place the address of its generator function in
-     rl_completion_entry_function.
+    * The internal function rl_completion_matches() uses an
+      application-supplied "generator" function to generate the list of
+      possible matches, and then returns the array of these matches.
+      The caller should place the address of its generator function in
+      rl_completion_entry_function.
 
-   * The generator function is called repeatedly from
-     rl_completion_matches(), returning a string each time.  The
-     arguments to the generator function are TEXT and STATE.  TEXT is
-     the partial word to be completed.  STATE is zero the first time
-     the function is called, allowing the generator to perform any
-     necessary initialization, and a positive non-zero integer for
-     each subsequent call.  The generator function returns NULL to
-     inform rl_completion_matches() that there are no more
-     possibilities left.  Usually the generator function computes the
-     list of possible completions when STATE is zero, and returns them
-     one at a time on subsequent calls.  Each string the generator
-     function returns as a match must be allocated with malloc();
-     readline frees the strings when it has finished with them.  Such
-     a generator function is referred to as an "application-specific
-     completion function".
+    * The generator function is called repeatedly from
+      rl_completion_matches(), returning a string each time.  The
+      arguments to the generator function are TEXT and STATE.  TEXT is
+      the partial word to be completed.  STATE is zero the first time
+      the function is called, allowing the generator to perform any
+      necessary initialization, and a positive non-zero integer for
+      each subsequent call.  The generator function returns NULL to
+      inform rl_completion_matches() that there are no more
+      possibilities left.  Usually the generator function computes the
+      list of possible completions when STATE is zero, and returns them
+      one at a time on subsequent calls.  Each string the generator
+      function returns as a match must be allocated with malloc();
+      readline frees the strings when it has finished with them.  Such
+      a generator function is referred to as an "application-specific
+      completion function".
 
-   -> "readline frees the strings when it has finished with them" oh my
+    -> "readline frees the strings when it has finished with them" oh my
 
-2. readline setup happens in init_main(), in gdb/top.c, notably:
+ 2. readline setup happens in init_main(), in gdb/top.c, notably:
 
-     rl_completion_entry_function = readline_line_completion_function;
+      rl_completion_entry_function = readline_line_completion_function;
 
-   readline_line_completion_function expands to line_completion_function,
-   which adds a little extra state.
+    readline_line_completion_function() is just a wrapper for
+    line_completion_function() that adds a little more state.
 
-3. rl_completion_entry_function is one of a number of "completion
-   variables" which are "variables which control completion".
+ 3. line_completion_function() unwraps the generator paradigm.  The
+    first time it's called it calls complete_line() to generate all
+    possible completions.  A comment in line_completion_function()
+    says that complete_line() may abort by calling error().
+    complete_line() is a wrapper for complete_line_internal().
+
+ 4. complete_line_internal() marshals the call into one of many
+    specific completers:
+
+      gdb/completer.c:      noop_completer
+      gdb/completer.c:      filename_completer
+      gdb/completer.c:      location_completer
+      gdb/completer.c:      expression_completer
+      gdb/completer.c:      command_completer
+      gdb/completer.c:      signal_completer
+
+      gdb/breakpoint.c:     catch_syscall_completer
+      gdb/breakpoint.c:     condition_completer
+      gdb/cli/cli-decode.c: integer_unlimited_completer
+      gdb/cli/cli-decode.c: set_cmd_completer
+      gdb/cp-abi.c:         cp_abi_completer
+      gdb/infrun.c:         handle_completer
+      gdb/interps.c:        interpreter_completer
+      gdb/python/py-cmd.c:  cmdpy_completer
+      gdb/remote-sim.c:     sim_command_completer
+
+      ...and more in symtab.c
+
+    The one that's slow for "b <Tab>" is location_completer().
+
+ 5. The bit that's slow is make_symbol_completion_list(), but
+    (XXX!) note the above make_file_symbol_completion_list()
+    which may also be slow (but probably not *so* slow!).
+
+ 6. make_symbol_completion_list() is called from a few different
+    places.  location_completer() is the only function that calls
+    make_file_symbol_completion_list().
+
+ 7. make_symbol_completion_list() marshals the call into a
+    language-specific completer.  For LibreOffice "b <Tab>"
+    this is default_make_symbol_completion_list(), which is a
+    wrapper for default_make_symbol_completion_list_break_on().
+
+ 8. default_make_symbol_completion_list_break_on() calls
+    expand_partial_symbol_names().  This is (likely) the bit
+    where we vanish into the nothing.  Note that there is a
+    cleanup set across this call, so we could potentially use
+    error() to abort long calls (by count or by elapsed time).
+
+ 9. Note that LibreOffice "b <Tab><Tab>" has 178974 possibilities.
+
+10. Note also https://sourceware.org/bugzilla/show_bug.cgi?id=11920:
+
+      Example from a c++ program:
+
+      (gdb) break std::<tab>
+      [...nothing for about 3 seconds - not obviously killable...]
+      Display all 14472 possibilities? (y or n)
+
+11. Note also also that it is the first <Tab> which is slow, but
+    the second <Tab> which prints a newline (and some other stuff)
+    so I don't *think* we could print a progress report.
