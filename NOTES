@@ -1,0 +1,35 @@
+1. readline works like this:
+
+   * The internal function rl_completion_matches() uses an
+     application-supplied "generator" function to generate the list of
+     possible matches, and then returns the array of these matches.
+     The caller should place the address of its generator function in
+     rl_completion_entry_function.
+
+   * The generator function is called repeatedly from
+     rl_completion_matches(), returning a string each time.  The
+     arguments to the generator function are TEXT and STATE.  TEXT is
+     the partial word to be completed.  STATE is zero the first time
+     the function is called, allowing the generator to perform any
+     necessary initialization, and a positive non-zero integer for
+     each subsequent call.  The generator function returns NULL to
+     inform rl_completion_matches() that there are no more
+     possibilities left.  Usually the generator function computes the
+     list of possible completions when STATE is zero, and returns them
+     one at a time on subsequent calls.  Each string the generator
+     function returns as a match must be allocated with malloc();
+     readline frees the strings when it has finished with them.  Such
+     a generator function is referred to as an "application-specific
+     completion function".
+
+   -> "readline frees the strings when it has finished with them" oh my
+
+2. readline setup happens in init_main(), in gdb/top.c, notably:
+
+     rl_completion_entry_function = readline_line_completion_function;
+
+   readline_line_completion_function expands to line_completion_function,
+   which adds a little extra state.
+
+3. rl_completion_entry_function is one of a number of "completion
+   variables" which are "variables which control completion".
