@@ -113,3 +113,16 @@
     ps->n_static_syms over the LibreOffice "b <Tab>" case gives
     110999 global and 422421 static (eventually resulting in 178974
     possibilities, as noted above).
+
+    Note that this code path is only entered the first time you do
+    "b <Tab>".
+
+14. Note that objfile->sf->qf->expand_symtabs_matching (and hence
+    expand_symtabs_matching_via_partial) is called from various
+    places:
+
+      gdb/psymtab.c:       objfile->sf->qf->expand_symtabs_matching
+      gdb/symmisc.c:	   objfile->sf->qf->expand_symtabs_matching
+      gdb/linespec.c:	   objfile->sf->qf->expand_symtabs_matching
+      gdb/symfile-debug.c: debug_data->real_sf->qf->expand_symtabs_matching
+      gdb/symtab.c:        objfile->sf->qf->expand_symtabs_matching
