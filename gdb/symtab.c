@@ -4341,7 +4341,27 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
      The real names will get added by COMPLETION_LIST_ADD_SYMBOL below.  */
+  {
+    time_t tm;
+    char *buf;
+
+    time (&tm);
+    buf = ctime (&tm);
+    buf[strlen (buf) - 1] = '\0';
+
+    printf_unfiltered ("\n%s: > expand_partial_symbol_names\n", buf);
+  }
   expand_partial_symbol_names (expand_partial_symbol_name, &datum);
+  {
+    time_t tm;
+    char *buf;
+
+    time (&tm);
+    buf = ctime (&tm);
+    buf[strlen (buf) - 1] = '\0';
+
+    printf_unfiltered ("%s: < expand_partial_symbol_names\n", buf);
+  }
 
   /* At this point scan through the misc symbol vectors and add each
      symbol you find to the list.  Eventually we want to ignore
