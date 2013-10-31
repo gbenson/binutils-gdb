@@ -2093,12 +2093,18 @@ expand_partial_symbol_names (int (*fun) (const char *, void *),
 			     void *data)
 {
   struct objfile *objfile;
+  int XXX_count = 0;
 
   ALL_OBJFILES (objfile)
   {
     if (objfile->sf)
       objfile->sf->qf->expand_symtabs_matching (objfile, NULL, fun,
 						ALL_DOMAIN, data);
+    if (objfile->sf)
+      {
+	XXX_count++;
+	printf_unfiltered ("%4d: %s\n", XXX_count, objfile->original_name);
+      }
   }
 }
 

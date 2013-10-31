@@ -93,3 +93,14 @@
 11. Note also also that it is the first <Tab> which is slow, but
     the second <Tab> which prints a newline (and some other stuff)
     so I don't *think* we could print a progress report.
+
+12. expand_partial_symbol_names() enters 93 objfiles for the LibreOffice
+    case.  The speed it does this would make it great for a progress
+    update.  The function it enters them with (objfile->sf->qf->
+    expand_symtabs_matching) is set to expand_symtabs_matching_via_partial():
+
+    - file_matcher is NULL,
+    - name_matcher is expand_partial_symbol_name().
+
+    expand_partial_symbol_name() is called 4321 times for the
+    LibreOffice case.
