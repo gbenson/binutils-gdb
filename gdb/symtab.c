@@ -4210,6 +4210,7 @@ struct add_name_data
   int sym_text_len;
   const char *text;
   const char *word;
+  int XXX_count;
 };
 
 /* A callback used with macro_for_each and macro_for_each_in_scope.
@@ -4233,6 +4234,10 @@ static int
 expand_partial_symbol_name (const char *name, void *user_data)
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
+
+  datum->XXX_count++;
+  if (datum->XXX_count > 24) // arbitrary; should stop at ~1000 possibilities
+    error (_("\nToo many possibilities."));
 
   return compare_symbol_name (name, datum->sym_text, datum->sym_text_len);
 }
@@ -4337,6 +4342,7 @@ default_make_symbol_completion_list_break_on (const char *text,
   datum.sym_text_len = sym_text_len;
   datum.text = text;
   datum.word = word;
+  datum.XXX_count = 0;
 
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
