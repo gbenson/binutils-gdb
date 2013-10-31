@@ -62,6 +62,7 @@
 #include "macroscope.h"
 
 #include "psymtab.h"
+#include "psympriv.h"
 #include "parser-defs.h"
 
 /* Prototypes for local functions */
@@ -4247,9 +4248,13 @@ halt_large_expansions (struct objfile *objfile,
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
-  datum->XXX_count++;
-  if (datum->XXX_count > 24) // arbitrary; should stop at ~1000 possibilities
+  datum->XXX_count += pst->n_global_syms;
+  if (datum->XXX_count > 1000)
     error (_("\nToo many possibilities."));
+
+  /* XXX I think this catches the worst case, in that at least N
+     possibilities will be presented to the user.  I don't think
+     global symbols can be duplicated here, though I may be wrong.  */
 }
 
 VEC (char_ptr) *
