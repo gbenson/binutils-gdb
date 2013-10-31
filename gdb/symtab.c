@@ -4236,11 +4236,20 @@ expand_partial_symbol_name (const char *name, void *user_data)
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
+  return compare_symbol_name (name, datum->sym_text, datum->sym_text_len);
+}
+
+/* XXX.  */
+
+static void
+halt_large_expansions (struct objfile *objfile,
+		       struct partial_symtab *pst, void *user_data)
+{
+  struct add_name_data *datum = (struct add_name_data *) user_data;
+
   datum->XXX_count++;
   if (datum->XXX_count > 24) // arbitrary; should stop at ~1000 possibilities
     error (_("\nToo many possibilities."));
-
-  return compare_symbol_name (name, datum->sym_text, datum->sym_text_len);
 }
 
 VEC (char_ptr) *
@@ -4348,7 +4357,8 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
      The real names will get added by COMPLETION_LIST_ADD_SYMBOL below.  */
-  expand_partial_symbol_names (expand_partial_symbol_name, NULL, &datum);
+  expand_partial_symbol_names (expand_partial_symbol_name,
+			       halt_large_expansions, &datum);
 
   /* At this point scan through the misc symbol vectors and add each
      symbol you find to the list.  Eventually we want to ignore
