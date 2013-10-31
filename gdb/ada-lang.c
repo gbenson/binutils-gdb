@@ -5944,7 +5944,8 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
     data.word = word;
     data.wild_match = wild_match_p;
     data.encoded = encoded_p;
-    expand_partial_symbol_names (ada_expand_partial_symbol_name, &data);
+    expand_partial_symbol_names (ada_expand_partial_symbol_name, NULL,
+				 &data);
   }
 
   /* At this point scan through the misc symbol vectors and add each

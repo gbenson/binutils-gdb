@@ -287,6 +287,10 @@ debug_qf_expand_symtabs_matching (struct objfile *objfile,
 				  int (*file_matcher) (const char *, void *,
 						       int basenames),
 				  int (*name_matcher) (const char *, void *),
+				  void (*expansion_notify)
+				    (struct objfile *,
+				     struct partial_symtab *,
+				     void *),
 				  enum search_domain kind,
 				  void *data)
 {
@@ -294,16 +298,18 @@ debug_qf_expand_symtabs_matching (struct objfile *objfile,
     objfile_data (objfile, symfile_debug_objfile_data_key);
 
   fprintf_filtered (gdb_stdlog,
-		    "qf->expand_symtabs_matching (%s, %s, %s, %s, %s)\n",
+		    "qf->expand_symtabs_matching (%s, %s, %s, %s, %s, %s)\n",
 		    debug_objfile_name (objfile),
 		    host_address_to_string (file_matcher),
 		    host_address_to_string (name_matcher),
+		    host_address_to_string (expansion_notify),
 		    search_domain_name (kind),
 		    host_address_to_string (data));
 
   debug_data->real_sf->qf->expand_symtabs_matching (objfile,
 						    file_matcher,
 						    name_matcher,
+						    expansion_notify,
 						    kind, data);
 }
 

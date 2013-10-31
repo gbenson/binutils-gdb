@@ -1365,6 +1365,8 @@ expand_symtabs_matching_via_partial
   (struct objfile *objfile,
    int (*file_matcher) (const char *, void *, int basenames),
    int (*name_matcher) (const char *, void *),
+   void (*expansion_notify) (struct objfile *, struct partial_symtab *,
+			     void *),
    enum search_domain kind,
    void *data)
 {
@@ -1407,7 +1409,12 @@ expand_symtabs_matching_via_partial
 	}
 
       if (recursively_search_psymtabs (ps, objfile, kind, name_matcher, data))
-	psymtab_to_symtab (objfile, ps);
+	{
+	  if (expansion_notify != NULL)
+	    expansion_notify (objfile, ps, data);
+
+	  psymtab_to_symtab (objfile, ps);
+	}
     }
 }
 
@@ -2090,6 +2097,8 @@ maintenance_check_psymtabs (char *ignore, int from_tty)
 
 void
 expand_partial_symbol_names (int (*fun) (const char *, void *),
+			     void (*en) (struct objfile *,
+					 struct partial_symtab *, void *),
 			     void *data)
 {
   struct objfile *objfile;
@@ -2097,7 +2106,7 @@ expand_partial_symbol_names (int (*fun) (const char *, void *),
   ALL_OBJFILES (objfile)
   {
     if (objfile->sf)
-      objfile->sf->qf->expand_symtabs_matching (objfile, NULL, fun,
+      objfile->sf->qf->expand_symtabs_matching (objfile, NULL, fun, en,
 						ALL_DOMAIN, data);
   }
 }

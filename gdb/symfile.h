@@ -35,6 +35,7 @@ struct value;
 struct frame_info;
 struct agent_expr;
 struct axs_value;
+struct partial_symtab;
 
 /* Comparison function for symbol look ups.  */
 
@@ -270,6 +271,8 @@ struct quick_symbol_functions
     (struct objfile *objfile,
      int (*file_matcher) (const char *, void *, int basenames),
      int (*name_matcher) (const char *, void *),
+     void (*expansion_notify) (struct objfile *,
+			       struct partial_symtab *, void *),
      enum search_domain kind,
      void *data);
 

@@ -3752,6 +3752,8 @@ dw2_expand_symtabs_matching
   (struct objfile *objfile,
    int (*file_matcher) (const char *, void *, int basenames),
    int (*name_matcher) (const char *, void *),
+   void (*expansion_notify) (struct objfile *, struct partial_symtab *,
+			     void *),
    enum search_domain kind,
    void *data)
 {
