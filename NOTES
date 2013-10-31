@@ -126,3 +126,23 @@
       gdb/linespec.c:	   objfile->sf->qf->expand_symtabs_matching
       gdb/symfile-debug.c: debug_data->real_sf->qf->expand_symtabs_matching
       gdb/symtab.c:        objfile->sf->qf->expand_symtabs_matching
+
+15. IRC conversation (abridged and edited):
+
+       <gbenson> fwiw I've some half-finished code to cause
+                 the completer to stop after N symbols
+       <gbenson> I imagined having some user-settable limit,
+                 say 1000 completions
+      <pmuldoon> I think 100
+      <pmuldoon> Not going to look through a 1000 symbols
+        <palves> what happens when the limit is hit?
+                 beep, and let the user type more characters
+                 to disambiguate?
+       <gbenson> it's pretty dirty at the moment, it just
+                 calls error() and halts the completer
+        <palves> I'd expect to not lose what I was typing :-)
+
+16. Note that some kind of progress indicator is a probably red
+    herring as there is no utility in building a giant list of
+    completions--nobody is going to bother scrolling through a
+    huge list.
