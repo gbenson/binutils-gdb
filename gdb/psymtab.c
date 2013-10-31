@@ -1407,7 +1407,17 @@ expand_symtabs_matching_via_partial
 	}
 
       if (recursively_search_psymtabs (ps, objfile, kind, name_matcher, data))
+	{
+	  static int t_global_syms, t_static_syms;
+
+	  t_global_syms += ps->n_global_syms;
+	  t_static_syms += ps->n_static_syms;
+
+	  fprintf_unfiltered (gdb_stdlog, "%6d global, %6d static\n",
+			      t_global_syms, t_static_syms);
+
 	psymtab_to_symtab (objfile, ps);
+	}
     }
 }
 
@@ -2093,18 +2103,12 @@ expand_partial_symbol_names (int (*fun) (const char *, void *),
 			     void *data)
 {
   struct objfile *objfile;
-  int XXX_count = 0;
 
   ALL_OBJFILES (objfile)
   {
     if (objfile->sf)
       objfile->sf->qf->expand_symtabs_matching (objfile, NULL, fun,
 						ALL_DOMAIN, data);
-    if (objfile->sf)
-      {
-	XXX_count++;
-	printf_unfiltered ("%4d: %s\n", XXX_count, objfile->original_name);
-      }
   }
 }
 

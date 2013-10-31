@@ -102,5 +102,14 @@
     - file_matcher is NULL,
     - name_matcher is expand_partial_symbol_name().
 
-    expand_partial_symbol_name() is called 4321 times for the
-    LibreOffice case.
+    For this case, expand_symtabs_matching_via_partial() calls
+    recursively_search_psymtabs() to decide whether to perform
+    the expansion.  This is what calls expand_partial_symbol_name()
+    (4321 times for the LibreOffice case).  Then (for every
+    psymtab in this case) psymtab_to_symtab() is called.
+
+13. Some version of the number of symbols is visible here, albeit
+    inflated with duplicates.  Totalling ps->n_global_syms and
+    ps->n_static_syms over the LibreOffice "b <Tab>" case gives
+    110999 global and 422421 static (eventually resulting in 178974
+    possibilities, as noted above).

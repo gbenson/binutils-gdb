@@ -4210,7 +4210,6 @@ struct add_name_data
   int sym_text_len;
   const char *text;
   const char *word;
-  int XXX_count;
 };
 
 /* A callback used with macro_for_each and macro_for_each_in_scope.
@@ -4234,8 +4233,6 @@ static int
 expand_partial_symbol_name (const char *name, void *user_data)
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
-
-  datum->XXX_count++;
 
   return compare_symbol_name (name, datum->sym_text, datum->sym_text_len);
 }
@@ -4344,30 +4341,7 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
      The real names will get added by COMPLETION_LIST_ADD_SYMBOL below.  */
-  {
-    time_t tm;
-    char *buf;
-
-    time (&tm);
-    buf = ctime (&tm);
-    buf[strlen (buf) - 1] = '\0';
-
-    printf_unfiltered ("\n%s: > expand_partial_symbol_names\n", buf);
-
-    datum.XXX_count = 0;
-  }
   expand_partial_symbol_names (expand_partial_symbol_name, &datum);
-  {
-    time_t tm;
-    char *buf;
-
-    time (&tm);
-    buf = ctime (&tm);
-    buf[strlen (buf) - 1] = '\0';
-
-    printf_unfiltered ("%s: < expand_partial_symbol_names\n", buf);
-    printf_unfiltered ("%s: count = %d\n", buf, datum.XXX_count);
-  }
 
   /* At this point scan through the misc symbol vectors and add each
      symbol you find to the list.  Eventually we want to ignore
