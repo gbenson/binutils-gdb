@@ -1031,10 +1031,10 @@ _initialize_completer (void)
 {
   add_setshow_zuinteger_unlimited_cmd ("max-completions", no_class,
 				       &max_completions, _("\
-Set maximum number of tab-completion possibilities."), _("\
-Show maximum number of tab-completion possibilities."), _("\
+Set maximum number of line completion possibilities."), _("\
+Show maximum number of line completion possibilities."), _("\
 Use this to limit the number of possibilities considered\n\
-during tab-completion.  Specifying \"unlimited\" or -1\n\
+during line completion.  Specifying \"unlimited\" or -1\n\
 disables any attempt to limit the number of possibilities."),
 				       NULL, NULL, &setlist, &showlist);
 }
