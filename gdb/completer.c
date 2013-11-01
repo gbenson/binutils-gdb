@@ -41,6 +41,11 @@
 
 #include "completer.h"
 
+#ifdef TUI
+#include "tui/tui.h"
+#include "tui/tui-io.h"
+#endif
+
 /* Prototypes for local functions.  */
 static
 char *line_completion_function (const char *text, int matches, 
@@ -908,10 +913,17 @@ line_completion_function (const char *text, int matches,
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
 
-	  rl_crlf ();
-	  fprintf (rl_outstream, "Too many possibilities."); // XXX
-	  rl_crlf ();
-	  rl_forced_update_display ();
+#if defined(TUI)
+	  if (tui_active)
+	    tui_puts ("\nToo many possibilities.\n");
+	  else
+#endif
+	    {
+	      rl_crlf ();
+	      fprintf (rl_outstream, "Too many possibilities."); // XXX
+	      rl_crlf ();
+	      rl_forced_update_display ();
+	    }
 	}
     }
 
