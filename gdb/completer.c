@@ -90,6 +90,9 @@ static char *gdb_completer_file_name_break_characters = " \t\n*|\"';:?><";
    we can't include '"' because the gdb C parser treats such quoted
    sequences as strings.  */
 static char *gdb_completer_quote_characters = "'";
+
+/* XXX.  */
+static int max_completions = 1000;
 
 /* Accessor for some completer data that may interest other files.  */
 
@@ -1019,4 +1022,19 @@ const char *
 skip_quoted (const char *str)
 {
   return skip_quoted_chars (str, NULL, NULL);
+}
+
+extern initialize_file_ftype _initialize_completer; /* -Wmissing-prototypes */
+
+void
+_initialize_completer (void)
+{
+  add_setshow_zuinteger_unlimited_cmd ("max-completions", no_class,
+				       &max_completions, _("\
+Set maximum number of tab-completion possibilities."), _("\
+Show maximum number of tab-completion possibilities."), _("\
+Use this to limit the number of possibilities considered\n\
+during tab-completion.  Specifying \"unlimited\" or -1\n\
+disables any attempt to limit the number of possibilities."),
+				       NULL, NULL, &setlist, &showlist);
 }
