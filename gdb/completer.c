@@ -907,6 +907,9 @@ line_completion_function (const char *text, int matches,
 
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
+
+	  fprintf (rl_outstream, "\nToo many possibilities.\n"); // XXX
+	  rl_on_new_line ();
 	}
     }
 
