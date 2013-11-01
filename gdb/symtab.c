@@ -4250,7 +4250,7 @@ halt_large_expansions (struct objfile *objfile,
 
   datum->XXX_count += pst->n_global_syms;
   if (datum->XXX_count > 1000)
-    error (_("\nToo many possibilities."));
+    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
 
   /* XXX I think this catches the worst case, in that at least N
      possibilities will be presented to the user.  I don't think
@@ -4280,6 +4280,7 @@ default_make_symbol_completion_list_break_on (const char *text,
   int sym_text_len;
   struct add_name_data datum;
   struct cleanup *back_to;
+  volatile struct gdb_exception ex;
 
   /* Now look for the symbol we are supposed to complete on.  */
   {
@@ -4362,8 +4363,21 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
      The real names will get added by COMPLETION_LIST_ADD_SYMBOL below.  */
-  expand_partial_symbol_names (expand_partial_symbol_name,
-			       halt_large_expansions, &datum);
+  TRY_CATCH (ex, RETURN_MASK_ALL)
+    {
+      expand_partial_symbol_names (expand_partial_symbol_name,
+				   halt_large_expansions, &datum);
+    }
+  if (ex.reason < 0)
+    {
+      if (ex.error)
+	{
+	  do_cleanups (back_to);
+	  return NULL;
+	}
+      else
+	throw_exception (ex);
+    }
 
   /* At this point scan through the misc symbol vectors and add each
      symbol you find to the list.  Eventually we want to ignore

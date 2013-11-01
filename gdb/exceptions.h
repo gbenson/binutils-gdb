@@ -93,6 +93,9 @@ enum errors {
      aborted as the inferior state is no longer valid.  */
   TARGET_CLOSE_ERROR,
 
+  /* XXX.  */
+  TOO_MANY_COMPLETIONS_ERROR,
+
   /* Add more errors here.  */
   NR_ERRORS
 };
