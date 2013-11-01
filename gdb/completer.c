@@ -915,7 +915,11 @@ line_completion_function (const char *text, int matches,
 
 #if defined(TUI)
 	  if (tui_active)
-	    tui_puts ("\nToo many possibilities.\n"); // XXX
+	    {
+	      tui_puts ("\n");
+	      tui_puts ("Too many possibilities."); // XXX
+	      tui_puts ("\n");
+	    }
 	  else
 #endif
 	    {
