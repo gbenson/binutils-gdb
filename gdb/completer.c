@@ -862,6 +862,8 @@ line_completion_function (const char *text, int matches,
 
   if (matches == 0)
     {
+      volatile struct gdb_exception ex;
+
       /* The caller is beginning to accumulate a new set of
          completions, so we need to find all of them now, and cache
          them for returning one at a time on future calls.  */
@@ -875,7 +877,30 @@ line_completion_function (const char *text, int matches,
 	  VEC_free (char_ptr, list);
 	}
       index = 0;
-      list = complete_line (text, line_buffer, point);
+
+      TRY_CATCH (ex, RETURN_MASK_ALL)
+	list = complete_line (text, line_buffer, point);
+
+      if (ex.reason < 0)
+	{
+	  if (list)
+	    {
+	      int i;
+	      char *item;
+
+	      /* Free the storage used by LIST, including the strings
+		 inside which are not going to be passed to readline.  */
+	      for (i = 0; VEC_iterate (char_ptr, list, i, item); i++)
+		xfree (item);
+
+	      VEC_free (char_ptr, list);
+
+	      list = NULL;
+	    }
+
+	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
+	    throw_exception (ex);
+	}
     }
 
   /* If we found a list of potential completions during initialization
