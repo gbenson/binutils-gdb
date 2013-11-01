@@ -757,6 +757,13 @@ complete_line_internal (const char *text,
 	}
     }
 
+  /* Check for overly large result sets.  The specific completers may
+     throw TOO_MANY_COMPLETIONS_ERROR to avoid doing unnecessary work,
+     but this is the ultimate test to ensure the user doesn't ever see
+     more completions than they wanted.  */
+  if (VEC_length (char_ptr, list) > 1000)
+    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
+
   return list;
 }
 /* Generate completions all at once.  Returns a vector of strings.

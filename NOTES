@@ -162,3 +162,6 @@
 
 18. To test for big lists without entering location_completer,
     try "source ~/.dslwatch/13771/<Tab><Tab>".
+
+19. It IS a problem that the signal for too many completions (beep,
+    print nothing) is the same as the signal for no completions.
