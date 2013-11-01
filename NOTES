@@ -146,3 +146,16 @@
     herring as there is no utility in building a giant list of
     completions--nobody is going to bother scrolling through a
     huge list.
+
+17. When you're in there, it looks like this:
+
+      default_make_symbol_completion_list_break_on  gdb/symtab.c:4289
+      default_make_symbol_completion_list           gdb/symtab.c:4512
+      make_symbol_completion_list                   gdb/symtab.c:4522
+      location_completer                            gdb/completer.c:268
+      complete_line_internal                        gdb/completer.c:682
+      complete_line                                 gdb/completer.c:777
+      line_completion_function                      gdb/completer.c:878
+      readline_line_completion_function             gdb/completer.c:102
+      rl_completion_matches                         readline/complete.c:1997
+      ...
