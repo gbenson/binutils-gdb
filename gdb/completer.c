@@ -895,6 +895,10 @@ line_completion_function (const char *text, int matches,
 
       if (ex.reason < 0)
 	{
+	  const char *basic = "Too many possibilities";
+	  static const char *extra = " (see \"help set max-completions\")";
+	  char msg[64];
+
 	  if (list)
 	    {
 	      int i;
@@ -913,18 +917,21 @@ line_completion_function (const char *text, int matches,
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
 
+	  xsnprintf (msg, sizeof(msg), "%s%s.", basic, extra);
+	  extra = "";
+
 #if defined(TUI)
 	  if (tui_active)
 	    {
 	      tui_puts ("\n");
-	      tui_puts ("Too many possibilities."); // XXX
+	      tui_puts (msg);
 	      tui_puts ("\n");
 	    }
 	  else
 #endif
 	    {
 	      rl_crlf ();
-	      fprintf (rl_outstream, "Too many possibilities."); // XXX
+	      fputs (msg, rl_outstream);
 	      rl_crlf ();
 	    }
 
