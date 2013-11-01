@@ -159,3 +159,6 @@
       readline_line_completion_function             gdb/completer.c:102
       rl_completion_matches                         readline/complete.c:1997
       ...
+
+18. To test for big lists without entering location_completer,
+    try "source ~/.dslwatch/13771/<Tab><Tab>".
