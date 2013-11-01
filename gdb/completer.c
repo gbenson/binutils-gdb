@@ -915,15 +915,16 @@ line_completion_function (const char *text, int matches,
 
 #if defined(TUI)
 	  if (tui_active)
-	    tui_puts ("\nToo many possibilities.\n");
+	    tui_puts ("\nToo many possibilities.\n"); // XXX
 	  else
 #endif
 	    {
 	      rl_crlf ();
 	      fprintf (rl_outstream, "Too many possibilities."); // XXX
 	      rl_crlf ();
-	      rl_forced_update_display ();
 	    }
+
+	  rl_on_new_line ();
 	}
     }
 
