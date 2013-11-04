@@ -773,7 +773,7 @@ complete_line_internal (const char *text,
 }
 /* Generate completions all at once.  Returns a vector of strings.
    Each element is allocated with xmalloc.  It can also return NULL if
-   there are no completions.
+   there are no completions, and XXX.
 
    TEXT is the caller's idea of the "word" we are looking at.
 
@@ -895,10 +895,6 @@ line_completion_function (const char *text, int matches,
 
       if (ex.reason < 0)
 	{
-	  const char *basic = "Too many possibilities";
-	  static const char *extra = " (see \"help set max-completions\")";
-	  char msg[64];
-
 	  if (list)
 	    {
 	      int i;
@@ -917,21 +913,18 @@ line_completion_function (const char *text, int matches,
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
 
-	  xsnprintf (msg, sizeof(msg), "%s%s.", basic, extra);
-	  extra = "";
-
 #if defined(TUI)
 	  if (tui_active)
 	    {
 	      tui_puts ("\n");
-	      tui_puts (msg);
+	      tui_puts (ex.message);
 	      tui_puts ("\n");
 	    }
 	  else
 #endif
 	    {
 	      rl_crlf ();
-	      fputs (msg, rl_outstream);
+	      fputs (ex.message, rl_outstream);
 	      rl_crlf ();
 	    }
 
@@ -1030,7 +1023,16 @@ void
 limit_completions (int num_completions)
 {
   if (max_completions >= 0 && num_completions > max_completions)
-    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
+    {
+      const char *basic = "Too many possibilities";
+      static const char *extra = " (see \"help set max-completions\")";
+      char msg[64];
+
+      xsnprintf (msg, sizeof(msg), "%s%s.", basic, extra);
+      extra = "";
+
+      throw_error (TOO_MANY_COMPLETIONS_ERROR, "%s", msg);
+    }
 }
 
 extern initialize_file_ftype _initialize_completer; /* -Wmissing-prototypes */
