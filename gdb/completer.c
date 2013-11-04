@@ -773,7 +773,7 @@ complete_line_internal (const char *text,
 }
 /* Generate completions all at once.  Returns a vector of strings.
    Each element is allocated with xmalloc.  It can also return NULL if
-   there are no completions, and XXX.
+   there are no completions.
 
    TEXT is the caller's idea of the "word" we are looking at.
 
