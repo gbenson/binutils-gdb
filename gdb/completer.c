@@ -890,26 +890,12 @@ line_completion_function (const char *text, int matches,
 	}
       index = 0;
 
+      list = NULL;
       TRY_CATCH (ex, RETURN_MASK_ALL)
 	list = complete_line (text, line_buffer, point);
 
       if (ex.reason < 0)
 	{
-	  if (list)
-	    {
-	      int i;
-	      char *item;
-
-	      /* Free the storage used by LIST, including the strings
-		 inside which are not going to be passed to readline.  */
-	      for (i = 0; VEC_iterate (char_ptr, list, i, item); i++)
-		xfree (item);
-
-	      VEC_free (char_ptr, list);
-
-	      list = NULL;
-	    }
-
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
 
