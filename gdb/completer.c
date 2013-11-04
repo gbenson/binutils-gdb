@@ -762,13 +762,6 @@ complete_line_internal (const char *text,
 	}
     }
 
-  /* Check for overly large result sets.  The specific completers may
-     do this too, to avoid unnecessary work, but this is the ultimate
-     test to ensure the user doesn't ever see more completions than
-     they wanted.  */
-  if (reason != handle_brkchars)
-    limit_completions (VEC_length (char_ptr, list));
-
   return list;
 }
 /* Generate completions all at once.  Returns a vector of strings.
@@ -786,8 +779,18 @@ complete_line_internal (const char *text,
 VEC (char_ptr) *
 complete_line (const char *text, char *line_buffer, int point)
 {
-  return complete_line_internal (text, line_buffer, 
+  VEC (char_ptr) *list = NULL;
+
+  list = complete_line_internal (text, line_buffer,
 				 point, handle_completions);
+
+  /* Throw TOO_MANY_COMPLETIONS_ERROR if the result set is overly
+     large.  The specific completers may do this too, to avoid
+     unnecessary work, but this is the ultimate check that user
+     doesn't ever see more completions than they wanted.  */
+  limit_completions (VEC_length (char_ptr, list));
+
+  return list;
 }
 
 /* Complete on command names.  Used by "help".  */
