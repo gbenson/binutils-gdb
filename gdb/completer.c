@@ -766,7 +766,8 @@ complete_line_internal (const char *text,
      do this too, to avoid unnecessary work, but this is the ultimate
      test to ensure the user doesn't ever see more completions than
      they wanted.  */
-  limit_completions (VEC_length (char_ptr, list));
+  if (reason != handle_brkchars)
+    limit_completions (VEC_length (char_ptr, list));
 
   return list;
 }
