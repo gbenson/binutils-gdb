@@ -769,8 +769,10 @@ complete_line_internal (const char *text,
 static int max_completions = 1000;
 
 /* Generate completions all at once.  Returns a vector of strings.
-   Each element is allocated with xmalloc.  It can also return NULL if
-   there are no completions.
+   allocated with xmalloc.  Returns NULL if there are no completions
+   or if max_completions is 0.  Throws TOO_MANY_COMPLETIONS_ERROR if
+   max_completions is greater than zero and the number of completions
+   is greater than max_completions.
 
    TEXT is the caller's idea of the "word" we are looking at.
 
@@ -790,10 +792,11 @@ complete_line (const char *text, char *line_buffer, int point)
       list = complete_line_internal (text, line_buffer,
 				     point, handle_completions);
 
-      /* Throw TOO_MANY_COMPLETIONS_ERROR if the result set is overly
-	 large.  The specific completers may do this too, to avoid
-	 unnecessary work, but this is the ultimate check that user
-	 doesn't ever see more completions than they wanted.  */
+      /* Throw TOO_MANY_COMPLETIONS_ERROR if the resulting list is
+	 larger than the user requires.  Individual completers may
+	 do this too, to avoid unnecessary work, but this is the
+	 ultimate check that user never sees more completions than
+	 they wanted.  */
       limit_completions (VEC_length (char_ptr, list));
     }
 
