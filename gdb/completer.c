@@ -90,9 +90,6 @@ static char *gdb_completer_file_name_break_characters = " \t\n*|\"';:?><";
    we can't include '"' because the gdb C parser treats such quoted
    sequences as strings.  */
 static char *gdb_completer_quote_characters = "'";
-
-/* XXX.  */
-static int max_completions = 1000;
 
 /* Accessor for some completer data that may interest other files.  */
 
@@ -766,11 +763,10 @@ complete_line_internal (const char *text,
     }
 
   /* Check for overly large result sets.  The specific completers may
-     throw TOO_MANY_COMPLETIONS_ERROR to avoid doing unnecessary work,
-     but this is the ultimate test to ensure the user doesn't ever see
-     more completions than they wanted.  */
-  if (VEC_length (char_ptr, list) > 1000)
-    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
+     do this too, to avoid unnecessary work, but this is the ultimate
+     test to ensure the user doesn't ever see more completions than
+     they wanted.  */
+  limit_completions (VEC_length (char_ptr, list));
 
   return list;
 }
@@ -1022,6 +1018,18 @@ const char *
 skip_quoted (const char *str)
 {
   return skip_quoted_chars (str, NULL, NULL);
+}
+
+/* XXX.  */
+static int max_completions = 1000;
+
+/* XXX. */
+
+void
+limit_completions (int num_completions)
+{
+  if (max_completions >= 0 && num_completions > max_completions)
+    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
 }
 
 extern initialize_file_ftype _initialize_completer; /* -Wmissing-prototypes */

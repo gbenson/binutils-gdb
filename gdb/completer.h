@@ -48,6 +48,8 @@ extern char *get_gdb_completer_quote_characters (void);
 
 extern char *gdb_completion_word_break_characters (void);
 
+extern void limit_completions (int);
+
 /* Exported to linespec.c */
 
 extern const char *skip_quoted_chars (const char *, const char *,

@@ -64,6 +64,7 @@
 #include "psymtab.h"
 #include "psympriv.h"
 #include "parser-defs.h"
+#include "completer.h"
 
 /* Prototypes for local functions */
 
@@ -4249,8 +4250,7 @@ halt_large_expansions (struct objfile *objfile,
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
   datum->XXX_count += pst->n_global_syms;
-  if (datum->XXX_count > 1000)
-    throw_error (TOO_MANY_COMPLETIONS_ERROR, "Too many completions.");
+  limit_completions (datum->XXX_count);
 
   /* XXX I think this catches the worst case, in that at least N
      possibilities will be presented to the user.  I don't think
