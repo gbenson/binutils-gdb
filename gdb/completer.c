@@ -764,6 +764,10 @@ complete_line_internal (const char *text,
 
   return list;
 }
+
+/* XXX.  */
+static int max_completions = 1000;
+
 /* Generate completions all at once.  Returns a vector of strings.
    Each element is allocated with xmalloc.  It can also return NULL if
    there are no completions.
@@ -781,14 +785,17 @@ complete_line (const char *text, char *line_buffer, int point)
 {
   VEC (char_ptr) *list = NULL;
 
-  list = complete_line_internal (text, line_buffer,
-				 point, handle_completions);
+  if (max_completions != 0)
+    {
+      list = complete_line_internal (text, line_buffer,
+				     point, handle_completions);
 
-  /* Throw TOO_MANY_COMPLETIONS_ERROR if the result set is overly
-     large.  The specific completers may do this too, to avoid
-     unnecessary work, but this is the ultimate check that user
-     doesn't ever see more completions than they wanted.  */
-  limit_completions (VEC_length (char_ptr, list));
+      /* Throw TOO_MANY_COMPLETIONS_ERROR if the result set is overly
+	 large.  The specific completers may do this too, to avoid
+	 unnecessary work, but this is the ultimate check that user
+	 doesn't ever see more completions than they wanted.  */
+      limit_completions (VEC_length (char_ptr, list));
+    }
 
   return list;
 }
@@ -1002,9 +1009,6 @@ skip_quoted (const char *str)
 {
   return skip_quoted_chars (str, NULL, NULL);
 }
-
-/* XXX.  */
-static int max_completions = 1000;
 
 /* XXX. */
 
