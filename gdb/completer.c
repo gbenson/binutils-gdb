@@ -789,8 +789,11 @@ complete_line (const char *text, char *line_buffer, int point)
 
   if (max_completions != 0)
     {
+      struct cleanup *back_to;
+
       list = complete_line_internal (text, line_buffer,
 				     point, handle_completions);
+      back_to = make_cleanup_free_char_ptr_vec (list);
 
       /* Throw TOO_MANY_COMPLETIONS_ERROR if the resulting list is
 	 larger than the user requires.  Individual completers may
@@ -798,6 +801,8 @@ complete_line (const char *text, char *line_buffer, int point)
 	 ultimate check that user never sees more completions than
 	 they wanted.  */
       limit_completions (VEC_length (char_ptr, list));
+
+      discard_cleanups (back_to);
     }
 
   return list;
