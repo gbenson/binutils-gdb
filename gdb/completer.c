@@ -770,7 +770,7 @@ complete_line_internal (const char *text,
    no limiting will be performed.  */
 static int max_completions = 1000;
 
-/* Generate completions all at once.  Returns a vector of strings.
+/* Generate completions all at once.  Returns a vector of strings
    allocated with xmalloc.  Returns NULL if there are no completions
    or if max_completions is 0.  Throws TOO_MANY_COMPLETIONS_ERROR if
    max_completions is greater than zero and the number of completions
