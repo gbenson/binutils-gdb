@@ -917,22 +917,25 @@ line_completion_function (const char *text, int matches,
 	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
 	    throw_exception (ex);
 
+	  if (rl_completion_type != TAB)
+	    {
 #if defined(TUI)
-	  if (tui_active)
-	    {
-	      tui_puts ("\n");
-	      tui_puts (ex.message);
-	      tui_puts ("\n");
-	    }
-	  else
+	      if (tui_active)
+		{
+		  tui_puts ("\n");
+		  tui_puts (ex.message);
+		  tui_puts ("\n");
+		}
+	      else
 #endif
-	    {
-	      rl_crlf ();
-	      fputs (ex.message, rl_outstream);
-	      rl_crlf ();
-	    }
+		{
+		  rl_crlf ();
+		  fputs (ex.message, rl_outstream);
+		  rl_crlf ();
+		}
 
-	  rl_on_new_line ();
+	      rl_on_new_line ();
+	    }
 	}
     }
 
