@@ -1052,6 +1052,7 @@ Set maximum number of line completion possibilities."), _("\
 Show maximum number of line completion possibilities."), _("\
 Use this to limit the number of possibilities considered\n\
 during line completion.  Specifying \"unlimited\" or -1\n\
-disables any attempt to limit the number of possibilities."),
+disables limiting.  Note that setting either no limit or\n\
+a very large limit can cause pauses during completion."),
 				       NULL, NULL, &setlist, &showlist);
 }

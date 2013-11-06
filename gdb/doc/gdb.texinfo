@@ -1597,7 +1597,7 @@ key designated as the @key{META} shift on your keyboard (if there is
 one) while typing @kbd{?}, or as @key{ESC} followed by @kbd{?}.
 
 If the number of possible completions is large, @value{GDBN} will
-print an error message rather than displaying a list:
+print a message rather than displaying the list:
 
 @smallexample
 (@value{GDBP}) b @key{TAB}@key{TAB}
@@ -1612,9 +1612,8 @@ This behavior can be controlled with the following commands:
 @item set max-completions @var{limit}
 @itemx set max-completions unlimited
 Set the maximum number of possibilities to be considered during
-completion.  The default value is 1000.  Note that very large or
-unlimited values of @code{max-completions} can cause @value{GDBN}
-to become temporarily unresponsive during completion.
+completion.  The default value is 1000.  Note that setting either
+no limit or a very large limit can cause pauses during completion.
 @kindex show max-completions
 @item show max-completions
 Show the maximum number of possibilities to be considered during
