@@ -797,11 +797,10 @@ complete_line (const char *text, char *line_buffer, int point)
 				     point, handle_completions);
       back_to = make_cleanup_free_char_ptr_vec (list);
 
-      /* Throw TOO_MANY_COMPLETIONS_ERROR if the resulting list is
-	 larger than the user requires.  Individual completers may
-	 do this too, to avoid unnecessary work, but this is the
-	 ultimate check that user never sees more completions than
-	 they wanted.  */
+      /* Possibly throw TOO_MANY_COMPLETIONS_ERROR.  Individual
+	 completers may do this too, to avoid unnecessary work,
+	 but this is the ultimate check that stops users seeing
+	 more completions than they wanted.  */
       limit_completions (VEC_length (char_ptr, list));
 
       discard_cleanups (back_to);
@@ -1022,7 +1021,9 @@ skip_quoted (const char *str)
   return skip_quoted_chars (str, NULL, NULL);
 }
 
-/* Throw TOO_MANY_COMPLETIONS_ERROR if NUM_COMPLETIONS is large. */
+/* Throw TOO_MANY_COMPLETIONS_ERROR if max_completions is greater than
+   zero and NUM_COMPLETIONS is greater than max_completions.  Negative
+   values of max_completions disable limiting.  */
 
 void
 limit_completions (int num_completions)
