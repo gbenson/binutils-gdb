@@ -765,7 +765,9 @@ complete_line_internal (const char *text,
   return list;
 }
 
-/* XXX.  */
+/* Maximum number of possibilities to consider before the completer
+   bails by throwing TOO_MANY_COMPLETIONS_ERROR.  If set to -1 then
+   no limiting will be performed.  */
 static int max_completions = 1000;
 
 /* Generate completions all at once.  Returns a vector of strings.
@@ -1021,7 +1023,7 @@ skip_quoted (const char *str)
   return skip_quoted_chars (str, NULL, NULL);
 }
 
-/* XXX. */
+/* Throw TOO_MANY_COMPLETIONS_ERROR if NUM_COMPLETIONS is large. */
 
 void
 limit_completions (int num_completions)

@@ -4213,7 +4213,7 @@ struct add_name_data
   int sym_text_len;
   const char *text;
   const char *word;
-  int XXX_count;
+  int n_global_syms;
 };
 
 /* A callback used with macro_for_each and macro_for_each_in_scope.
@@ -4241,7 +4241,12 @@ expand_partial_symbol_name (const char *name, void *user_data)
   return compare_symbol_name (name, datum->sym_text, datum->sym_text_len);
 }
 
-/* XXX.  */
+/* A callback for expand_partial_symbol_names, used to abort line
+   completion before large numbers of symbols have been expanded.
+   Without this check GDB can appear to lock up during some line
+   completions.  This is an inexact but worst-case check, in that
+   there will be more than the threshold number of completions
+   available by the time limit_completions bails.  */
 
 static void
 halt_large_expansions (struct objfile *objfile,
@@ -4249,12 +4254,8 @@ halt_large_expansions (struct objfile *objfile,
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
-  datum->XXX_count += pst->n_global_syms;
-  limit_completions (datum->XXX_count);
-
-  /* XXX I think this catches the worst case, in that at least N
-     possibilities will be presented to the user.  I don't think
-     global symbols can be duplicated here, though I may be wrong.  */
+  datum->n_global_syms += pst->n_global_syms;
+  limit_completions (datum->n_global_syms);
 }
 
 VEC (char_ptr) *
@@ -4357,7 +4358,7 @@ default_make_symbol_completion_list_break_on (const char *text,
   datum.sym_text_len = sym_text_len;
   datum.text = text;
   datum.word = word;
-  datum.XXX_count = 0;
+  datum.n_global_syms = 0;
 
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
