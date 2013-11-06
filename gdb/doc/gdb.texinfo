@@ -1620,7 +1620,6 @@ Show the maximum number of possibilities to be considered during
 completion.
 @end table
 
-
 @cindex quotes in commands
 @cindex completion of quoted strings
 Sometimes the string you need, while logically a ``word'', may contain
