@@ -910,7 +910,6 @@ line_completion_function (const char *text, int matches,
 	}
       index = 0;
 
-      list = NULL;
       TRY_CATCH (ex, RETURN_MASK_ALL)
 	list = complete_line (text, line_buffer, point);
 
