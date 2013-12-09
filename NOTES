@@ -43,3 +43,13 @@ struct d_print_info is defined in cp-demangle.c, ie not a public
 interface (awesome!)  struct d_print_info is also where the current
 (allocated) array of scopes is stored.  Looks like the perfect
 place to put a fixed-length array.
+
+NB the example in test.c uses 3 d_saved_scopes and 5 d_print_templates.
+
+---
+
+There is one place where scopes are saved: in d_print_comp,
+for case DEMANGLE_COMPONENT_REFERENCE
+and case DEMANGLE_COMPONENT_RVALUE_REFERENCE
+iff (sub->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM
+     AND THE SCOPE HAS NOT ALREADY BEEN SAVED)
