@@ -1,0 +1,45 @@
+Entry points:
+
+cplus_demangle_v3
+  - the one that the little test.c testcase I wrote enters
+  - a one-line wrapper for d_demangle, which allocates a buffer
+
+__cxa_demangle
+  - a slightly more elaborate wrapper for d_demangle
+
+__gcclibcxx_demangle_callback
+  - THIS IS THE ALLOCATIONLESS ONE
+  - it has a callback argument which gets called with
+    demangled string segments
+
+
+One level down:
+  - d_demangle
+    calls d_demangle_callback
+    with d_growable_string_callback_adapter as its callback.
+
+  - __gcclibcxx_demangle_callback
+    calls d_demangle_callback
+    with the callback it was provided by its caller.
+
+So, d_demangle_callback is the common code that needs updating.
+
+d_demangle_callback is static, so I can change its interface.
+
+d_demangle_callback does not appear to call itself.
+d_demangle_callback calls cplus_demangle_print_callback.
+
+cplus_demangle_print_callback is NOT STATIC in some situations,
+so presumably its interface cannot be changed.
+
+cplus_demangle_print_callback also appears not to call itself.
+
+cplus_demangle_print_callback:
+ - initializes a struct d_print_info (on the stack)
+ - calls d_print_comp with it (d_print_comp IS recursive)
+ - tidies up
+
+struct d_print_info is defined in cp-demangle.c, ie not a public
+interface (awesome!)  struct d_print_info is also where the current
+(allocated) array of scopes is stored.  Looks like the perfect
+place to put a fixed-length array.
