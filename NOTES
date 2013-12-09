@@ -53,3 +53,28 @@ for case DEMANGLE_COMPONENT_REFERENCE
 and case DEMANGLE_COMPONENT_RVALUE_REFERENCE
 iff (sub->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM
      AND THE SCOPE HAS NOT ALREADY BEEN SAVED)
+
+---
+
+d_demangle_callback knows:
+ - the mangled symbol (and therefore its length)
+ - the number of comp(onent)s it used
+ - the number of sub(tree)s it used
+
+These numbers cannot be passed to cplus_demangle_print_callback
+without changing the interface.
+
+cplus_demangle_print_callback can't know the number of components
+without walking the tree... so duplicating the tree walk?
+
+What calls d_print_comp?
+[- cplus_demangle_print_callback (obviously)]
+ - d_print_subexpr (starts on line 4048)
+ - d_print_comp
+ - d_print_mod_list
+ - d_print_mod
+ - d_print_function_type
+ - d_print_array_type
+ - d_print_expr_op
+ - d_print_cast (ends on line 5607)
+These guys are the tree walk... a lot of code :(
