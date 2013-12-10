@@ -78,3 +78,21 @@ What calls d_print_comp?
  - d_print_expr_op
  - d_print_cast (ends on line 5607)
 These guys are the tree walk... a lot of code :(
+
+---
+
+d_demangle_callback allocates 846 comps and 423 subs,
+that's 20304 and 3384 bytes respectively.
+
+XXX_shizzle counted 7 scopes and 1906 temps (and 393 comps),
+which would be 112 and 15248 bytes respectively.
+
+Already allocated: 20304 + 3384 = 23688
+Extra:              112 + 15248 = 15360
+                                  -----
+				  39048
+
+Conclusions:
+  - This way of counting requires a smaller but comparable amount
+    of (extra) stack for this particular symbol.
+  - This would likely be tight on a 64k stack.
