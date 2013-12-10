@@ -3798,6 +3798,9 @@ static void
 XXX_shizzle (struct XXX_shizzle_totals *xst,
 	     const struct demangle_component *dc)
 {
+  if (dc == NULL)
+    return;
+
   xst->num_comps++;
 
   switch (dc->type)
