@@ -86,6 +86,6 @@ for branches, labels in branch_labels:
     for tag, label in labels:
         print "    case %s:" % label
     for branch in branches:
-        print "      XXX_shizzle (%s);" % branch
+        print "      XXX_shizzle (xst, %s);" % branch
     print "      break;"
     print

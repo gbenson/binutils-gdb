@@ -3770,6 +3770,127 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
   d_growable_string_append_buffer (dgs, s, l);
 }
 
+/* XXX.  */
+
+struct XXX_shizzle_totals
+{
+  /* XXX.  */
+  int num_comps;
+  /* XXX.  */
+  int num_scopes;
+  /* XXX.  */
+  int num_temps;
+};
+
+/* XXX. */
+
+static void
+XXX_shizzle_totals_init (struct XXX_shizzle_totals *xst)
+{
+  xst->num_comps = 0;
+  xst->num_scopes = 0;
+  xst->num_temps = 0;
+}
+
+/* XXX. */
+
+static void
+XXX_shizzle (struct XXX_shizzle_totals *xst,
+	     const struct demangle_component *dc)
+{
+  xst->num_comps++;
+
+  switch (dc->type)
+    {
+    case DEMANGLE_COMPONENT_NAME:
+    case DEMANGLE_COMPONENT_TEMPLATE_PARAM:
+    case DEMANGLE_COMPONENT_SUB_STD:
+    case DEMANGLE_COMPONENT_BUILTIN_TYPE:
+    case DEMANGLE_COMPONENT_OPERATOR:
+    case DEMANGLE_COMPONENT_CHARACTER:
+      break;
+
+    case DEMANGLE_COMPONENT_QUAL_NAME:
+    case DEMANGLE_COMPONENT_LOCAL_NAME:
+    case DEMANGLE_COMPONENT_TYPED_NAME:
+    case DEMANGLE_COMPONENT_TEMPLATE:
+    case DEMANGLE_COMPONENT_VTABLE:
+    case DEMANGLE_COMPONENT_VTT:
+    case DEMANGLE_COMPONENT_CONSTRUCTION_VTABLE:
+    case DEMANGLE_COMPONENT_TYPEINFO:
+    case DEMANGLE_COMPONENT_TYPEINFO_NAME:
+    case DEMANGLE_COMPONENT_TYPEINFO_FN:
+    case DEMANGLE_COMPONENT_THUNK:
+    case DEMANGLE_COMPONENT_VIRTUAL_THUNK:
+    case DEMANGLE_COMPONENT_COVARIANT_THUNK:
+    case DEMANGLE_COMPONENT_JAVA_CLASS:
+    case DEMANGLE_COMPONENT_GUARD:
+    case DEMANGLE_COMPONENT_TLS_INIT:
+    case DEMANGLE_COMPONENT_TLS_WRAPPER:
+    case DEMANGLE_COMPONENT_REFTEMP:
+    case DEMANGLE_COMPONENT_HIDDEN_ALIAS:
+    case DEMANGLE_COMPONENT_RESTRICT:
+    case DEMANGLE_COMPONENT_VOLATILE:
+    case DEMANGLE_COMPONENT_CONST:
+    case DEMANGLE_COMPONENT_RESTRICT_THIS:
+    case DEMANGLE_COMPONENT_VOLATILE_THIS:
+    case DEMANGLE_COMPONENT_CONST_THIS:
+    case DEMANGLE_COMPONENT_REFERENCE_THIS:
+    case DEMANGLE_COMPONENT_RVALUE_REFERENCE_THIS:
+    case DEMANGLE_COMPONENT_VENDOR_TYPE_QUAL:
+    case DEMANGLE_COMPONENT_POINTER:
+    case DEMANGLE_COMPONENT_REFERENCE:
+    case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
+    case DEMANGLE_COMPONENT_COMPLEX:
+    case DEMANGLE_COMPONENT_IMAGINARY:
+    case DEMANGLE_COMPONENT_VENDOR_TYPE:
+    case DEMANGLE_COMPONENT_FUNCTION_TYPE:
+    case DEMANGLE_COMPONENT_ARRAY_TYPE:
+    case DEMANGLE_COMPONENT_PTRMEM_TYPE:
+    case DEMANGLE_COMPONENT_FIXED_TYPE:
+    case DEMANGLE_COMPONENT_ARGLIST:
+    case DEMANGLE_COMPONENT_TEMPLATE_ARGLIST:
+    case DEMANGLE_COMPONENT_INITIALIZER_LIST:
+    case DEMANGLE_COMPONENT_CAST:
+    case DEMANGLE_COMPONENT_NULLARY:
+    case DEMANGLE_COMPONENT_UNARY:
+    case DEMANGLE_COMPONENT_BINARY:
+    case DEMANGLE_COMPONENT_BINARY_ARGS:
+    case DEMANGLE_COMPONENT_TRINARY:
+    case DEMANGLE_COMPONENT_TRINARY_ARG1:
+    case DEMANGLE_COMPONENT_TRINARY_ARG2:
+    case DEMANGLE_COMPONENT_LITERAL:
+    case DEMANGLE_COMPONENT_LITERAL_NEG:
+    case DEMANGLE_COMPONENT_JAVA_RESOURCE:
+    case DEMANGLE_COMPONENT_COMPOUND_NAME:
+    case DEMANGLE_COMPONENT_DECLTYPE:
+    case DEMANGLE_COMPONENT_TRANSACTION_CLONE:
+    case DEMANGLE_COMPONENT_NONTRANSACTION_CLONE:
+    case DEMANGLE_COMPONENT_PACK_EXPANSION:
+    case DEMANGLE_COMPONENT_TAGGED_NAME:
+      XXX_shizzle (xst, d_left (dc));
+      XXX_shizzle (xst, d_right (dc));
+      break;
+
+    case DEMANGLE_COMPONENT_CTOR:
+      XXX_shizzle (xst, dc->u.s_ctor.name);
+      break;
+
+    case DEMANGLE_COMPONENT_DTOR:
+      XXX_shizzle (xst, dc->u.s_dtor.name);
+      break;
+
+    case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
+      XXX_shizzle (xst, dc->u.s_extended_operator.name);
+      break;
+
+    case DEMANGLE_COMPONENT_LAMBDA:
+    case DEMANGLE_COMPONENT_DEFAULT_ARG:
+      XXX_shizzle (xst, dc->u.s_unary_num.sub);
+      break;
+    }
+}
+
 /* Initialize a print information structure.  */
 
 static void
@@ -3895,8 +4016,13 @@ cplus_demangle_print_callback (int options,
                                const struct demangle_component *dc,
                                demangle_callbackref callback, void *opaque)
 {
+  struct XXX_shizzle_totals xst;
   struct d_print_info dpi;
   int success;
+
+  XXX_shizzle_totals_init (&xst);
+  XXX_shizzle (&xst, dc);
+  printf ("XXX_shizzle counted %d components\n", xst.num_comps);
 
   d_print_init (&dpi, callback, opaque);
 
