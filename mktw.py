@@ -65,3 +65,24 @@ for line in lines:
         caser.push_block()
     caser.push_line(line)
 caser.push_block()
+
+order = {}
+for line in open(os.path.join(root, "include", "demangle.h")).xreadlines():
+    line = line.strip()
+    if not line.startswith("DEMANGLE_COMPONENT_"):
+        continue
+    label = line.rstrip(",")
+    assert not order.has_key(label)
+    order[label] = len(order)
+
+branch_labels = caser.branch_labels.items()
+branch_labels.sort()
+for branches, labels in branch_labels:
+    labels = [(order[label], label) for label in labels]
+    labels.sort()
+    for tag, label in labels:
+        print "    case %s:" % label
+    for branch in branches:
+        print "      XXX_shizzle (%s);" % branch
+    print "      break;"
+    print
