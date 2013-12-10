@@ -3807,10 +3807,13 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     {
     case DEMANGLE_COMPONENT_NAME:
     case DEMANGLE_COMPONENT_TEMPLATE_PARAM:
+    case DEMANGLE_COMPONENT_FUNCTION_PARAM:
     case DEMANGLE_COMPONENT_SUB_STD:
     case DEMANGLE_COMPONENT_BUILTIN_TYPE:
     case DEMANGLE_COMPONENT_OPERATOR:
     case DEMANGLE_COMPONENT_CHARACTER:
+    case DEMANGLE_COMPONENT_NUMBER:
+    case DEMANGLE_COMPONENT_UNNAMED_TYPE:
       break;
 
     case DEMANGLE_COMPONENT_QUAL_NAME:
@@ -3851,6 +3854,7 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_ARRAY_TYPE:
     case DEMANGLE_COMPONENT_PTRMEM_TYPE:
     case DEMANGLE_COMPONENT_FIXED_TYPE:
+    case DEMANGLE_COMPONENT_VECTOR_TYPE:
     case DEMANGLE_COMPONENT_ARGLIST:
     case DEMANGLE_COMPONENT_TEMPLATE_ARGLIST:
     case DEMANGLE_COMPONENT_INITIALIZER_LIST:
@@ -3871,6 +3875,7 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_NONTRANSACTION_CLONE:
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
     case DEMANGLE_COMPONENT_TAGGED_NAME:
+    case DEMANGLE_COMPONENT_CLONE:
       XXX_shizzle (xst, d_left (dc));
       XXX_shizzle (xst, d_right (dc));
       break;
@@ -3885,6 +3890,11 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
 
     case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
       XXX_shizzle (xst, dc->u.s_extended_operator.name);
+      break;
+
+    case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
+    case DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS:
+      XXX_shizzle (xst, d_left (dc));
       break;
 
     case DEMANGLE_COMPONENT_LAMBDA:
