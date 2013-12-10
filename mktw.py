@@ -47,7 +47,10 @@ class Caser:
             start += 1
             limit = body.find(",", start)
             assert limit > start
-            branches.append(body[start:limit])
+            branch = body[start:limit]
+            branches.append(
+                {"dc->u.s_binary.left": "d_left (dc)",
+                 "dc->u.s_binary.right": "d_right (dc)"}.get(branch, branch))
             start = limit + 1
         if falls_through:
             branches.extend(("d_left (dc)", "d_right (dc)"))
