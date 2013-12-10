@@ -3816,6 +3816,15 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_UNNAMED_TYPE:
       break;
 
+    case DEMANGLE_COMPONENT_REFERENCE:
+    case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
+      if (d_left (dc)->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM)
+	{
+	  xst->num_scopes++;
+	  xst->num_temps += xst->num_comps;
+	}
+      /* Fall through.  */
+
     case DEMANGLE_COMPONENT_QUAL_NAME:
     case DEMANGLE_COMPONENT_LOCAL_NAME:
     case DEMANGLE_COMPONENT_TYPED_NAME:
@@ -3845,8 +3854,6 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_RVALUE_REFERENCE_THIS:
     case DEMANGLE_COMPONENT_VENDOR_TYPE_QUAL:
     case DEMANGLE_COMPONENT_POINTER:
-    case DEMANGLE_COMPONENT_REFERENCE:
-    case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
     case DEMANGLE_COMPONENT_COMPLEX:
     case DEMANGLE_COMPONENT_IMAGINARY:
     case DEMANGLE_COMPONENT_VENDOR_TYPE:
@@ -4035,7 +4042,8 @@ cplus_demangle_print_callback (int options,
 
   XXX_shizzle_totals_init (&xst);
   XXX_shizzle (&xst, dc);
-  printf ("XXX_shizzle counted %d components\n", xst.num_comps);
+  printf ("XXX_shizzle: %d comps, %d scopes, %d temps\n",
+	  xst.num_comps, xst.num_scopes, xst.num_temps);
 
   d_print_init (&dpi, callback, opaque);
 
