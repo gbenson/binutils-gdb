@@ -3775,6 +3775,10 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
 struct XXX_shizzle_totals
 {
   /* XXX.  */
+  void *scopes;
+  /* XXX.  */
+  int max_scopes;
+  /* XXX.  */
   int num_comps;
   /* XXX.  */
   int num_scopes;
@@ -3820,8 +3824,13 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
       if (d_left (dc)->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM)
 	{
-	  xst->num_scopes++;
-	  xst->num_temps += xst->num_comps;
+	  if (xst->scopes == NULL)
+	    xst->max_scopes++;
+	  else
+	    {
+	      xst->num_scopes++;
+	      xst->num_temps += xst->num_comps;
+	    }
 	}
       /* Fall through.  */
 
@@ -3909,6 +3918,20 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
       XXX_shizzle (xst, dc->u.s_unary_num.sub);
       break;
     }
+}
+
+static void
+XXX_dizzle (int *num_scopes, int *num_temps,
+	    const struct demangle_component *dc)
+{
+  struct XXX_shizzle_totals xst;
+
+  /* First pass, count possible scopes.  */
+  xst.scopes = NULL;
+  xst.max_scopes = 0;
+  XXX_shizzle (&xst, dc);
+
+  printf ("XXX_shizzle: max_scopes = %d\n", xst.max_scopes);
 }
 
 /* Initialize a print information structure.  */
@@ -4036,14 +4059,12 @@ cplus_demangle_print_callback (int options,
                                const struct demangle_component *dc,
                                demangle_callbackref callback, void *opaque)
 {
-  struct XXX_shizzle_totals xst;
   struct d_print_info dpi;
+  int num_scopes, num_temps;
   int success;
 
-  XXX_shizzle_totals_init (&xst);
-  XXX_shizzle (&xst, dc);
-  printf ("XXX_shizzle: %d comps, %d scopes, %d temps\n",
-	  xst.num_comps, xst.num_scopes, xst.num_temps);
+  XXX_dizzle (&num_scopes, &num_temps, dc);
+  printf ("XXX_dizzle: %d scopes, %d temps\n", num_scopes, num_temps);
 
   d_print_init (&dpi, callback, opaque);
 
