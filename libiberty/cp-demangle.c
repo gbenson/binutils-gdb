@@ -3781,8 +3781,8 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
 /* XXX. */
 
 static void
-XXX_shizzle (int *num_scopes, int *num_temps,
-	     const struct demangle_component *dc)
+d_count_templates_scopes (int *num_templates, int *num_scopes,
+			  const struct demangle_component *dc)
 {
   if (dc == NULL)
     return;
@@ -3801,7 +3801,7 @@ XXX_shizzle (int *num_scopes, int *num_temps,
       break;
 
     case DEMANGLE_COMPONENT_TEMPLATE:
-      (*num_temps)++;
+      (*num_templates)++;
       goto recurse_left_right;
 
     case DEMANGLE_COMPONENT_REFERENCE:
@@ -3868,30 +3868,37 @@ XXX_shizzle (int *num_scopes, int *num_temps,
     case DEMANGLE_COMPONENT_TAGGED_NAME:
     case DEMANGLE_COMPONENT_CLONE:
     recurse_left_right:
-      XXX_shizzle (num_scopes, num_temps, d_left (dc));
-      XXX_shizzle (num_scopes, num_temps, d_right (dc));
+      d_count_templates_scopes (num_templates, num_scopes,
+				d_left (dc));
+      d_count_templates_scopes (num_templates, num_scopes,
+				d_right (dc));
       break;
 
     case DEMANGLE_COMPONENT_CTOR:
-      XXX_shizzle (num_scopes, num_temps, dc->u.s_ctor.name);
+      d_count_templates_scopes (num_templates, num_scopes,
+				dc->u.s_ctor.name);
       break;
 
     case DEMANGLE_COMPONENT_DTOR:
-      XXX_shizzle (num_scopes, num_temps, dc->u.s_dtor.name);
+      d_count_templates_scopes (num_templates, num_scopes,
+				dc->u.s_dtor.name);
       break;
 
     case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
-      XXX_shizzle (num_scopes, num_temps, dc->u.s_extended_operator.name);
+      d_count_templates_scopes (num_templates, num_scopes,
+				dc->u.s_extended_operator.name);
       break;
 
     case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
     case DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS:
-      XXX_shizzle (num_scopes, num_temps, d_left (dc));
+      d_count_templates_scopes (num_templates, num_scopes,
+				d_left (dc));
       break;
 
     case DEMANGLE_COMPONENT_LAMBDA:
     case DEMANGLE_COMPONENT_DEFAULT_ARG:
-      XXX_shizzle (num_scopes, num_temps, dc->u.s_unary_num.sub);
+      d_count_templates_scopes (num_templates, num_scopes,
+				dc->u.s_unary_num.sub);
       break;
     }
 }
@@ -3900,7 +3907,8 @@ XXX_shizzle (int *num_scopes, int *num_temps,
 
 static void
 d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
-	      void *opaque, int num_saved_scopes, int num_copy_templates)
+	      void *opaque, int num_saved_scopes,
+	      int num_copy_templates)
 {
   dpi->len = 0;
   dpi->last_char = '\0';
@@ -4007,10 +4015,9 @@ cplus_demangle_print_callback (int options,
                                demangle_callbackref callback, void *opaque)
 {
   struct d_print_info dpi;
-  int num_scopes = 0;
-  int num_templates = 0;
+  int num_templates = 0, num_scopes = 0;
 
-  XXX_shizzle (&num_scopes, &num_templates, dc);
+  d_count_templates_scopes (&num_templates, &num_scopes, dc);
   printf ("XXX_shizzle counted %d scopes and %d templates\n",
 	  num_scopes, num_templates);
 
