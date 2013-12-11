@@ -329,8 +329,16 @@ struct d_print_info
   unsigned long int flush_count;
   /* Array of saved scopes for evaluating substitutions.  */
   struct d_saved_scope *saved_scopes;
-  /* Number of saved scopes in the above array.  */
+  /* XXX.  */
+  int next_saved_scope;
+  /* XXX.  */
   int num_saved_scopes;
+  /* XXX.  */
+  struct d_print_template *copy_templates;
+  /* XXX.  */
+  int next_copy_template;
+  /* XXX.  */
+  int num_copy_templates;
   /* The nearest enclosing template, if any.  */
   const struct demangle_component *current_template;
 };
@@ -475,7 +483,7 @@ static void
 d_growable_string_callback_adapter (const char *, size_t, void *);
 
 static void
-d_print_init (struct d_print_info *, demangle_callbackref, void *);
+d_print_init (struct d_print_info *, demangle_callbackref, void *, int, int);
 
 static inline void d_print_error (struct d_print_info *);
 
@@ -3770,65 +3778,14 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
   d_growable_string_append_buffer (dgs, s, l);
 }
 
-/* XXX.  */
-
-enum XXX_shizzle_action
-{
-  /* XXX.  */
-  XXXS_ACTION_COUNT_MAX_SCOPES,
-  /* XXX.  */
-  XXXS_ACTION_COUNT_SCOPES_TEMPS,
-};
-
-/* XXX.  */
-
-struct XXX_shizzle_totals
-{
-  /* XXX.  */
-  enum XXX_shizzle_action action;
-  /* XXX.  */
-  const struct demangle_component **scopes;
-  /* XXX.  */
-  int max_scopes;
-  /* XXX.  */
-  int num_scopes;
-  /* XXX.  */
-  int num_comps;
-  /* XXX.  */
-  int num_temps;
-};
-
 /* XXX. */
 
 static void
-XXX_shizzle (struct XXX_shizzle_totals *xst,
-	     const struct demangle_component *dc, int possible_sub)
+XXX_shizzle (int *num_scopes, int *num_temps,
+	     const struct demangle_component *dc)
 {
   if (dc == NULL)
     return;
-
-  if (xst->action == XXXS_ACTION_COUNT_SCOPES_TEMPS)
-    {
-      if (possible_sub)
-	{
-	  int i;
-
-	  /* XXX have we seen it already?  */
-	  for (i = 0; i < xst->num_scopes; i++)
-	    if (dc == xst->scopes[i])
-	      return;
-
-	  /* XXX no we haven't.  */
-	  if (xst->num_scopes >= xst->max_scopes)
-	    return; // XXX
-	  xst->scopes[xst->num_scopes] = dc;
-	  xst->num_scopes++;
-
-	  xst->num_temps += xst->num_comps;
-	}
-
-      xst->num_comps++;
-    }
 
   switch (dc->type)
     {
@@ -3843,21 +3800,19 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_UNNAMED_TYPE:
       break;
 
+    case DEMANGLE_COMPONENT_TEMPLATE:
+      (*num_temps)++;
+      goto recurse_left_right;
+
     case DEMANGLE_COMPONENT_REFERENCE:
     case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
       if (d_left (dc)->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM)
-	{
-	  if (xst->action == XXXS_ACTION_COUNT_MAX_SCOPES)
-	    xst->max_scopes++;
-	  else
-	    possible_sub = 1;
-	}
-      /* Fall through.  */
+	(*num_scopes)++;
+      goto recurse_left_right;
 
     case DEMANGLE_COMPONENT_QUAL_NAME:
     case DEMANGLE_COMPONENT_LOCAL_NAME:
     case DEMANGLE_COMPONENT_TYPED_NAME:
-    case DEMANGLE_COMPONENT_TEMPLATE:
     case DEMANGLE_COMPONENT_VTABLE:
     case DEMANGLE_COMPONENT_VTT:
     case DEMANGLE_COMPONENT_CONSTRUCTION_VTABLE:
@@ -3912,70 +3867,40 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
     case DEMANGLE_COMPONENT_TAGGED_NAME:
     case DEMANGLE_COMPONENT_CLONE:
-      XXX_shizzle (xst, d_left (dc), possible_sub);
-      XXX_shizzle (xst, d_right (dc), 0);
+    recurse_left_right:
+      XXX_shizzle (num_scopes, num_temps, d_left (dc));
+      XXX_shizzle (num_scopes, num_temps, d_right (dc));
       break;
 
     case DEMANGLE_COMPONENT_CTOR:
-      XXX_shizzle (xst, dc->u.s_ctor.name, 0);
+      XXX_shizzle (num_scopes, num_temps, dc->u.s_ctor.name);
       break;
 
     case DEMANGLE_COMPONENT_DTOR:
-      XXX_shizzle (xst, dc->u.s_dtor.name, 0);
+      XXX_shizzle (num_scopes, num_temps, dc->u.s_dtor.name);
       break;
 
     case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
-      XXX_shizzle (xst, dc->u.s_extended_operator.name, 0);
+      XXX_shizzle (num_scopes, num_temps, dc->u.s_extended_operator.name);
       break;
 
     case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
     case DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS:
-      XXX_shizzle (xst, d_left (dc), 0);
+      XXX_shizzle (num_scopes, num_temps, d_left (dc));
       break;
 
     case DEMANGLE_COMPONENT_LAMBDA:
     case DEMANGLE_COMPONENT_DEFAULT_ARG:
-      XXX_shizzle (xst, dc->u.s_unary_num.sub, 0);
+      XXX_shizzle (num_scopes, num_temps, dc->u.s_unary_num.sub);
       break;
     }
-}
-
-static void
-XXX_dizzle (int *num_scopes, int *num_temps,
-	    const struct demangle_component *dc)
-{
-  struct XXX_shizzle_totals xst;
-
-  /* First pass, count possible scopes.  */
-  xst.action = XXXS_ACTION_COUNT_MAX_SCOPES;
-  xst.max_scopes = 0;
-  XXX_shizzle (&xst, dc, 0);
-  printf ("XXX_shizzle: max_scopes = %d\n", xst.max_scopes);
-
-  /* Second pass, XXX.  */
-  xst.action = XXXS_ACTION_COUNT_SCOPES_TEMPS;
-  {
-#ifdef CP_DYNAMIC_ARRAYS
-    __extension__ const struct demangle_component *scopes[xst.max_scopes];
-
-    xst.scopes = scopes;
-#else
-    xst.scopes = alloca (xst.max_scopes * sizeof (*xst.scopes));
-#endif
-    xst.num_scopes = 0;
-    xst.num_comps = 0;
-    xst.num_temps = 0;
-    XXX_shizzle (&xst, dc, 0);
-    printf ("XXX_shizzle: comps = %d, scopes = %d, temps = %d\n",
-	    xst.num_comps, xst.num_scopes, xst.num_temps);
-  }
 }
 
 /* Initialize a print information structure.  */
 
 static void
 d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
-	      void *opaque)
+	      void *opaque, int num_saved_scopes, int num_copy_templates)
 {
   dpi->len = 0;
   dpi->last_char = '\0';
@@ -3990,29 +3915,14 @@ d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
   dpi->demangle_failure = 0;
 
   dpi->saved_scopes = NULL;
-  dpi->num_saved_scopes = 0;
+  dpi->next_saved_scope = 0;
+  dpi->num_saved_scopes = num_saved_scopes;
+
+  dpi->copy_templates = NULL;
+  dpi->next_copy_template = 0;
+  dpi->num_copy_templates = num_copy_templates;
+
   dpi->current_template = NULL;
-}
-
-/* Free a print information structure.  */
-
-static void
-d_print_free (struct d_print_info *dpi)
-{
-  int i;
-
-  for (i = 0; i < dpi->num_saved_scopes; i++)
-    {
-      struct d_print_template *ts, *tn;
-
-      for (ts = dpi->saved_scopes[i].templates; ts != NULL; ts = tn)
-	{
-	  tn = ts->next;
-	  free (ts);
-	}
-    }
-
-  free (dpi->saved_scopes);
 }
 
 /* Indicate that an error occurred during printing, and test for error.  */
@@ -4097,21 +4007,23 @@ cplus_demangle_print_callback (int options,
                                demangle_callbackref callback, void *opaque)
 {
   struct d_print_info dpi;
-  int num_scopes, num_temps;
-  int success;
+  int num_scopes = 0;
+  int num_templates = 0;
 
-  XXX_dizzle (&num_scopes, &num_temps, dc);
-  printf ("XXX_dizzle: %d scopes, %d temps\n", num_scopes, num_temps);
+  XXX_shizzle (&num_scopes, &num_templates, dc);
+  printf ("XXX_shizzle counted %d scopes and %d templates\n",
+	  num_scopes, num_templates);
 
-  d_print_init (&dpi, callback, opaque);
+  d_print_init (&dpi, callback, opaque, num_scopes,
+		num_scopes * num_templates);
+  printf ("Allocating %d scopes and %d templates\n",
+	  dpi.num_saved_scopes, dpi.num_copy_templates);
 
   d_print_comp (&dpi, options, dc);
 
   d_print_flush (&dpi);
 
-  success = ! d_print_saw_error (&dpi);
-  d_print_free (&dpi);
-  return success;
+  return ! d_print_saw_error (&dpi);
 }
 
 /* Turn components into a human readable string.  OPTIONS is the
