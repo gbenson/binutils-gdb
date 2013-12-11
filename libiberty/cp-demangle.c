@@ -3772,16 +3772,28 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
 
 /* XXX.  */
 
+enum XXX_shizzle_action
+{
+  /* XXX.  */
+  XXXS_ACTION_COUNT_MAX_SCOPES,
+  /* XXX.  */
+  XXXS_ACTION_COUNT_SCOPES_TEMPS,
+};
+
+/* XXX.  */
+
 struct XXX_shizzle_totals
 {
   /* XXX.  */
-  void *scopes;
+  enum XXX_shizzle_action action;
+  /* XXX.  */
+  const struct demangle_component **scopes;
   /* XXX.  */
   int max_scopes;
   /* XXX.  */
-  int num_comps;
-  /* XXX.  */
   int num_scopes;
+  /* XXX.  */
+  int num_comps;
   /* XXX.  */
   int num_temps;
 };
@@ -3789,23 +3801,34 @@ struct XXX_shizzle_totals
 /* XXX. */
 
 static void
-XXX_shizzle_totals_init (struct XXX_shizzle_totals *xst)
-{
-  xst->num_comps = 0;
-  xst->num_scopes = 0;
-  xst->num_temps = 0;
-}
-
-/* XXX. */
-
-static void
 XXX_shizzle (struct XXX_shizzle_totals *xst,
-	     const struct demangle_component *dc)
+	     const struct demangle_component *dc, int possible_sub)
 {
   if (dc == NULL)
     return;
 
-  xst->num_comps++;
+  if (xst->action == XXXS_ACTION_COUNT_SCOPES_TEMPS)
+    {
+      if (possible_sub)
+	{
+	  int i;
+
+	  /* XXX have we seen it already?  */
+	  for (i = 0; i < xst->num_scopes; i++)
+	    if (dc == xst->scopes[i])
+	      return;
+
+	  /* XXX no we haven't.  */
+	  if (xst->num_scopes >= xst->max_scopes)
+	    return; // XXX
+	  xst->scopes[xst->num_scopes] = dc;
+	  xst->num_scopes++;
+
+	  xst->num_temps += xst->num_comps;
+	}
+
+      xst->num_comps++;
+    }
 
   switch (dc->type)
     {
@@ -3824,13 +3847,10 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_RVALUE_REFERENCE:
       if (d_left (dc)->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM)
 	{
-	  if (xst->scopes == NULL)
+	  if (xst->action == XXXS_ACTION_COUNT_MAX_SCOPES)
 	    xst->max_scopes++;
 	  else
-	    {
-	      xst->num_scopes++;
-	      xst->num_temps += xst->num_comps;
-	    }
+	    possible_sub = 1;
 	}
       /* Fall through.  */
 
@@ -3892,30 +3912,30 @@ XXX_shizzle (struct XXX_shizzle_totals *xst,
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
     case DEMANGLE_COMPONENT_TAGGED_NAME:
     case DEMANGLE_COMPONENT_CLONE:
-      XXX_shizzle (xst, d_left (dc));
-      XXX_shizzle (xst, d_right (dc));
+      XXX_shizzle (xst, d_left (dc), possible_sub);
+      XXX_shizzle (xst, d_right (dc), 0);
       break;
 
     case DEMANGLE_COMPONENT_CTOR:
-      XXX_shizzle (xst, dc->u.s_ctor.name);
+      XXX_shizzle (xst, dc->u.s_ctor.name, 0);
       break;
 
     case DEMANGLE_COMPONENT_DTOR:
-      XXX_shizzle (xst, dc->u.s_dtor.name);
+      XXX_shizzle (xst, dc->u.s_dtor.name, 0);
       break;
 
     case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
-      XXX_shizzle (xst, dc->u.s_extended_operator.name);
+      XXX_shizzle (xst, dc->u.s_extended_operator.name, 0);
       break;
 
     case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
     case DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS:
-      XXX_shizzle (xst, d_left (dc));
+      XXX_shizzle (xst, d_left (dc), 0);
       break;
 
     case DEMANGLE_COMPONENT_LAMBDA:
     case DEMANGLE_COMPONENT_DEFAULT_ARG:
-      XXX_shizzle (xst, dc->u.s_unary_num.sub);
+      XXX_shizzle (xst, dc->u.s_unary_num.sub, 0);
       break;
     }
 }
@@ -3927,11 +3947,28 @@ XXX_dizzle (int *num_scopes, int *num_temps,
   struct XXX_shizzle_totals xst;
 
   /* First pass, count possible scopes.  */
-  xst.scopes = NULL;
+  xst.action = XXXS_ACTION_COUNT_MAX_SCOPES;
   xst.max_scopes = 0;
-  XXX_shizzle (&xst, dc);
-
+  XXX_shizzle (&xst, dc, 0);
   printf ("XXX_shizzle: max_scopes = %d\n", xst.max_scopes);
+
+  /* Second pass, XXX.  */
+  xst.action = XXXS_ACTION_COUNT_SCOPES_TEMPS;
+  {
+#ifdef CP_DYNAMIC_ARRAYS
+    __extension__ const struct demangle_component *scopes[xst.max_scopes];
+
+    xst.scopes = scopes;
+#else
+    xst.scopes = alloca (xst.max_scopes * sizeof (*xst.scopes));
+#endif
+    xst.num_scopes = 0;
+    xst.num_comps = 0;
+    xst.num_temps = 0;
+    XXX_shizzle (&xst, dc, 0);
+    printf ("XXX_shizzle: comps = %d, scopes = %d, temps = %d\n",
+	    xst.num_comps, xst.num_scopes, xst.num_temps);
+  }
 }
 
 /* Initialize a print information structure.  */
