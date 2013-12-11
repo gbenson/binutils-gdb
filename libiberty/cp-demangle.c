@@ -483,7 +483,8 @@ static void
 d_growable_string_callback_adapter (const char *, size_t, void *);
 
 static void
-d_print_init (struct d_print_info *, demangle_callbackref, void *, int, int);
+d_print_init (struct d_print_info *, demangle_callbackref, void *,
+	      const struct demangle_component *);
 
 static inline void d_print_error (struct d_print_info *);
 
@@ -3907,8 +3908,7 @@ d_count_templates_scopes (int *num_templates, int *num_scopes,
 
 static void
 d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
-	      void *opaque, int num_saved_scopes,
-	      int num_copy_templates)
+	      void *opaque, const struct demangle_component *dc)
 {
   dpi->len = 0;
   dpi->last_char = '\0';
@@ -3924,11 +3924,15 @@ d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
 
   dpi->saved_scopes = NULL;
   dpi->next_saved_scope = 0;
-  dpi->num_saved_scopes = num_saved_scopes;
+  dpi->num_saved_scopes = 0;
 
   dpi->copy_templates = NULL;
   dpi->next_copy_template = 0;
-  dpi->num_copy_templates = num_copy_templates;
+  dpi->num_copy_templates = 0;
+
+  d_count_templates_scopes (&dpi->num_copy_templates,
+			    &dpi->num_saved_scopes, dc);
+  dpi->num_copy_templates *= dpi->num_saved_scopes;
 
   dpi->current_template = NULL;
 }
@@ -4015,16 +4019,13 @@ cplus_demangle_print_callback (int options,
                                demangle_callbackref callback, void *opaque)
 {
   struct d_print_info dpi;
-  int num_templates = 0, num_scopes = 0;
 
-  d_count_templates_scopes (&num_templates, &num_scopes, dc);
-  d_print_init (&dpi, callback, opaque, num_scopes,
-		num_scopes * num_templates);
+  d_print_init (&dpi, callback, opaque, dc);
 
   {
 #ifdef CP_DYNAMIC_ARRAYS
-    __extension__ struct d_saved_scope *scopes[dpi.num_saved_scopes];
-    __extension__ struct d_print_template *temps[dpi.num_copy_templates];
+    __extension__ struct d_saved_scope scopes[dpi.num_saved_scopes];
+    __extension__ struct d_print_template temps[dpi.num_copy_templates];
 
     dpi.saved_scopes = scopes;
     dpi.copy_templates = temps;
