@@ -4018,15 +4018,25 @@ cplus_demangle_print_callback (int options,
   int num_templates = 0, num_scopes = 0;
 
   d_count_templates_scopes (&num_templates, &num_scopes, dc);
-  printf ("XXX_shizzle counted %d scopes and %d templates\n",
-	  num_scopes, num_templates);
-
   d_print_init (&dpi, callback, opaque, num_scopes,
 		num_scopes * num_templates);
-  printf ("Allocating %d scopes and %d templates\n",
-	  dpi.num_saved_scopes, dpi.num_copy_templates);
 
-  d_print_comp (&dpi, options, dc);
+  {
+#ifdef CP_DYNAMIC_ARRAYS
+    __extension__ struct d_saved_scope *scopes[dpi.num_saved_scopes];
+    __extension__ struct d_print_template *temps[dpi.num_copy_templates];
+
+    dpi.saved_scopes = scopes;
+    dpi.copy_templates = temps;
+#else
+    dpi.saved_scopes = alloca (dpi.num_saved_scopes
+			       * sizeof (*dpi.saved_scopes));
+    dpi.copy_templates = alloca (dpi.num_copy_templates
+				 * sizeof (*dpi.copy_templates));
+#endif
+
+    d_print_comp (&dpi, options, dc);
+  }
 
   d_print_flush (&dpi);
 
