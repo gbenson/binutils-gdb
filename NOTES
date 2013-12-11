@@ -84,22 +84,18 @@ These guys are the tree walk... a lot of code :(
 d_demangle_callback allocates 846 comps and 423 subs,
 that's 20304 and 3384 bytes respectively.
 
-XXX_shizzle counted 7 scopes and 1906 temps (and 393 comps),
-which would be 112 and 15248 bytes respectively.
+XXX_shizzle counted 7 scopes and 26 templates,
+so we're allocating 7 scopes and 182 templates,
+which would be 112 and 2912 bytes respectively.
 
 Already allocated: 20304 + 3384 = 23688
-Extra:              112 + 15248 = 15360
+Extra:               112 + 2912 =  3024
                                   -----
-				  39048
+				  26712 bytes on 64-bit
+				         - or -
+				  13356 bytes on 32-bit
 
-Conclusions:
-  - This way of counting requires a smaller but comparable amount
-    of (extra) stack for this particular symbol.
-  - This would likely be tight on a 64k stack.
-
----
-
-Take 2: XXX_shizzle counted 3 scopes and 565 templates,
-which would be 48 and 4520 bytes respectively (4568 total),
-with the already allocated 23688 + 4568 = 28256 bytes.
-Oh!, or 14128 bytes on a 32-bit machine.
+Conclusion:
+  This way of counting requires a much smaller amount
+  of (extra) stack for this particular symbol than the
+  already (mega over)allocated stuff.
