@@ -96,3 +96,10 @@ Conclusions:
   - This way of counting requires a smaller but comparable amount
     of (extra) stack for this particular symbol.
   - This would likely be tight on a 64k stack.
+
+---
+
+Take 2: XXX_shizzle counted 3 scopes and 565 templates,
+which would be 48 and 4520 bytes respectively (4568 total),
+with the already allocated 23688 + 4568 = 28256 bytes.
+Oh!, or 14128 bytes on a 32-bit machine.
