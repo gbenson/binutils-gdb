@@ -4198,25 +4198,37 @@ d_print_subexpr (struct d_print_info *dpi, int options,
     d_append_char (dpi, ')');
 }
 
-/* Return a shallow copy of the current list of templates.
-   On error d_print_error is called and a partial list may
-   be returned.  Whatever is returned must be freed.  */
+/* XXX.  */
 
-static struct d_print_template *
-d_copy_templates (struct d_print_info *dpi)
+static void
+d_save_scope (struct d_print_info *dpi,
+	      const struct demangle_component *container)
 {
-  struct d_print_template *src, *result, **link = &result;
+  struct d_saved_scope *scope;
+  struct d_print_template *src, **link;
+
+  if (dpi->next_saved_scope >= dpi->num_saved_scopes)
+    {
+      d_print_error (dpi);
+      return;
+    }
+  scope = &dpi->saved_scopes[dpi->next_saved_scope];
+  dpi->next_saved_scope++;
+
+  scope->container = container;
+  link = &scope->templates;
 
   for (src = dpi->templates; src != NULL; src = src->next)
     {
-      struct d_print_template *dst =
-	(struct d_print_template *) malloc (sizeof (struct d_print_template));
+      struct d_print_template *dst;
 
-      if (dst == NULL)
+      if (dpi->next_copy_template >= dpi->num_copy_templates)
 	{
 	  d_print_error (dpi);
-	  break;
+	  return;
 	}
+      dst = &dpi->copy_templates[dpi->next_copy_template];
+      dpi->next_copy_template++;
 
       dst->template_decl = src->template_decl;
       *link = dst;
@@ -4224,8 +4236,21 @@ d_copy_templates (struct d_print_info *dpi)
     }
 
   *link = NULL;
+}
 
-  return result;
+/* XXX.  */
+
+static struct d_saved_scope *
+d_get_saved_scope (struct d_print_info *dpi,
+		   const struct demangle_component *container)
+{
+  int i;
+
+  for (i = 0; i < dpi->next_saved_scope; i++)
+    if (dpi->saved_scopes[i].container == container)
+      return &dpi->saved_scopes[i];
+
+  return NULL;
 }
 
 /* Subroutine to handle components.  */
@@ -4620,37 +4645,16 @@ d_print_comp (struct d_print_info *dpi, int options,
 	const struct demangle_component *sub = d_left (dc);
 	if (sub->type == DEMANGLE_COMPONENT_TEMPLATE_PARAM)
 	  {
+	    struct d_saved_scope *scope = d_get_saved_scope (dpi, sub);
 	    struct demangle_component *a;
-	    struct d_saved_scope *scope = NULL, *scopes;
-	    int i;
-
-	    for (i = 0; i < dpi->num_saved_scopes; i++)
-	      if (dpi->saved_scopes[i].container == sub)
-		scope = &dpi->saved_scopes[i];
 
 	    if (scope == NULL)
 	      {
-		size_t size;
-
 		/* This is the first time SUB has been traversed.
 		   We need to capture the current templates so
 		   they can be restored if SUB is reentered as a
 		   substitution.  */
-		++dpi->num_saved_scopes;
-		size = sizeof (struct d_saved_scope) * dpi->num_saved_scopes;
-		scopes = (struct d_saved_scope *) realloc (dpi->saved_scopes,
-							   size);
-		if (scopes == NULL)
-		  {
-		    d_print_error (dpi);
-		    return;
-		  }
-
-		dpi->saved_scopes = scopes;
-		scope = dpi->saved_scopes + (dpi->num_saved_scopes - 1);
-
-		scope->container = sub;
-		scope->templates = d_copy_templates (dpi);
+		d_save_scope (dpi, sub);
 		if (d_print_saw_error (dpi))
 		  return;
 	      }
