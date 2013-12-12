@@ -3780,9 +3780,9 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
 }
 
 /* Walk the tree, counting the number of templates encountered, and
-   the number of times a scope might need to be saved.  These counts
-   will be used to allocate data structures which will then be used
-   by d_print_comp, so the logic here should mirror that.  It is not
+   the number of times a scope might be saved.  These counts will be
+   used to allocate data structures for d_print_comp, so the logic
+   here must mirror the logic d_print_comp will use.  It is not
    important that the resulting numbers are exact, so long as they
    are larger than the actual numbers encountered.  */
 
