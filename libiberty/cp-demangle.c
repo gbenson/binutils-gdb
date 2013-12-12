@@ -329,15 +329,15 @@ struct d_print_info
   unsigned long int flush_count;
   /* Array of saved scopes for evaluating substitutions.  */
   struct d_saved_scope *saved_scopes;
-  /* XXX.  */
+  /* Index of the next unused saved scope in the above array.  */
   int next_saved_scope;
-  /* XXX.  */
+  /* Number of saved scopes in the above array.  */
   int num_saved_scopes;
-  /* XXX.  */
+  /* Array of templates for saving into scopes.  */
   struct d_print_template *copy_templates;
-  /* XXX.  */
+  /* Index of the next unused copy template in the above array.  */
   int next_copy_template;
-  /* XXX.  */
+  /* Number of copy templates in the above array.  */
   int num_copy_templates;
   /* The nearest enclosing template, if any.  */
   const struct demangle_component *current_template;
@@ -3779,7 +3779,12 @@ d_growable_string_callback_adapter (const char *s, size_t l, void *opaque)
   d_growable_string_append_buffer (dgs, s, l);
 }
 
-/* XXX. */
+/* Walk the tree, counting the number of templates encountered, and
+   the number of times a scope might need to be saved.  These counts
+   will be used to allocate data structures which will then be used
+   by d_print_comp, so the logic here should mirror that.  It is not
+   important that the resulting numbers are exact, so long as they
+   are larger than the actual numbers encountered.  */
 
 static void
 d_count_templates_scopes (int *num_templates, int *num_scopes,
@@ -4198,7 +4203,7 @@ d_print_subexpr (struct d_print_info *dpi, int options,
     d_append_char (dpi, ')');
 }
 
-/* XXX.  */
+/* Save the current scope.  */
 
 static void
 d_save_scope (struct d_print_info *dpi,
@@ -4238,7 +4243,8 @@ d_save_scope (struct d_print_info *dpi,
   *link = NULL;
 }
 
-/* XXX.  */
+/* Attempt to locate a previously saved scope.  Returns NULL if no
+   corresponding saved scope was found.  */
 
 static struct d_saved_scope *
 d_get_saved_scope (struct d_print_info *dpi,
