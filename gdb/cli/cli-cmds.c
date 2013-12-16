@@ -27,7 +27,7 @@
 #include "target.h"	/* For baud_rate, remote_debug and remote_timeout.  */
 #include "gdb_wait.h"	/* For shell escape implementation.  */
 #include "gdb_regex.h"	/* Used by apropos_command.  */
-#include "gdb_string.h"
+#include <string.h>
 #include "gdb_vfork.h"
 #include "linespec.h"
 #include "expression.h"
@@ -817,9 +817,8 @@ edit_command (char *arg, int from_tty)
 	  struct gdbarch *gdbarch;
 
           if (sal.symtab == 0)
-	    /* FIXME-32x64--assumes sal.pc fits in long.  */
 	    error (_("No source file for address %s."),
-		   hex_string ((unsigned long) sal.pc));
+		   paddress (get_current_arch (), sal.pc));
 
 	  gdbarch = get_objfile_arch (sal.symtab->objfile);
           sym = find_pc_function (sal.pc);
@@ -982,9 +981,8 @@ list_command (char *arg, int from_tty)
       struct gdbarch *gdbarch;
 
       if (sal.symtab == 0)
-	/* FIXME-32x64--assumes sal.pc fits in long.  */
 	error (_("No source file for address %s."),
-	       hex_string ((unsigned long) sal.pc));
+	       paddress (get_current_arch (), sal.pc));
 
       gdbarch = get_objfile_arch (sal.symtab->objfile);
       sym = find_pc_function (sal.pc);

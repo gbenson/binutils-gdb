@@ -28,6 +28,7 @@
 #include "exceptions.h"
 #include <signal.h>
 #include "target.h"
+#include "target-dcache.h"
 #include "breakpoint.h"
 #include "gdbtypes.h"
 #include "expression.h"
@@ -60,8 +61,8 @@
 #include <sys/types.h>
 
 #include "event-top.h"
-#include "gdb_string.h"
-#include "gdb_stat.h"
+#include <string.h>
+#include <sys/stat.h>
 #include <ctype.h>
 #include "ui-out.h"
 #include "cli-out.h"
@@ -1061,8 +1062,7 @@ command_line_input (char *prompt_arg, int repeat, char *annotation_suffix)
   *p = 0;
 
   /* Add line to history if appropriate.  */
-  if (instream == stdin
-      && ISATTY (stdin) && *linebuffer)
+  if (*linebuffer && input_from_terminal_p ())
     add_history (linebuffer);
 
   /* Note: lines consisting solely of comments are added to the command

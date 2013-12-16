@@ -2219,7 +2219,7 @@ elf_i386_allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	  /* If this is the first .plt entry, make room for the special
 	     first entry.  */
 	  if (s->size == 0)
-	    s->size += plt_entry_size;
+	    s->size = plt_entry_size;
 
 	  h->plt.offset = s->size;
 
@@ -3311,11 +3311,12 @@ elf_i386_relocate_section (bfd *output_bfd,
       else
 	{
 	  bfd_boolean warned ATTRIBUTE_UNUSED;
+	  bfd_boolean ignored ATTRIBUTE_UNUSED;
 
 	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
 				   r_symndx, symtab_hdr, sym_hashes,
 				   h, sec, relocation,
-				   unresolved_reloc, warned);
+				   unresolved_reloc, warned, ignored);
 	  st_size = h->size;
 	}
 
@@ -5295,9 +5296,19 @@ static const struct elf_i386_backend_data elf_i386_nacl_arch_bed =
     0,                                  /* is_vxworks */
   };
 
+static bfd_boolean
+elf32_i386_nacl_elf_object_p (bfd *abfd)
+{
+  /* Set the right machine number for a NaCl i386 ELF32 file.  */
+  bfd_default_set_arch_mach (abfd, bfd_arch_i386, bfd_mach_i386_i386_nacl);
+  return TRUE;
+}
+
 #undef	elf_backend_arch_data
 #define elf_backend_arch_data	&elf_i386_nacl_arch_bed
 
+#undef	elf_backend_object_p
+#define elf_backend_object_p			elf32_i386_nacl_elf_object_p
 #undef	elf_backend_modify_segment_map
 #define	elf_backend_modify_segment_map		nacl_modify_segment_map
 #undef	elf_backend_modify_program_headers
@@ -5308,6 +5319,7 @@ static const struct elf_i386_backend_data elf_i386_nacl_arch_bed =
 #include "elf32-target.h"
 
 /* Restore defaults.  */
+#undef	elf_backend_object_p
 #undef	elf_backend_modify_segment_map
 #undef	elf_backend_modify_program_headers
 #undef	elf_backend_final_write_processing

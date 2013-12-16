@@ -437,7 +437,7 @@ valpy_do_cast (PyObject *self, PyObject *args, enum exp_opcode op)
   type = type_object_to_type (type_obj);
   if (! type)
     {
-      PyErr_SetString (PyExc_RuntimeError, 
+      PyErr_SetString (PyExc_RuntimeError,
 		       _("Argument must be a type."));
       return NULL;
     }
@@ -510,7 +510,7 @@ valpy_getitem (PyObject *self, PyObject *key)
   PyObject *result = NULL;
 
   if (gdbpy_is_string (key))
-    {  
+    {
       field = python_string_to_host_string (key);
       if (field == NULL)
 	return NULL;
@@ -723,7 +723,7 @@ valpy_fetch_lazy (PyObject *self, PyObject *args)
 
 /* Calculate and return the address of the PyObject as the value of
    the builtin __hash__ call.  */
-static long 
+static long
 valpy_hash (PyObject *self)
 {
   return (long) (intptr_t) self;
@@ -1129,17 +1129,6 @@ valpy_richcompare (PyObject *self, PyObject *other, int op)
   Py_RETURN_FALSE;
 }
 
-/* Helper function to determine if a type is "int-like".  */
-static int
-is_intlike (struct type *type, int ptr_ok)
-{
-  return (TYPE_CODE (type) == TYPE_CODE_INT
-	  || TYPE_CODE (type) == TYPE_CODE_ENUM
-	  || TYPE_CODE (type) == TYPE_CODE_BOOL
-	  || TYPE_CODE (type) == TYPE_CODE_CHAR
-	  || (ptr_ok && TYPE_CODE (type) == TYPE_CODE_PTR));
-}
-
 #ifndef IS_PY3K
 /* Implements conversion to int.  */
 static PyObject *
@@ -1152,8 +1141,7 @@ valpy_int (PyObject *self)
 
   TRY_CATCH (except, RETURN_MASK_ALL)
     {
-      CHECK_TYPEDEF (type);
-      if (!is_intlike (type, 0))
+      if (!is_integral_type (type))
 	error (_("Cannot convert value to int."));
 
       l = value_as_long (value);
@@ -1177,7 +1165,8 @@ valpy_long (PyObject *self)
     {
       CHECK_TYPEDEF (type);
 
-      if (!is_intlike (type, 1))
+      if (!is_integral_type (type)
+	  && TYPE_CODE (type) != TYPE_CODE_PTR)
 	error (_("Cannot convert value to long."));
 
       l = value_as_long (value);
@@ -1259,7 +1248,7 @@ convert_value_from_python (PyObject *obj)
 
   TRY_CATCH (except, RETURN_MASK_ALL)
     {
-      if (PyBool_Check (obj)) 
+      if (PyBool_Check (obj))
 	{
 	  cmp = PyObject_IsTrue (obj);
 	  if (cmp >= 0)
@@ -1442,7 +1431,7 @@ Return a lazy string representation of the value." },
   { "string", (PyCFunction) valpy_string, METH_VARARGS | METH_KEYWORDS,
     "string ([encoding] [, errors] [, length]) -> string\n\
 Return Unicode string representation of the value." },
-  { "fetch_lazy", valpy_fetch_lazy, METH_NOARGS, 
+  { "fetch_lazy", valpy_fetch_lazy, METH_NOARGS,
     "Fetches the value from the inferior, if it was lazy." },
   {NULL}  /* Sentinel */
 };

@@ -6488,7 +6488,7 @@ ppc_elf_size_dynamic_sections (bfd *output_bfd ATTRIBUTE_UNUSED,
 	  if (!htab->no_tls_get_addr_opt
 	      && htab->tls_get_addr != NULL
 	      && htab->tls_get_addr->plt.plist != NULL
-	      && !add_dynamic_entry (DT_PPC_TLSOPT, 0))
+	      && !add_dynamic_entry (DT_PPC_OPT, PPC_OPT_TLS))
 	    return FALSE;
 	}
 
@@ -7493,10 +7493,12 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	}
       else
 	{
+	  bfd_boolean ignored;
+
 	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
 				   r_symndx, symtab_hdr, sym_hashes,
 				   h, sec, relocation,
-				   unresolved_reloc, warned);
+				   unresolved_reloc, warned, ignored);
 
 	  sym_name = h->root.root.string;
 	}

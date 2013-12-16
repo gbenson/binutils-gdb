@@ -51,7 +51,7 @@
 #include "objfiles.h"
 #include "gdb_bfd.h"
 #include "gdb_obstack.h"
-#include "gdb_string.h"
+#include <string.h>
 #include "gdbthread.h"
 #include "gdbcmd.h"
 #include <unistd.h>
@@ -1866,7 +1866,7 @@ windows_attach (struct target_ops *ops, char *args, int from_tty)
 }
 
 static void
-windows_detach (struct target_ops *ops, char *args, int from_tty)
+windows_detach (struct target_ops *ops, const char *args, int from_tty)
 {
   int detached = 1;
 

@@ -86,12 +86,19 @@ enum errors {
      traceframe.  */
   NOT_AVAILABLE_ERROR,
 
+  /* Value was optimized out.  Note: if the value was a register, this
+     means the register was not saved in the frame.  */
+  OPTIMIZED_OUT_ERROR,
+
   /* DW_OP_GNU_entry_value resolving failed.  */
   NO_ENTRY_VALUE_ERROR,
 
   /* Target throwing an error has been closed.  Current command should be
      aborted as the inferior state is no longer valid.  */
   TARGET_CLOSE_ERROR,
+
+  /* An undefined command was executed.  */
+  UNDEFINED_COMMAND_ERROR,
 
   /* Too many possibilities were encountered during line completion.  */
   TOO_MANY_COMPLETIONS_ERROR,
