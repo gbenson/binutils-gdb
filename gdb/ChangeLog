@@ -1,3 +1,361 @@
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gdb/16305
+	* i386-tdep.c (i386_process_record): Mask out PREFIX_ADDR when
+	adding prefix to opcode.
+
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gdb/16304
+	* i386-tdep.c (i386_record_lea_modrm_addr): Don't use 16-bit
+	address in 64-bit mode.
+
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gdb/16304
+	* i386-tdep.c (i386_record_lea_modrm_addr): Zero-extend 32-bit
+	address to 64-bit in 64-bit mode.
+
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gdb/16304
+	* amd64-linux-tdep.c (amd64_canonicalize_syscall): Handle x32
+	system calls.
+	(amd64_x32_linux_record_tdep): New.
+	(amd64_linux_syscall_record_common): New function.
+	(amd64_linux_syscall_record): Call
+	amd64_linux_syscall_record_common with amd64_linux_record_tdep.
+	(amd64_x32_linux_syscall_record): Call
+	amd64_linux_syscall_record_common with
+	amd64_x32_linux_record_tdep.
+	(amd64_linux_init_abi_common): Move amd64_linux_record_tdep
+	initialization and tdep->i386_syscall_record setup to ...
+	(amd64_linux_init_abi): Here.
+	(amd64_x32_linux_init_abi): Initialize
+	amd64_x32_linux_record_tdep.  Set tdep->i386_syscall_record to
+	amd64_x32_linux_syscall_record.
+	* amd64-linux-tdep.h (amd64_x32_syscall): New enum.
+
+2013-12-19  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* amd64-tdep.c (amd64_init_abi): Declare SystemTap SDT probe
+	argument prefixes and suffixes.  Initialize gdbarch with them.
+	* arm-linux-tdep.c (arm_linux_init_abi): Likewise.
+	* gdbarch.c: Regenerate.
+	* gdbarch.h: Regenerate.
+	* gdbarch.sh (stap_integer_prefix, stap_integer_suffix)
+	(stap_register_prefix, stap_register_suffix)
+	(stap_register_indirection_prefix)
+	(stap_register_indirection_suffix): Declare as "const char *const
+	*" instead of "const char *".  Adjust printing function.  Rename
+	all of the variables to the plural.
+	(pstring_list): New function.
+	* i386-tdep.c (i386_elf_init_abi): Declare SystemTap SDT probe
+	argument prefixes and suffixes.  Initialize gdbarch with them.
+	* ia64-linux-tdep.c (ia64_linux_init_abi): Likewise.
+	* ppc-linux-tdep.c (ppc_linux_init_abi): Likewise.
+	* s390-linux-tdep.c (s390_gdbarch_init): Likewise.
+	* stap-probe.c (stap_is_generic_prefix): New function.
+	(stap_is_register_prefix): Likewise.
+	(stap_is_register_indirection_prefix): Likewise.
+	(stap_is_integer_prefix): Likewise.
+	(stap_generic_check_suffix): Likewise.
+	(stap_check_integer_suffix): Likewise.
+	(stap_check_register_suffix): Likewise.
+	(stap_check_register_indirection_suffix): Likewise.
+	(stap_parse_register_operand): Remove unecessary declarations for
+	variables holding prefix and suffix information.  Use the new
+	functions listed above for checking for prefixes and suffixes.
+	(stap_parse_single_operand): Likewise.
+
+2013-12-19  Gabriel Krisman Bertazi  <gabriel@krisman.be>
+
+	PR breakpoints/16297
+	* breakpoint.c (breakpoint_hit_catch_syscall): Return immediately
+	when expected syscall is hit.
+
+2013-12-19  Tom Tromey  <tromey@redhat.com>
+
+	* ser-unix.c (hardwire_ops): New global.
+	(_initialize_ser_hardwire): Use it.
+	* ser-tcp.c (tcp_ops): New global.
+	(_initialize_ser_tcp): Use it.
+	* ser-pipe.c (pipe_ops): New global.
+	(_initialize_ser_pipe): Use it.
+	* ser-mingw.c (hardwire_ops, tty_ops, pipe_ops, tcp_ops): New
+	globals.
+	(_initialize_ser_windows): Use them.
+
+2013-12-19  Tom Tromey  <tromey@redhat.com>
+
+	* serial.c (serial_ops_p): New typedef.
+	(serial_ops_list): Now a VEC.
+	(serial_interface_lookup): Return const.  Use VEC_iterate.
+	(serial_add_interface): Make parameter const.
+	(serial_open): Update.
+	(serial_fdopen_ops): Make 'ops' const.
+	(serial_pipe): Update.
+	* ser-tcp.c (_initialize_ser_tcp): Update.
+	* ser-pipe.c (_initialize_ser_pipe): Update.
+	* ser-unix.c (_initialize_ser_hardwire): Update.
+	* ser-mingw.c (_initialize_ser_windows): Update.
+	* ser-go32.c (dos_ops): Now const.  Update.
+	* serial.h (struct serial) <ops>: Now const.
+	(struct serial_ops) <next>: Remove.
+	(serial_add_interface): Make parameter const.
+
+2013-12-18  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* aarch64-linux-nat.c (aarch64_linux_set_debug_regs): Set
+	iov.iov_len with the real length in use.
+
+2013-12-18  Yao Qi  <yao@codesourcery.com>
+
+	* target.h (target_xfer_partial_ftype): New typedef.
+	(target_xfer_partial): Update declaration.
+	* auxv.h (memory_xfer_auxv): Likewise.
+	* ia64-hpux-nat.c (super_xfer_partial): Likewise.
+	* ia64-linux-nat.c (super_xfer_partial): Likewise.
+	* linux-nat.c (super_xfer_partial): Likewise.
+	* procfs.c (procfs_xfer_partial): Likewise.
+	* record-full.c (record_full_beneath_to_xfer_partial):
+	(tmp_to_xfer_partial): Likewise.
+	* sparc-nat.c (inf_ptrace_xfer_partial): Likewise.
+	* target.c (default_xfer_partial): Likewise.
+	(current_xfer_partial): Likewise.
+	(target_xfer_partial): Change parameter type to 'gdb_byte *'.
+
+2013-12-18  Yao Qi  <yao@codesourcery.com>
+
+	* linux-nat.c (linux_proc_xfer_partial): Call xsnprintf instead
+	of sprintf.
+	(linux_nat_detach, linux_child_pid_to_exec_file): Likewise.
+	(linux_proc_pending_signals): Likewise.
+
+2013-12-18  Joel Brobecker  <brobecker@adacore.com>
+
+	* value.c (value_entirely_unavailable): ARI fix: Move trailing
+	binary operator to the next line.  No actual code change.
+
+2013-12-17  Pedro Alves  <palves@redhat.com>
+
+	* frame.h (enum frame_id_stack_status): New enum.
+	(struct frame_id) <stack_addr>: Adjust comment.
+	<stack_addr_p>: Delete field, replaced with ...
+	<stack_status>: ... this new field.
+	(frame_id_build_unavailable_stack): Declare.
+	* frame.c (frame_addr_hash, fprint_field, outer_frame_id)
+	(frame_id_build_special): Adjust.
+	(frame_id_build_unavailable_stack): New function.
+	(frame_id_build, frame_id_build_wild): Adjust.
+	(frame_id_p, frame_id_eq, frame_id_inner): Adjust to take into
+	account frames with unavailable stack.
+
+	* amd64-tdep.c (amd64_frame_this_id)
+	(amd64_sigtramp_frame_this_id, amd64_epilogue_frame_this_id): Use
+	frame_id_build_unavailable_stack.
+	* dwarf2-frame.c (dwarf2_frame_this_id): Likewise.
+	* i386-tdep.c (i386_frame_this_id, i386_epilogue_frame_this_id)
+	(i386_sigtramp_frame_this_id):  Likewise.
+
+2013-12-17  Andrew Burgess  <aburgess@broadcom.com>
+
+	* dwarf2loc.c (read_pieced_value): Mark bits, not bytes
+	unavailable, use correct bit length.
+	* value.c (struct value): Extend comment on unavailable to
+	indicate that it is bit based.
+	(value_bits_available): New function.
+	(value_bytes_available): Call value_bits_available.
+	(value_entirely_available): Check against the bit length, not byte
+	length.
+	(mark_value_bits_unavailable): New function.
+	(mark_value_bytes_unavailable): Move contents to
+	mark_value_bits_unavailable, call to same.
+	(memcmp_with_bit_offsets): New function.
+	(value_available_contents_bits_eq): New function, takes the
+	functionality from value_available_contents_eq but uses
+	memcmp_with_bit_offsets now, and is bit not byte based.
+	(value_available_contents_eq): Move implementation into
+	value_available_contents_bits_eq, call to same.
+	(value_contents_copy_raw): Work on bits, not bytes.
+	(unpack_value_bits_as_long_1): Check availability in bits, not
+	bytes.
+	* value.h (value_bits_available): Declare new function.
+	(mark_value_bits_unavailable): Declare new function.
+
+2013-12-16  Pierre Muller  <muller@sourceware.org>
+
+	Fix compilation error for cygwin native build.
+	* windows-nat.c (windows_ensure_ntdll_loaded) [__USEWIDE]:
+	Call wcstombs.
+
+2013-12-16  Pedro Alves  <palves@redhat.com>
+
+	PR 16329
+	* sol-thread.c (check_for_thread_db): If the target can't run or
+	isn't a core, return without pushing.
+
+2013-12-15  Joel Brobecker  <brobecker@adacore.com>
+
+	Revert the following commit:
+	* solib.c (solib_map_sections): Remove code overwriting
+	SO->SO_NAME with the bfd's filename.
+
+	Make the following changes required after the revert above:
+	* solib-aix.c (solib_aix_bfd_open): Set the filename of the
+	returned bfd to a copy of the synthetic pathname.
+	* solib-darwin.c (darwin_bfd_open): Set the filename of the
+	returned bfd to a copy of PATHNAME.
+
+2013-12-13  Joel Brobecker  <brobecker@adacore.com>
+
+	* ada-lang.c (ada_array_bound_from_type): Move the declaration
+	and assignment of variable "elt_type" inside the else block
+	where it is used.  Add two missing check_typedef calls.
+	Fix bug where we got TYPE's TYPE_TARGET_TYPE, where in fact
+	we really wanted to get ELT_TYPE's TYPE_TARGET_TYPE.
+
+2013-12-13  Joel Brobecker  <brobecker@adacore.com>
+
+	* ada-lang.c (ada_array_bound_from_type): Remove unwanted space
+	between 'struct type *' and 'arr_type'.
+
+2013-12-12  Siva Chandra Reddy  <sivachandra@google.com>
+
+	PR python/16113
+	* NEWS (Python Scripting): Add entry for the new feature and the
+	new attribute of gdb.Field objects.
+	* python/py-type.c (gdbpy_is_field): New function
+	(convert_field): Add 'parent_type' attribute to gdb.Field
+	objects.
+	* python/py-value.c (valpy_getitem): Allow subscript value to be
+	a gdb.Field object.
+	(value_has_field): New function
+	(get_field_flag): New function
+	* python/python-internal.h (gdbpy_is_field): Add declaration.
+
+2013-12-12  Pedro Alves  <palves@redhat.com>
+
+	* breakpoint.c (insert_bp_location): Make 'hw_bp_err_string' local
+	const, and remove casts.
+
+2013-12-12  Pedro Alves  <palves@redhat.com>
+
+	* cli/cli-cmds.c (source_script_from_stream) Use have_python
+	instead of catching UNSUPPORTED_ERROR.
+	* exceptions.h (UNSUPPORTED_ERROR): Delete.
+	* python/python.c (source_python_script) [!HAVE_PYTHON]: Internal
+	error if called.
+	* python/python.h (have_python): New static inline function.
+
+2013-12-11  Doug Evans  <dje@google.com>
+
+	* dwarf2read.c (lookup_dwo_cutu): Include name of dwp file in
+	"can't find DWO" warning.
+
+2013-12-11  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* break-catch-throw.c (fetch_probe_arguments): Pass selected frame
+	to get_probe_argument_count and evaluate_probe_argument.
+	* probe.c (get_probe_argument_count): Adjust declaration to accept
+	frame.  Pass frame to probe_ops's get_probe_argument_count.
+	(evaluate_probe_argument): Likewise, for evaluate_probe_argument.
+	(probe_safe_evaluate_at_pc): Pass frame to
+	get_probe_argument_count and evaluate_probe_argument.
+	* probe.h (struct probe_ops) <get_probe_argument_count,
+	evaluate_probe_argument>: Adjust declarations to accept frame.
+	(get_probe_argument_count, evaluate_probe_argument): Likewise.
+	* solib-svr4.c (solib_event_probe_action): Get current frame.
+	Pass it to get_probe_argument_count.
+	(svr4_handle_solib_event): Get current frame.  Pass it to
+	get_probe_argument_count and evaluate_probe_argument.
+	* stap-probe.c (stap_parse_probe_arguments): Adjust declaration to
+	accept gdbarch.  Do not obtain it from the probe's objfile.
+	(stap_get_probe_argument_count): Adjust declaration to accept
+	frame.  Obtain gdbarch from the frame.  Call generic
+	can_evaluate_probe_arguments.  Pass gdbarch to
+	stap_parse_probe_arguments.
+	(stap_get_arg): Adjust declaration to accept gdbarch.  Pass it to
+	stap_parse_probe_arguments.
+	(stap_evaluate_probe_argument): Adjust declaration to accept
+	frame.  Obtain gdbarch from the frame.  Pass gdbarch to
+	stap_get_arg.
+	(stap_compile_to_ax): Pass agent_expr's gdbarch to stap_get_arg.
+	(compute_probe_arg): Obtain gdbarch from frame.  Pass frame to
+	get_probe_argument_count and evaluate_probe_argument.
+
+2013-12-10  Doug Evans  <dje@google.com>
+
+	PR 16286
+	* c-lang.c (c_get_string): Ignore the declared size of the object
+	if a specific length is requested.
+
+2013-12-10  Doug Evans  <dje@google.com>
+
+    	* interps.h (interp_exec_p): Delete.
+    	* interps.c (interp_exec_p): Delete.
+    	(interp_exec): Update.  Assert interp->procs->exec_proc != NULL.
+    	* mi/mi-interp.c (mi_cmd_interpreter_exec): Update.
+
+2013-12-10  Yao Qi  <yao@codesourcery.com>
+
+	* amd64-tdep.c (amd64_analyze_stack_align): Call
+	target_read_code instead of target_read_memory.
+	(amd64_analyze_prologue): Call read_code_unsigned_integer
+	instead of read_memory_unsigned_integer.  Call read_code
+	instead of read_memory.
+	(amd64_skip_xmm_prologue): Likewise.
+
+2013-12-10  Yao Qi  <yao@codesourcery.com>
+
+	* corefile.c (read_code): New function.
+	(read_code_integer): New function.
+	(read_code_unsigned_integer): New function.
+	* gdbcore.h (read_code): Declare.
+	(read_code_integer): Declare.
+	(read_code_unsigned_integer): Declare.
+	* i386-tdep.c (i386_follow_jump): Call target_read_code instead
+	of target_read_memory.  Call read_code_unsigned_integer instead
+	of read_memory_unsigned_integer.
+	(i386_analyze_struct_return): Likewise.
+	(i386_skip_probe): Likewise.
+	(i386_analyze_stack_align): Likewise.
+	(i386_match_pattern): Likewise.
+	(i386_skip_noop): Likewise.
+	(i386_analyze_frame_setup): Likewise.
+	(i386_analyze_register_saves): Likewise.
+	(i386_skip_prologue): Likewise.
+	(i386_skip_main_prologue): Likewise.
+	(i386_frame_cache_1): Likewise.
+
+2013-12-10  Yao Qi  <yao@codesourcery.com>
+
+	* infrun.c: Include "target-dcache.h".
+	(prepare_for_detach): Call target_dcache_invalidate.
+	(wait_for_inferior): Likewise.
+	(fetch_inferior_event): Likewise.
+	(infrun_thread_stop_requested_callback): Likewise.  Set
+	overlay_cache_invalid to 1.
+
+2013-12-10  Joel Brobecker  <brobecker@adacore.com>
+
+	* symtab.c (symbol_find_demangled_name): Add handling of
+	Ada symbols.
+
+2013-12-10  Joel Brobecker  <brobecker@adacore.com>
+
+	* mi/mi-main.c (mi_cmd_list_features): add "exec-run-start-option".
+	* NEWS: Expand the entry documenting the new -exec-run --start
+	option to mention the corresponding new entry in the output of
+	"-list-features".
+
+2013-12-10  Joel Brobecker  <brobecker@adacore.com>
+
+	* windows-nat.c (handle_load_dll): Add comments.
+	(windows_ensure_ntdll_loaded): New function.
+	(do_initial_windows_stuff): Use windows_ensure_ntdll_loaded.
+	Add FIXME comment.
+
 2013-12-08  Joel Brobecker  <brobecker@adacore.com>
 
 	GDB 7.6.2 released.

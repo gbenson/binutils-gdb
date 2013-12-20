@@ -1,3 +1,94 @@
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gas/i386/i386.exp: Don't run x86-64-disassem for mingw targets.
+
+2013-12-18  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* gas/aarch64/rm-simd-ext.d: New file.
+	* gas/aarch64/rm-simd-ext.l: Likewise.
+	* gas/aarch64/rm-simd-ext.s: Likewise.
+
+2013-12-17  Kuan-Lin Chen  <kuanlinchentw@gmail.com>
+
+	* gas/nds32/nds32.exp: Add system and user special register tests.
+	* gas/nds32/sys-reg.s: New test.
+	* gas/nds32/sys-reg.d: Likewise.
+	* gas/nds32/usr-spe-reg.s: Likewise.
+	* gas/nds32/usr-spe-reg.d: Likewise.
+	* gas/nds32/alu-2.d: Delete the new blank line at EOF.
+	* gas/nds32/br-1.d: Likewise.
+	* gas/nds32/br-2.d: Likewise.
+	* gas/nds32/ji-jr.d: Likewise.
+	* gas/nds32/lsi.d: Likewise.
+
+2013-12-17  Michael Zolotukhin  <michael.v.zolotukhin@gmail.com>
+
+	* gas/i386/disassem.s: New.
+	* gas/i386/disassem.d: Likewise.
+	* gas/i386/x86-64-disassem.s: Likewise.
+	* gas/i386/x86-64-disassem.d: Likewise.
+	* gas/i386/i386.exp: Run disassem and x86-64-disassem.
+
+2013-12-16  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* gas/mips/mips.exp: Add CP1 register name tests.
+	* gas/mips/cp1-names-mips32.d: New test.
+	* gas/mips/cp1-names-mips32r2.d: New test.
+	* gas/mips/cp1-names-mips64.d: New test.
+	* gas/mips/cp1-names-mips64r2.d: New test.
+	* gas/mips/cp1-names-numeric.d: New test.
+	* gas/mips/cp1-names-r3000.d: New test.
+	* gas/mips/cp1-names-r4000.d: New test.
+	* gas/mips/cp1-names-sb1.d: New test.
+	* gas/mips/cp1-names.s: New test.
+	* gas/mips/micromips-insn32.d: Add the correct symbolic names for the CP1
+	registers.
+	* gas/mips/micromips-noinsn32.d: Likewise.
+	* gas/mips/micromips-trap.d: Likewise.
+	* gas/mips/micromips.d: Likewise.
+
+2013-12-16  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* gas/mips/msa.s: Reduced maximum element index range
+	for sldi, splati, copy_s, copy_u, insert and insve instructions.
+	* gas/mips/msa64.s: Likewise.
+	* gas/mips/micromips@msa.d: Likewise.
+	* gas/mips/micromips@msa64.d: Likewise.
+	* gas/mips/msa.d: Likewise.
+	* gas/mips/msa64.d: Likewise.
+
+2013-12-13  Kuan-Lin Chen  <kuanlinchentw@gmail.com>
+
+	* gas/all/gas.exp: Add expected failures for NDS32.
+	* gas/elf/elf.exp: Likewise.
+	* gas/lns/lns.exp: Use alternate test.
+	* gas/macros/irp.d: Skip for NDS32.
+	* gas/macros/macros.exp: Skip some tests for the NDS32.
+	* gas/macros/rept.d: Skip for NDS32.
+	* gas/macros/test3.d: Skip for NDS32.
+	* gas/nds32: New directory.
+	* gas/nds32/alu-1.s: New test.
+	* gas/nds32/alu-1.d: Likewise.
+	* gas/nds32/alu-2.s: Likewise.
+	* gas/nds32/alu-2.d: Likewise.
+	* gas/nds32/br-1.d: Likewise.
+	* gas/nds32/br-1.s: Likewise.
+	* gas/nds32/br-2.d: Likewise.
+	* gas/nds32/br-2.s: Likewise.
+	* gas/nds32/ji-jr.d: Likewise.
+	* gas/nds32/ji-jr.s: Likewise.
+	* gas/nds32/ls.d: Likewise.
+	* gas/nds32/ls.s: Likewise.
+	* gas/nds32/lsi.d: Likewise.
+	* gas/nds32/lsi.s: Likewise.
+	* gas/nds32/to-16bit-v1.d: Likewise.
+	* gas/nds32/to-16bit-v1.s: Likewise.
+	* gas/nds32/to-16bit-v2.d: Likewise.
+	* gas/nds32/to-16bit-v2.s: Likewise.
+	* gas/nds32/to-16bit-v3.d: Likewise.
+	* gas/nds32/to-16bit-v3.s: Likewise.
+	* gas/nds32/nds32.exp: New test driver.
+
 2013-12-07  Mike Frysinger  <vapier@gentoo.org>
 
 	* gas/bfin/bit2.s: Remove +x file mode.

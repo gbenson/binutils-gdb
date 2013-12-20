@@ -1,3 +1,201 @@
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16317
+	* elf.c (assign_section_numbers): Set the SHF_INFO_LINK bit for
+	SHT_REL/SHT_RELA sections when setting the sh_info field.
+
+2013-12-19  Pierre Muller  <muller@sourceware.org>
+
+	* peXXigen.c (rsrc_cmp): Fix unused variable warning.
+
+2013-12-19  Pierre Muller  <muller@sourceware.org>
+
+	* peXXigen.c (u16_mbtouc): Avoid unused function warning by excluding
+	if __CYGWIN__ or __MINGW32__ macro is defined.
+	(rsrc_cmp): Fix Windows host version and version without wchar header.
+	[__CYGWIN__, __MINGW32__]: Introduce rsrccmp macro.
+	Fix coding standard issues.
+
+2013-12-19  Andreas Schwab  <schwab@suse.de>
+
+	* elf32-m68k.c (elf_m68k_add_symbol_hook): New function.
+	(elf_backend_add_symbol_hook): Define.
+
+2013-12-18  Nick Clifton  <nickc@redhat.com>
+
+	* peXXigen.c (rsrc_print_section): Use ptrdiff_t as the type for
+	pointer arithmetic.
+
+2013-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-arm.c (elf32_arm_post_process_headers): Call
+	_bfd_elf_post_process_headers.
+
+2013-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-spu.c (spu_elf_post_process_headers): Call
+	_bfd_elf_post_process_headers.
+	* elfxx-mips.c (_bfd_mips_post_process_headers): Likewise.
+
+2013-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf-bfd.h (_bfd_elf_set_osabi): Renamed to ...
+	(_bfd_elf_post_process_headers): This.
+	* elf.c (_bfd_elf_compute_section_file_positions): Always
+	call elf_backend_post_process_headers.
+	(_bfd_elf_set_osabi): Renamed to ...
+	(_bfd_elf_post_process_headers): This.
+	* elf32-hppa.c (elf_backend_post_process_headers): Removed.
+	* elf32-i370.c (elf_backend_post_process_headers): Likewise.
+	* elf32-msp430.c (elf_backend_post_process_headers): Likewise.
+	* elf32-ppc.c (elf_backend_post_process_headers): Likewise.
+	* elf32-sparc.c (elf_backend_post_process_headers): Likewise.
+	* elf64-hppa.c (elf_backend_post_process_headers): Likewise.
+	* elf64-ppc.c (elf_backend_post_process_headers): Likewise.
+	* elf64-sparc.c (elf_backend_post_process_headers): Likewise.
+	* elf64-x86-64.c (elf_backend_post_process_headers): Likewise.
+	*  (elf_backend_post_process_headers): Likewise.
+	*  (elf_backend_post_process_headers): Likewise.
+	* elf32-i386.c (elf_backend_post_process_headers): Don't
+	define as _bfd_elf_set_osabi.
+	(elf_i386_fbsd_post_process_headers): Updated.
+	* elf32-mips.c (elf_fbsd_post_process_headers): Removed.
+	(elf_backend_post_process_headers): Likewise.
+	* elf32-tic6x.c (elf32_tic6x_set_osabi): Removed.
+	(elf_backend_post_process_headers): Likewise.
+	* elf64-mips.c (elf_fbsd_post_process_headers): Removed.
+	(elf_backend_post_process_headers): Likewise.
+	* elfn32-mips.c (elf_fbsd_post_process_headers): Removed.
+	(elf_backend_post_process_headers): Likewise.
+	* elfnn-aarch64.c (elfNN_aarch64_post_process_headers): Updated.
+	* elfxx-target.h (elf_backend_post_process_headers): Default
+	to _bfd_elf_post_process_headers.
+
+2013-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16318
+	* elf32-arm.c (elf32_arm_copy_private_bfd_data): Call
+	_bfd_elf_copy_private_bfd_data.
+	* elf32-bfin.c (bfin_elf_copy_private_bfd_data): Removed.
+	(elf32_bfinfdpic_copy_private_bfd_data): Likewise.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-frv.c (frv_elf_copy_private_bfd_data): Removed.
+	(elf32_frvfdpic_copy_private_bfd_data): Likewise.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-iq2000.c (iq2000_elf_copy_private_bfd_data): Removed.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-lm32.c (lm32_elf_copy_private_bfd_data): Removed.
+	(lm32_elf_fdpic_copy_private_bfd_data): Call
+	_bfd_elf_copy_private_bfd_data.
+	* elf32-mep.c (mep_elf_copy_private_bfd_data): Removed.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-msp430.c (elf32_msp430_copy_private_bfd_data): Removed.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-mt.c (mt_elf_copy_private_bfd_data): Removed.
+	(bfd_elf32_bfd_copy_private_bfd_data): Don't define.
+	* elf32-sh.c (sh_elf_set_private_flags): Removed.
+	(sh_elf_copy_private_data): Call _bfd_elf_copy_private_bfd_data
+	and sh_elf_set_mach_from_flags.
+	*  elfnn-aarch64.c (elfNN_aarch64_copy_private_bfd_data): Removed.
+	(bfd_elfNN_bfd_copy_private_bfd_data): Don't define.
+
+2013-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* peXXigen.c (rsrc_process_section): Rename index to indx.
+
+2013-12-17  Nick Clifton  <nickc@redhat.com>
+
+	* peXXigen.c: Include wchar.h if available.
+	Include safe-ctype.h.
+	(HighBitSet, SetHighBit, WithoutHighBit): New macros.
+	(pe_print_resource_entries): Rename to
+	rsrc_print_resource_entries.  Handle names that are not RVAs.
+	(pe_print_resource_directory): Rename to
+	rsrc_print_resource_directory.
+	(pe_print_rsrc): Rename to rsrc_print_section.  Corrupt
+	computation of RVA bias.
+	(rsrc_count_entries): New function.
+	(rsrc_count_directory): New function.
+	(rsrc_parse_entry): New function.
+	(rsrc_parse_entries): New function.
+	(rsrc_parse_directory): New function.
+	(rsrc_write_string): New function.
+	(rsrc_compute_rva): New function.
+	(rsrc_write_leaf): New function.
+	(rsrc_write_entry): New function.
+	(rsrc_write_directory): New function.
+	(u16_mbtouc): New function.
+	(rsrc_cmp): New function.
+	(rsrc_print_name): New function.
+	(rsrc_resource_name): New function.
+	(rsrc_merge_string_entries): New function.
+	(rsrc_sort_entries): New function.
+	(rsrc_attach_chain): New function.
+	(rsrc_merge): New function.
+	(rsrc_process_section): New function - merges the contents of a
+	.rsrc section.
+	(_bfd_XXi_final_link_postscript): Call rsrc_process_section.
+	(rsrc_print_section): Fix mingw64 size issue.
+
+	* configure.in (AC_CHECK_HEADERS): Add wchar.h
+	* config.in: Regenerate.
+	* configure: Regenerate.
+
+2013-12-16  Andreas Schwab  <schwab@suse.de>
+
+	* elf64-ppc.c (ppc64_elf_relocate_section): Add newline to error
+	message.
+
+2013-12-14  Alan Modra  <amodra@gmail.com>
+
+	* elflink.c (_bfd_elf_merge_symbol): If merging a new weak
+	symbol that will be skipped, we don't have a new definition.
+
+2013-12-13  Kuan-Lin Chen  <kuanlinchentw@gmail.com>
+	    Wei-Cheng Wang  <cole945@gmail.com>
+
+	* Makefile.am (BFD32_BACKENDS, BFD32_BACKENDS_CFILES): Add nds32
+	files.
+	* Makefile.in: Regenerate.
+	* archures.c (bfd_nds32_arch): Add nds32 target.
+	* bfd-in2.h: Regenerate.
+	* config.bfd (nds32*le-*-linux): Add bfd_elf32_nds32lelin_vec
+	and bfd_elf32_nds32belin_vec.
+	(nds32*be-*-linux*): Likewise.
+	(nds32*le-*-*): Add bfd_elf32_nds32le_vec and bfd_elf32_nds32be_vec.
+	(nds32*be-*-*): Likewise.
+	* configure.in (bfd_elf32_nds32be_vec): Add elf32-nds32.lo.
+	(bfd_elf32_nds32le_vec): Likewise.
+	(bfd_elf32_nds32belin_vec): Likewise.
+	(bfd_elf32_nds32lelin_vec): Likewise.
+	* configure: Regenerate.
+	* cpu-nds32.c: New file for nds32.
+	* elf-bfd.h: Add NDS32_ELF_DATA.
+	* elf32-nds32.c: New file for nds32.
+	* elf32-nds32.h: New file for nds32.
+	* libbfd.h: Regenerate.
+	* reloc.c: Add relocations for nds32.
+	* targets.c (bfd_elf32_nds32be_vec): New declaration for nds32.
+	(bfd_elf32_nds32le_vec): Likewise.
+	(bfd_elf32_nds32belin_vec): Likewise.
+	(bfd_elf32_nds32lelin_vec): Likewise.
+
+2013-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16318
+	* elf.c (_bfd_elf_copy_private_bfd_data): Remove BFD_ASSERT.
+	Set e_flags only if elf_flags_init is FALSE.  Copy EI_OSABI
+	field.
+
+2013-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-sh.c (bfd_elf32_bfd_set_private_bfd_flags): Removed.
+
+2013-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf.c (assign_file_positions_except_relocs): Set e_type in ELF
+	header to ET_EXEC for -pie -Ttext-segment=.
+
 2013-12-08  Alan Modra  <amodra@gmail.com>
 
 	* elflink.c (_bfd_elf_add_default_symbol): Set dynamic_def

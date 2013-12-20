@@ -1,3 +1,74 @@
+2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16317
+	* ld-elf/linkinfo1.s: New file.
+	* ld-elf/linkinfo1a.d: Likewise.
+	* ld-elf/linkinfo1b.d: Likewise.
+
+2013-12-18  Vidya Praveen  <vidyapraveen@arm.com>
+
+	* lib/ld-lib.exp (check_lto_available): Support cflags, ldflags and
+	test by compiling for an executable rather than shared library.
+
+2013-12-13  Vidya Praveen  <vidyapraveen@arm.com>
+
+	* lib/ld-lib.exp (default_ld_link): Use ldflags from board description
+	file.
+	(default_ld_simple_link): Likewise.
+	(default_ld_compile): Use cflags from board description file.
+
+2013-12-13  Kuan-Lin Chen  <kuanlinchentw@gmail.com>
+
+	* lib/ld-lib.exp: Add NDS32 to list of targets that do not support
+	shared library generation.
+	* ld-nds32: New directory.
+	* ld-nds32/branch.d: New test.
+	* ld-nds32/branch.ld: New test.
+	* ld-nds32/branch.s: New test.
+	* ld-nds32/diff.d: New test.
+	* ld-nds32/diff.ld: New test.
+	* ld-nds32/diff.s: New test.
+	* ld-nds32/gp.d: New test.
+	* ld-nds32/gp.ld: New test.
+	* ld-nds32/gp.s: New test.
+	* ld-nds32/imm.d: New test.
+	* ld-nds32/imm.ld: New test.
+	* ld-nds32/imm.s: New test.
+	* ld-nds32/imm_symbol.s: New test.
+	* ld-nds32/relax_jmp.d: New test.
+	* ld-nds32/relax_jmp.ld: New test.
+	* ld-nds32/relax_jmp.s: New test.
+	* ld-nds32/relax_load_store.d: New test.
+	* ld-nds32/relax_load_store.ld: New test.
+	* ld-nds32/relax_load_store.s: New test.
+	* ld-nds32/nds32.exp: New file.
+
+2013-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-elf/ehdr_start-userdef.d: Add "#...".
+
+2013-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-pie/vaddr-0.d: New file.
+	* ld-pie/vaddr-1.d: Likewise.
+	* ld-pie/vaddr.s: Likewise.
+
+2013-12-11  Will Newton  <will.newton@linaro.org>
+
+	* ld-aarch64/ifunc-21.d: Make test more generic to support
+	aarch64_be and ELF targets.
+	* ld-aarch64/ifunc-22.d: Likewise.
+
+2013-12-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-elf/shared.exp (build_tests): Add libneeded2a.so,
+	libneeded2b.so, libneeded2c.o and needed2.
+
+	* ld-elf/needed2.ver: New file.
+	* ld-elf/needed2a.c: Likewise.
+	* ld-elf/needed2b.c: Likewise.
+	* ld-elf/needed2c.c: Likewise.
+
 2013-12-07  Mike Frysinger  <vapier@gentoo.org>
 
 	* ld-pe/aligncomm-1.c: Remove +x file mode.
