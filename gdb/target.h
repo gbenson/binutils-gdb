@@ -62,6 +62,7 @@ struct dcache_struct;
 #include "target/resume.h"
 #include "target/wait.h"
 #include "target/waitstatus.h"
+#include "target/symbol.h"
 #include "bfd.h"
 #include "symtab.h"
 #include "memattr.h"

@@ -1276,6 +1276,20 @@ target_read_uint32 (CORE_ADDR memaddr, unsigned int *result)
   return 0;
 }
 
+/* See target/symbol.h.  */
+
+int
+target_look_up_symbol (const char *name, CORE_ADDR *addr,
+		       struct objfile *objfile)
+{
+  struct bound_minimal_symbol sym
+    = lookup_minimal_symbol (name, NULL, objfile);
+
+  if (sym.minsym != NULL)
+    *addr = BMSYMBOL_VALUE_ADDRESS (sym);
+  return sym.minsym != NULL;
+}
+
 /* Like target_read_memory, but specify explicitly that this is a read
    from the target's raw memory.  That is, this read bypasses the
    dcache, breakpoint shadowing, etc.  */

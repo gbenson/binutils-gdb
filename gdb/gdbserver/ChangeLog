@@ -1,6 +1,12 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* target.c: Include target/symbol.h.
+	(target_look_up_symbol): New function.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* target.c (target_wait, target_stop, target_resume): New
 	functions.
 

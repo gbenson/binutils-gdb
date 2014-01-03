@@ -1,4 +1,14 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
+	* target/symbol.h: New file.
+	* Makefile.in (HFILES_NO_SRCDIR): Add target/symbol.h.
+	* target.h: Include target/symbol.h.
+	* target.c (target_look_up_symbol): New function.
+	* common/agent.c: Include target/symbol.h.
+	(agent_look_up_symbols): Use target_look_up_symbol.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
 
 	* target/target.h (target_resume, target_wait, target_stop)
 	(non_stop): Moved from target.h.
