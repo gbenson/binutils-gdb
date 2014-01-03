@@ -230,18 +230,7 @@ agent_run_command (int pid, const char *cmd, int len)
   DEBUG_AGENT ("agent: resumed helper thread\n");
 
   /* Resume helper thread.  */
-#ifdef GDBSERVER
-{
-  struct thread_resume resume_info;
-
-  resume_info.thread = ptid;
-  resume_info.kind = resume_continue;
-  resume_info.sig = GDB_SIGNAL_0;
-  (*the_target->resume) (&resume_info, 1);
-}
-#else
- target_resume (ptid, 0, GDB_SIGNAL_0);
-#endif
+  target_resume (ptid, 0, GDB_SIGNAL_0);
 
   fd = gdb_connect_sync_socket (pid);
   if (fd >= 0)
@@ -277,25 +266,11 @@ agent_run_command (int pid, const char *cmd, int len)
       int was_non_stop = non_stop;
       /* Stop thread PTID.  */
       DEBUG_AGENT ("agent: stop helper thread\n");
-#ifdef GDBSERVER
-      {
-	struct thread_resume resume_info;
-
-	resume_info.thread = ptid;
-	resume_info.kind = resume_stop;
-	resume_info.sig = GDB_SIGNAL_0;
-	(*the_target->resume) (&resume_info, 1);
-      }
-
-      non_stop = 1;
-      mywait (ptid, &status, 0, 0);
-#else
       non_stop = 1;
       target_stop (ptid);
 
       memset (&status, 0, sizeof (status));
       target_wait (ptid, &status, 0);
-#endif
       non_stop = was_non_stop;
     }
 

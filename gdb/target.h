@@ -1207,31 +1207,6 @@ extern void target_detach (const char *, int);
 
 extern void target_disconnect (const char *, int);
 
-/* Resume execution of the target process PTID (or a group of
-   threads).  STEP says whether to single-step or to run free; SIGGNAL
-   is the signal to be given to the target, or GDB_SIGNAL_0 for no
-   signal.  The caller may not pass GDB_SIGNAL_DEFAULT.  A specific
-   PTID means `step/resume only this process id'.  A wildcard PTID
-   (all threads, or all threads of process) means `step/resume
-   INFERIOR_PTID, and let other threads (for which the wildcard PTID
-   matches) resume with their 'thread->suspend.stop_signal' signal
-   (usually GDB_SIGNAL_0) if it is in "pass" state, or with no signal
-   if in "no pass" state.  */
-
-extern void target_resume (ptid_t ptid, int step, enum gdb_signal signal);
-
-/* Wait for process pid to do something.  PTID = -1 to wait for any
-   pid to do something.  Return pid of child, or -1 in case of error;
-   store status through argument pointer STATUS.  Note that it is
-   _NOT_ OK to throw_exception() out of target_wait() without popping
-   the debugging target from the stack; GDB isn't prepared to get back
-   to the prompt with a debugging target but without the frame cache,
-   stop_pc, etc., set up.  OPTIONS is a bitwise OR of TARGET_W*
-   options.  */
-
-extern ptid_t target_wait (ptid_t ptid, struct target_waitstatus *status,
-			   int options);
-
 /* Fetch at least register REGNO, or all regs if regno == -1.  No result.  */
 
 extern void target_fetch_registers (struct regcache *regcache, int regno);
@@ -1577,12 +1552,6 @@ extern int target_thread_alive (ptid_t ptid);
 /* Query for new threads and add them to the thread list.  */
 
 extern void target_find_new_threads (void);
-
-/* Make target stop in a continuable fashion.  (For instance, under
-   Unix, this should act like SIGSTOP).  This function is normally
-   used by GUIs to implement a stop button.  */
-
-extern void target_stop (ptid_t ptid);
 
 /* Send the specified COMMAND to the target's monitor
    (shell,interpreter) for execution.  The result of the query is

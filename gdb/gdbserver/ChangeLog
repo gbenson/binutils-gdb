@@ -1,4 +1,10 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
+	* target.c (target_wait, target_stop, target_resume): New
+	functions.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
 
 	* target.c (target_read_memory, target_read_uint32)
 	(target_write_memory): New functions.

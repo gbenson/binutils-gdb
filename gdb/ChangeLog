@@ -1,4 +1,13 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
+
+	* target/target.h (target_resume, target_wait, target_stop)
+	(non_stop): Moved from target.h.
+	* target.h (target_resume, target_wait, target_stop, non_stop):
+	Move to target/target.h.
+	* common/agent.c (agent_run_command): Always use target_resume,
+	target_stop, and target_wait.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
 	* target/target.h: New file.
