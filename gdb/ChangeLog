@@ -1,6 +1,12 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* common/agent.c: Don't include defs.h or server.h; update
+	includes.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* target/symbol.h: New file.
 	* Makefile.in (HFILES_NO_SRCDIR): Add target/symbol.h.
 	* target.h: Include target/symbol.h.

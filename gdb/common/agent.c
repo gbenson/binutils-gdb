@@ -17,14 +17,23 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+#include <config.h>
+
 #ifdef GDBSERVER
-#include "server.h"
+#include "build-gnulib-gdbserver/config.h"
 #else
-#include "defs.h"
-#include "target.h"
-#include "infrun.h"
-#include "objfiles.h"
+#include "build-gnulib/config.h"
 #endif
+
+#include <unistd.h>
+
+#include "ptid.h"
+#include "gdb_signals.h"
+#include "target/waitstatus.h"
+#include "common-types.h"
+#include "target/target.h"
+#include "target/symbol.h"
+#include "common-debug.h"
 
 #include <stdarg.h>
 #include <errno.h>
