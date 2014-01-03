@@ -1,6 +1,20 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* common/errors.h: New file.
+	* common/errors.c: Likewise.
+	* Makefile.in (HFILES_NO_SRCDIR): Add common/errors.h.
+	(COMMON_OBS): Add errors.o.
+	(errors.o): New rule.
+	* utils.h: Include errors.h.
+	(perror_with_name, error, verror, warning, vwarning):
+	Don't declare.
+	* common/common-utils.h: Include errors.h.
+	(malloc_failure, internal_error): Don't declare.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* nat/linux-ptrace.c (additional_flags): New global.
 	(linux_test_for_tracesysgood, linux_test_for_tracefork): Use
 	additional_flags; don't check GDBSERVER.
