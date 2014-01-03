@@ -77,20 +77,14 @@ int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #  define PROG "gdbserver"
 #endif
 
-/* A type used for binary buffers.  */
-typedef unsigned char gdb_byte;
-
 #include "ptid.h"
 #include "buffer.h"
 #include "xml-utils.h"
 #include "gdb_locale.h"
+#include "common-types.h"
+#include "gdb_assert.h"
 
-/* FIXME: This should probably be autoconf'd for.  It's an integer type at
-   least the size of a (void *).  */
-typedef unsigned long long CORE_ADDR;
-
-typedef long long LONGEST;
-typedef unsigned long long ULONGEST;
+gdb_static_assert (sizeof (CORE_ADDR) >= sizeof (void *));
 
 #include "regcache.h"
 #include "gdb/signals.h"
@@ -146,8 +140,6 @@ extern int handle_target_event (int err, gdb_client_data client_data);
 #include "common-utils.h"
 #include "utils.h"
 #include "debug.h"
-
-#include "gdb_assert.h"
 
 /* Maximum number of bytes to read/write at once.  The value here
    is chosen to fill up a packet (the headers account for the 32).  */

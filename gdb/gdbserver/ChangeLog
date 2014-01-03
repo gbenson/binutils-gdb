@@ -1,4 +1,10 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
+
+	* server.h: Include common-types.h.  Move gdb_assert.h include
+	earlier.  Add static assertion.
+	(gdb_byte, CORE_ADDR, LONGEST, ULONGEST): Remove.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
 	* Makefile.in (SFILES): Add common/errors.c.

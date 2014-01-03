@@ -29,6 +29,7 @@
 #include "buffer.h"
 #include "gdb_assert.h"
 #include "gdb_wait.h"
+#include "common-types.h"
 
 #include <stdint.h>
 
