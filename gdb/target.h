@@ -58,6 +58,7 @@ struct dcache_struct;
    it goes into the file stratum, which is always below the process
    stratum.  */
 
+#include "target/target.h"
 #include "target/resume.h"
 #include "target/wait.h"
 #include "target/waitstatus.h"
@@ -1294,18 +1295,12 @@ int target_supports_disable_randomization (void);
 
 extern int target_read_string (CORE_ADDR, char **, int, int *);
 
-extern int target_read_memory (CORE_ADDR memaddr, gdb_byte *myaddr,
-			       ssize_t len);
-
 extern int target_read_raw_memory (CORE_ADDR memaddr, gdb_byte *myaddr,
 				   ssize_t len);
 
 extern int target_read_stack (CORE_ADDR memaddr, gdb_byte *myaddr, ssize_t len);
 
 extern int target_read_code (CORE_ADDR memaddr, gdb_byte *myaddr, ssize_t len);
-
-extern int target_write_memory (CORE_ADDR memaddr, const gdb_byte *myaddr,
-				ssize_t len);
 
 extern int target_write_raw_memory (CORE_ADDR memaddr, const gdb_byte *myaddr,
 				    ssize_t len);
