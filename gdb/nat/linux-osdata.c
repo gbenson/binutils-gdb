@@ -17,13 +17,20 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+#include "config.h"
+
 #ifdef GDBSERVER
-#include "server.h"
+#include "build-gnulib-gdbserver/config.h"
 #else
-#include "defs.h"
+#include "build-gnulib/config.h"
 #endif
 
+#include "libiberty.h"
+#include "common-types.h"
 #include "linux-osdata.h"
+#include "common-utils.h"
+#include "gdb_assert.h"
+#include "gdb_locale.h"
 
 #include <sys/types.h>
 #include <sys/sysinfo.h>

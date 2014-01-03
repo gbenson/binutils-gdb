@@ -19,6 +19,8 @@
 #ifndef FILESTUFF_H
 #define FILESTUFF_H
 
+#include <stdio.h>
+
 /* Note all the file descriptors which are open when this is called.
    These file descriptors will not be closed by close_most_fds.  */
 

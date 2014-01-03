@@ -17,14 +17,14 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifdef GDBSERVER
-#include "server.h"
-#else
-#include "defs.h"
-#endif
+#include "config.h"
 
 #include <string.h>
 
+#include "libiberty.h"
+#include "common-utils.h"
+#include "errors.h"
+#include "gdb_locale.h"
 #include "format.h"
 
 struct format_piece *

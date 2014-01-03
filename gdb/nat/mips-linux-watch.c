@@ -18,6 +18,7 @@
 #include <sys/ptrace.h>
 #include "mips-linux-watch.h"
 #include "gdb_assert.h"
+#include "gdb_locale.h"
 
 /* Assuming usable watch registers REGS, return the irw_mask of
    register N.  */

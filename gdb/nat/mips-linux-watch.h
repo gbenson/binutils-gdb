@@ -18,11 +18,8 @@
 #ifndef MIPS_LINUX_WATCH_H
 #define MIPS_LINUX_WATCH_H 1
 
-#ifdef GDBSERVER
-#include "server.h"
-#else
-#include "defs.h"
-#endif
+#include "config.h"
+#include "common-types.h"
 
 #include <asm/ptrace.h>
 #include <stdint.h>

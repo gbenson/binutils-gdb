@@ -1,6 +1,40 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* common/buffer.c: Don't include server.h or defs.h; update
+	includes.
+	* common/common-utils.c: Don't include server.h or defs.h; update
+	includes.
+	* common/filestuff.c: Don't include server.h or defs.h; update
+	includes.
+	* common/filestuff.h: Include stdio.h.
+	* common/format.c: Don't include server.h or defs.h; update
+	includes.
+	* common/gdb_vecs.c: Don't include server.h or defs.h; update
+	includes.
+	* common/print-utils.c: Don't include server.h or defs.h; update
+	includes.
+	* common/rsp-low.c: Don't include server.h or defs.h; update
+	includes.
+	* common/signals.c: Don't include server.h or defs.h; update
+	includes.
+	* common/vec.c: Don't include server.h or defs.h; update includes.
+	* common/xml-utils.c: Don't include server.h or defs.h; update
+	includes.
+	* nat/linux-osdata.c: Don't include server.h or defs.h; update
+	includes.
+	* nat/linux-procfs.c: Don't include server.h or defs.h; update
+	includes.
+	* nat/linux-ptrace.c: Don't include server.h or defs.h; update
+	includes.
+	* nat/mips-linux-watch.h: Don't include server.h or defs.h; update
+	includes.
+	* target/waitstatus.c: Don't include server.h or defs.h; update
+	includes.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* common/common-debug.h: New file.
 	* debug.c: Likewise.
 	* Makefile.in (HFILES_NO_SRCDIR): Add common/common-debug.h.
