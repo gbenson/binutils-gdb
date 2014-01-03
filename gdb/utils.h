@@ -25,6 +25,7 @@
 #include "exceptions.h"
 #include "print-utils.h"
 #include "errors.h"
+#include "common-debug.h"
 
 extern void initialize_utils (void);
 

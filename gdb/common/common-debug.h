@@ -1,5 +1,6 @@
-/* General utility routines for the remote server for GDB.
-   Copyright (C) 1993-2014 Free Software Foundation, Inc.
+/* Declarations for debug printing functions.
+
+   Copyright (C) 2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -16,15 +17,19 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef COMMON_DEBUG_H
+#define COMMON_DEBUG_H
 
-#include "print-utils.h"
-#include "errors.h"
-#include "common-debug.h"
+/* Print a formatted message to the appropriate channel for debugging
+   output for the client.  */
 
-void fatal (const char *string,...) ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF (1, 2);
-char *paddress (CORE_ADDR addr);
-char *pfildes (gdb_fildes_t fd);
+extern void debug_printf (const char *format, ...)
+     ATTRIBUTE_PRINTF (1, 2);
 
-#endif /* UTILS_H */
+/* Print a formatted message to the appropriate channel for debugging
+   output for the client.  */
+
+extern void debug_vprintf (const char *format, va_list ap)
+     ATTRIBUTE_PRINTF (1, 0);
+
+#endif /* COMMON_DEBUG_H */

@@ -1,4 +1,12 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
+	* utils.h: Include common-debug.h.
+	* debug.h (debug_printf): Don't declare.
+	* debug.c (debug_vprintf): New function.
+	(debug_printf): Use the above.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
 
 	* server.h: Include common-types.h.  Move gdb_assert.h include
 	earlier.  Add static assertion.

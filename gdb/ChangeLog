@@ -1,6 +1,18 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* common/common-debug.h: New file.
+	* debug.c: Likewise.
+	* Makefile.in (HFILES_NO_SRCDIR): Add common/common-debug.h.
+	(COMMON_OBS): Add debug.o.
+	* utils.h: Include common-debug.h.
+	* common/agent.c (debug_agent_print): New function.
+	(DEBUG_AGENT): Redefine.
+	* nat/i386-dregs.c (debug_printf): Undefine.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* common/common-types.h: New file.
 	* Makefile.in (HFILES_NO_SRCDIR): Add common/common-types.h.
 	* nat/linux-ptrace.c: Include common-types.h.
