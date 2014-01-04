@@ -21,6 +21,7 @@
 #include "gdbthread.h"
 #include "tdesc.h"
 #include "rsp-low.h"
+#include "common-regcache.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -63,6 +64,14 @@ get_thread_regcache (struct thread_info *thread, int fetch)
     }
 
   return regcache;
+}
+
+/* See common/linux-btrace.h.  */
+
+struct regcache *
+get_thread_regcache_for_ptid (ptid_t ptid)
+{
+  return get_thread_regcache (find_thread_ptid (ptid), 1);
 }
 
 void

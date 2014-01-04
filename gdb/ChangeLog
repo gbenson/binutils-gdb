@@ -1,6 +1,16 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* common/common-regcache.h: New file.
+	* Makefile.in (HFILES_NO_SRCDIR): Add common/common-regcache.h.
+	* regcache.c: Include the above.
+	(get_thread_regcache_for_ptid): New function.
+	* nat/linux-btrace.c: Include common-regcache.h.
+	(perf_event_read_bts): Use get_thread_regcache_for_ptid.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* common/agent.c: Don't include defs.h or server.h; update
 	includes.
 
