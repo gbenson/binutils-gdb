@@ -1,6 +1,12 @@
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
+	* nat/linux-btrace.c: Don't include defs.h or server.h.
+	* nat/linux-btrace.h (struct target_ops): Declare.
+
+2014-07-24  Tom Tromey  <tromey@redhat.com>
+	    Gary Benson  <gbenson@redhat.com>
+
 	* common/common-regcache.h: New file.
 	* Makefile.in (HFILES_NO_SRCDIR): Add common/common-regcache.h.
 	* regcache.c: Include the above.

@@ -22,6 +22,8 @@
 #ifndef LINUX_BTRACE_H
 #define LINUX_BTRACE_H
 
+struct target_ops;
+
 #include "btrace-common.h"
 #include "config.h"
 #include "vec.h"

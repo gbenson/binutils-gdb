@@ -19,17 +19,24 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+#include <config.h>
+
 #ifdef GDBSERVER
-#include "server.h"
+#include "build-gnulib-gdbserver/config.h"
 #else
-#include "defs.h"
+#include "build-gnulib/config.h"
 #endif
 
+#include "common-types.h"
+#include "common-utils.h"
+#include "target/waitstatus.h"
+#include "errors.h"
+#include "gdb_locale.h"
+#include "gdb_signals.h"
 #include "linux-btrace.h"
 #include "common-utils.h"
 #include "gdb_assert.h"
 #include "regcache.h"
-#include "gdbthread.h"
 #include "gdb_wait.h"
 #include "i386-cpuid.h"
 #include "common-regcache.h"
