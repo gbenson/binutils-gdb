@@ -12518,7 +12518,7 @@ ada_add_global_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
     if (objfile->sf)
       objfile->sf->qf->expand_symtabs_matching
 	(objfile, NULL, ada_exc_search_name_matches,
-	 VARIABLES_DOMAIN, preg);
+	 NULL, VARIABLES_DOMAIN, preg);
 
   ALL_PRIMARY_SYMTABS (objfile, s)
     {
