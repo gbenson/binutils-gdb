@@ -1,6 +1,6 @@
 /* Support for GDB maintenance commands.
 
-   Copyright (C) 1992-2013 Free Software Foundation, Inc.
+   Copyright (C) 1992-2014 Free Software Foundation, Inc.
 
    Written by Fred Fish at Cygnus Support.
 
@@ -902,7 +902,7 @@ make_command_stats_cleanup (int msg_type)
       && !per_command_symtab)
     return make_cleanup (null_cleanup, 0);
 
-  new_stat = XZALLOC (struct cmd_stats);
+  new_stat = XCNEW (struct cmd_stats);
 
   new_stat->msg_type = msg_type;
 

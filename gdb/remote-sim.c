@@ -1,6 +1,6 @@
 /* Generic remote debugging interface for simulators.
 
-   Copyright (C) 1993-2013 Free Software Foundation, Inc.
+   Copyright (C) 1993-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.
    Steve Chamberlain (sac@cygnus.com).
@@ -206,7 +206,7 @@ get_sim_inferior_data (struct inferior *inf, int sim_instance_needed)
 
   if (sim_data == NULL)
     {
-      sim_data = XZALLOC(struct sim_inferior_data);
+      sim_data = XCNEW(struct sim_inferior_data);
       set_inferior_data (inf, sim_inferior_data_key, sim_data);
 
       /* Allocate a ptid for this inferior.  */

@@ -1,6 +1,6 @@
 /* Python interface to types.
 
-   Copyright (C) 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2008-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -146,6 +146,14 @@ field_new (void)
 
 
 
+/* Return true if OBJ is of type gdb.Field, false otherwise.  */
+
+int
+gdbpy_is_field (PyObject *obj)
+{
+  return PyObject_TypeCheck (obj, &field_object_type);
+}
+
 /* Return the code for this type.  */
 static PyObject *
 typy_get_code (PyObject *self, void *closure)
@@ -166,6 +174,13 @@ convert_field (struct type *type, int field)
 
   if (!result)
     return NULL;
+
+  arg = type_to_type_object (type);
+  if (arg == NULL)
+    goto fail;
+  if (PyObject_SetAttrString (result, "parent_type", arg) < 0)
+    goto failarg;
+  Py_DECREF (arg);
 
   if (!field_is_static (&TYPE_FIELD (type, field)))
     {
@@ -191,15 +206,22 @@ convert_field (struct type *type, int field)
       Py_DECREF (arg);
     }
 
+  arg = NULL;
   if (TYPE_FIELD_NAME (type, field))
-    arg = PyString_FromString (TYPE_FIELD_NAME (type, field));
-  else
+    {
+      const char *field_name = TYPE_FIELD_NAME (type, field);
+      if (field_name[0] != '\0')
+	{
+	  arg = PyString_FromString (TYPE_FIELD_NAME (type, field));
+	  if (arg == NULL)
+	    goto fail;
+	}
+    }
+  if (arg == NULL)
     {
       arg = Py_None;
       Py_INCREF (arg);
     }
-  if (!arg)
-    goto fail;
   if (PyObject_SetAttrString (result, "name", arg) < 0)
     goto failarg;
   Py_DECREF (arg);
@@ -397,6 +419,18 @@ static PyObject *
 typy_items (PyObject *self, PyObject *args)
 {
   return typy_fields_items (self, iter_items);
+}
+
+/* Return the type's name, or None.  */
+
+static PyObject *
+typy_get_name (PyObject *self, void *closure)
+{
+  struct type *type = ((type_object *) self)->type;
+
+  if (TYPE_NAME (type) == NULL)
+    Py_RETURN_NONE;
+  return PyString_FromString (TYPE_NAME (type));
 }
 
 /* Return the type's tag, or None.  */
@@ -1380,6 +1414,8 @@ static PyGetSetDef type_object_getset[] =
 {
   { "code", typy_get_code, NULL,
     "The code for this type.", NULL },
+  { "name", typy_get_name, NULL,
+    "The name for this type, or None.", NULL },
   { "sizeof", typy_get_sizeof, NULL,
     "The size of this type, in bytes.", NULL },
   { "tag", typy_get_tag, NULL,

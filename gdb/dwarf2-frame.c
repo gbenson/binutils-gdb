@@ -1,6 +1,6 @@
 /* Frame unwinder for frames with DWARF Call Frame Information.
 
-   Copyright (C) 2003-2013 Free Software Foundation, Inc.
+   Copyright (C) 2003-2014 Free Software Foundation, Inc.
 
    Contributed by Mark Kettenis.
 
@@ -518,7 +518,7 @@ execute_cfa_program (struct dwarf2_fde *fde, const gdb_byte *insn_ptr,
 	      {
 		struct dwarf2_frame_state_reg_info *new_rs;
 
-		new_rs = XMALLOC (struct dwarf2_frame_state_reg_info);
+		new_rs = XNEW (struct dwarf2_frame_state_reg_info);
 		*new_rs = fs->regs;
 		fs->regs.reg = dwarf2_frame_state_copy_regs (&fs->regs);
 		fs->regs.prev = new_rs;
@@ -1045,7 +1045,7 @@ dwarf2_frame_cache (struct frame_info *this_frame, void **this_cache)
   reset_cache_cleanup = make_cleanup (clear_pointer_cleanup, this_cache);
 
   /* Allocate and initialize the frame state.  */
-  fs = XZALLOC (struct dwarf2_frame_state);
+  fs = XCNEW (struct dwarf2_frame_state);
   old_chain = make_cleanup (dwarf2_frame_state_free, fs);
 
   /* Unwind the PC.
@@ -1275,12 +1275,11 @@ dwarf2_frame_this_id (struct frame_info *this_frame, void **this_cache,
     dwarf2_frame_cache (this_frame, this_cache);
 
   if (cache->unavailable_retaddr)
+    (*this_id) = frame_id_build_unavailable_stack (get_frame_func (this_frame));
+  else if (cache->undefined_retaddr)
     return;
-
-  if (cache->undefined_retaddr)
-    return;
-
-  (*this_id) = frame_id_build (cache->cfa, get_frame_func (this_frame));
+  else
+    (*this_id) = frame_id_build (cache->cfa, get_frame_func (this_frame));
 }
 
 static struct value *

@@ -1,6 +1,6 @@
 /* Generic symbol file reading for the GNU debugger, GDB.
 
-   Copyright (C) 1990-2013 Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support, using pieces from other GDB modules.
 
@@ -57,7 +57,6 @@
 #include "stack.h"
 #include "gdb_bfd.h"
 #include "cli/cli-utils.h"
-#include "target.h"
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -800,13 +799,13 @@ default_symfile_segments (bfd *abfd)
   low = bfd_get_section_vma (abfd, sect);
   high = low + bfd_get_section_size (sect);
 
-  data = XZALLOC (struct symfile_segment_data);
+  data = XCNEW (struct symfile_segment_data);
   data->num_segments = 1;
-  data->segment_bases = XCALLOC (1, CORE_ADDR);
-  data->segment_sizes = XCALLOC (1, CORE_ADDR);
+  data->segment_bases = XCNEW (CORE_ADDR);
+  data->segment_sizes = XCNEW (CORE_ADDR);
 
   num_sections = bfd_count_sections (abfd);
-  data->segment_info = XCALLOC (num_sections, int);
+  data->segment_info = XCNEWVEC (int, num_sections);
 
   for (i = 0, sect = abfd->sections; sect != NULL; i++, sect = sect->next)
     {

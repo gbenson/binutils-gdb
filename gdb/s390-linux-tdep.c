@@ -1,6 +1,6 @@
 /* Target-dependent code for GDB, the GNU debugger.
 
-   Copyright (C) 2001-2013 Free Software Foundation, Inc.
+   Copyright (C) 2001-2014 Free Software Foundation, Inc.
 
    Contributed by D.J. Barrow (djbarrow@de.ibm.com,barrow_dj@yahoo.com)
    for IBM Deutschland Entwicklung GmbH, IBM Corporation.
@@ -3026,6 +3026,11 @@ s390_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   int have_linux_v1 = 0;
   int have_linux_v2 = 0;
   int first_pseudo_reg, last_pseudo_reg;
+  static const char *const stap_register_prefixes[] = { "%", NULL };
+  static const char *const stap_register_indirection_prefixes[] = { "(",
+								    NULL };
+  static const char *const stap_register_indirection_suffixes[] = { ")",
+								    NULL };
 
   /* Default ABI and register size.  */
   switch (info.bfd_arch_info->mach)
@@ -3191,7 +3196,7 @@ s390_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
     }
 
   /* Otherwise create a new gdbarch for the specified machine type.  */
-  tdep = XCALLOC (1, struct gdbarch_tdep);
+  tdep = XCNEW (struct gdbarch_tdep);
   tdep->abi = tdep_abi;
   gdbarch = gdbarch_alloc (&info, tdep);
 
@@ -3358,9 +3363,11 @@ s390_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_get_siginfo_type (gdbarch, linux_get_siginfo_type);
 
   /* SystemTap functions.  */
-  set_gdbarch_stap_register_prefix (gdbarch, "%");
-  set_gdbarch_stap_register_indirection_prefix (gdbarch, "(");
-  set_gdbarch_stap_register_indirection_suffix (gdbarch, ")");
+  set_gdbarch_stap_register_prefixes (gdbarch, stap_register_prefixes);
+  set_gdbarch_stap_register_indirection_prefixes (gdbarch,
+					  stap_register_indirection_prefixes);
+  set_gdbarch_stap_register_indirection_suffixes (gdbarch,
+					  stap_register_indirection_suffixes);
   set_gdbarch_stap_is_single_operand (gdbarch, s390_stap_is_single_operand);
 
   return gdbarch;

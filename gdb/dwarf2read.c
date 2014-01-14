@@ -1,6 +1,6 @@
 /* DWARF 2 debugging format support for GDB.
 
-   Copyright (C) 1994-2013 Free Software Foundation, Inc.
+   Copyright (C) 1994-2014 Free Software Foundation, Inc.
 
    Adapted by Gary Funck (gary@intrepid.com), Intrepid Technology,
    Inc.  with support from Florida State University (under contract
@@ -2432,6 +2432,7 @@ dwarf2_get_dwz_file (void)
 
   do_cleanups (cleanup);
 
+  gdb_bfd_record_inclusion (dwarf2_per_objfile->objfile->obfd, dwz_bfd);
   dwarf2_per_objfile->dwz_file = result;
   return result;
 }
@@ -6803,6 +6804,13 @@ add_partial_symbol (struct partial_die_info *pdi, struct dwarf2_cu *cu)
 			   &objfile->global_psymbols,
 			   0, (CORE_ADDR) 0, cu->language, objfile);
       break;
+    case DW_TAG_module:
+      add_psymbol_to_list (actual_name, strlen (actual_name),
+			   built_actual_name != NULL,
+			   MODULE_DOMAIN, LOC_TYPEDEF,
+			   &objfile->global_psymbols,
+			   0, (CORE_ADDR) 0, cu->language, objfile);
+      break;
     case DW_TAG_class_type:
     case DW_TAG_interface_type:
     case DW_TAG_structure_type:
@@ -6873,6 +6881,10 @@ static void
 add_partial_module (struct partial_die_info *pdi, CORE_ADDR *lowpc,
 		    CORE_ADDR *highpc, int need_pc, struct dwarf2_cu *cu)
 {
+  /* Add a symbol for the namespace.  */
+
+  add_partial_symbol (pdi, cu);
+
   /* Now scan partial symbols in that module.  */
 
   if (pdi->has_children)
@@ -10113,6 +10125,8 @@ lookup_dwo_unit_in_dwp (struct dwp_file *dwp_file, const char *comp_dir,
    If IS_DWP is TRUE, we're opening a DWP file, otherwise a DWO file.
    SEARCH_CWD is true if the current directory is to be searched.
    It will be searched before debug-file-directory.
+   If successful, the file is added to the bfd include table of the
+   objfile's bfd (see gdb_bfd_record_inclusion).
    If unable to find/open the file, return NULL.
    NOTE: This function is derived from symfile_bfd_open.  */
 
@@ -10159,6 +10173,12 @@ try_open_dwop_file (const char *file_name, int is_dwp, int search_cwd)
       gdb_bfd_unref (sym_bfd); /* This also closes desc.  */
       return NULL;
     }
+
+  /* Success.  Record the bfd as having been included by the objfile's bfd.
+     This is important because things like demangled_names_hash lives in the
+     objfile's per_bfd space and may have references to things like symbol
+     names that live in the DWO/DWP file's per_bfd space.  PR 16426.  */
+  gdb_bfd_record_inclusion (dwarf2_per_objfile->objfile->obfd, sym_bfd);
 
   return sym_bfd;
 }
@@ -10677,11 +10697,25 @@ lookup_dwo_cutu (struct dwarf2_per_cu_data *this_unit,
 
   /* This is a warning and not a complaint because it can be caused by
      pilot error (e.g., user accidentally deleting the DWO).  */
-  warning (_("Could not find DWO %s %s(%s) referenced by %s at offset 0x%x"
-	     " [in module %s]"),
-	   kind, dwo_name, hex_string (signature),
-	   this_unit->is_debug_types ? "TU" : "CU",
-	   this_unit->offset.sect_off, objfile_name (objfile));
+  {
+    /* Print the name of the DWP file if we looked there, helps the user
+       better diagnose the problem.  */
+    char *dwp_text = NULL;
+    struct cleanup *cleanups;
+
+    if (dwp_file != NULL)
+      dwp_text = xstrprintf (" [in DWP file %s]", lbasename (dwp_file->name));
+    cleanups = make_cleanup (xfree, dwp_text);
+
+    warning (_("Could not find DWO %s %s(%s)%s referenced by %s at offset 0x%x"
+	       " [in module %s]"),
+	     kind, dwo_name, hex_string (signature),
+	     dwp_text != NULL ? dwp_text : "",
+	     this_unit->is_debug_types ? "TU" : "CU",
+	     this_unit->offset.sect_off, objfile_name (objfile));
+
+    do_cleanups (cleanups);
+  }
   return NULL;
 }
 
@@ -13662,6 +13696,10 @@ static void
 read_module (struct die_info *die, struct dwarf2_cu *cu)
 {
   struct die_info *child_die = die->child;
+  struct type *type;
+
+  type = read_type_die (die, cu);
+  new_symbol (die, type, cu);
 
   while (child_die && child_die->tag)
     {
@@ -14697,7 +14735,7 @@ abbrev_table_read_table (struct dwarf2_section_info *section,
   struct attr_abbrev *cur_attrs;
   unsigned int allocated_attrs;
 
-  abbrev_table = XMALLOC (struct abbrev_table);
+  abbrev_table = XNEW (struct abbrev_table);
   abbrev_table->offset = offset;
   obstack_init (&abbrev_table->abbrev_obstack);
   abbrev_table->abbrevs = obstack_alloc (&abbrev_table->abbrev_obstack,
@@ -17690,6 +17728,11 @@ new_symbol_full (struct die_info *die, struct type *type, struct dwarf2_cu *cu,
 	case DW_TAG_imported_declaration:
 	case DW_TAG_namespace:
 	  SYMBOL_ACLASS_INDEX (sym) = LOC_TYPEDEF;
+	  list_to_add = &global_symbols;
+	  break;
+	case DW_TAG_module:
+	  SYMBOL_ACLASS_INDEX (sym) = LOC_TYPEDEF;
+	  SYMBOL_DOMAIN (sym) = MODULE_DOMAIN;
 	  list_to_add = &global_symbols;
 	  break;
 	case DW_TAG_common_block:

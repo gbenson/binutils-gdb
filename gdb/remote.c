@@ -1,6 +1,6 @@
 /* Remote target communications for serial-line targets in custom GDB protocol
 
-   Copyright (C) 1988-2013 Free Software Foundation, Inc.
+   Copyright (C) 1988-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -46,7 +46,6 @@
 #include "gdb_bfd.h"
 #include "filestuff.h"
 
-#include <ctype.h>
 #include <sys/time.h>
 
 #include "event-loop.h"
@@ -1562,7 +1561,18 @@ remote_add_inferior (int fake_pid_p, int pid, int attached)
 static void
 remote_add_thread (ptid_t ptid, int running)
 {
-  add_thread (ptid);
+  struct remote_state *rs = get_remote_state ();
+
+  /* GDB historically didn't pull threads in the initial connection
+     setup.  If the remote target doesn't even have a concept of
+     threads (e.g., a bare-metal target), even if internally we
+     consider that a single-threaded target, mentioning a new thread
+     might be confusing to the user.  Be silent then, preserving the
+     age old behavior.  */
+  if (rs->starting_up)
+    add_thread_silent (ptid);
+  else
+    add_thread (ptid);
 
   set_executing (ptid, running);
   set_running (ptid, running);
@@ -1640,9 +1650,15 @@ remote_notice_new_inferior (ptid_t currthread, int running)
 
       /* If we found a new inferior, let the common code do whatever
 	 it needs to with it (e.g., read shared libraries, insert
-	 breakpoints).  */
+	 breakpoints), unless we're just setting up an all-stop
+	 connection.  */
       if (inf != NULL)
-	notice_new_inferior (currthread, running, 0);
+	{
+	  struct remote_state *rs = get_remote_state ();
+
+	  if (non_stop || !rs->starting_up)
+	    notice_new_inferior (currthread, running, 0);
+	}
     }
 }
 
@@ -3310,6 +3326,28 @@ stop_reply_extract_thread (char *stop_reply)
   return null_ptid;
 }
 
+/* Determine the remote side's current thread.  If we have a stop
+   reply handy (in WAIT_STATUS), maybe it's a T stop reply with a
+   "thread" register we can extract the current thread from.  If not,
+   ask the remote which is the current thread with qC.  The former
+   method avoids a roundtrip.  */
+
+static ptid_t
+get_current_thread (char *wait_status)
+{
+  ptid_t ptid;
+
+  /* Note we don't use remote_parse_stop_reply as that makes use of
+     the target architecture, which we haven't yet fully determined at
+     this point.  */
+  if (wait_status != NULL)
+    ptid = stop_reply_extract_thread (wait_status);
+  if (ptid_equal (ptid, null_ptid))
+    ptid = remote_current_thread (inferior_ptid);
+
+  return ptid;
+}
+
 /* Query the remote target for which is the current thread/process,
    add it to our tables, and update INFERIOR_PTID.  The caller is
    responsible for setting the state such that the remote end is ready
@@ -3330,18 +3368,8 @@ add_current_inferior_and_thread (char *wait_status)
 
   inferior_ptid = null_ptid;
 
-  /* Now, if we have thread information, update inferior_ptid.  First
-     if we have a stop reply handy, maybe it's a T stop reply with a
-     "thread" register we can extract the current thread from.  If
-     not, ask the remote which is the current thread, with qC.  The
-     former method avoids a roundtrip.  Note we don't use
-     remote_parse_stop_reply as that makes use of the target
-     architecture, which we haven't yet fully determined at this
-     point.  */
-  if (wait_status != NULL)
-    ptid = stop_reply_extract_thread (wait_status);
-  if (ptid_equal (ptid, null_ptid))
-    ptid = remote_current_thread (inferior_ptid);
+  /* Now, if we have thread information, update inferior_ptid.  */
+  ptid = get_current_thread (wait_status);
 
   if (!ptid_equal (ptid, null_ptid))
     {
@@ -3511,10 +3539,35 @@ remote_start_remote (int from_tty, struct target_ops *target, int extended_p)
 	  strcpy (wait_status, rs->buf);
 	}
 
+      /* Fetch thread list.  */
+      target_find_new_threads ();
+
       /* Let the stub know that we want it to return the thread.  */
       set_continue_thread (minus_one_ptid);
 
-      add_current_inferior_and_thread (wait_status);
+      if (thread_count () == 0)
+	{
+	  /* Target has no concept of threads at all.  GDB treats
+	     non-threaded target as single-threaded; add a main
+	     thread.  */
+	  add_current_inferior_and_thread (wait_status);
+	}
+      else
+	{
+	  /* We have thread information; select the thread the target
+	     says should be current.  If we're reconnecting to a
+	     multi-threaded program, this will ideally be the thread
+	     that last reported an event before GDB disconnected.  */
+	  inferior_ptid = get_current_thread (wait_status);
+	  if (ptid_equal (inferior_ptid, null_ptid))
+	    {
+	      /* Odd... The target was able to list threads, but not
+		 tell us which thread was current (no "thread"
+		 register in T stop reply?).  Just pick the first
+		 thread in the thread list then.  */
+	      inferior_ptid = thread_list->ptid;
+	    }
+	}
 
       /* init_wait_for_inferior should be called before get_offsets in order
 	 to manage `inserted' flag in bp loc in a correct state.
@@ -5355,7 +5408,7 @@ static struct notif_event *
 remote_notif_stop_alloc_reply (void)
 {
   struct notif_event *r
-    = (struct notif_event *) XMALLOC (struct stop_reply);
+    = (struct notif_event *) XNEW (struct stop_reply);
 
   r->dtr = stop_reply_dtr;
 
@@ -8259,6 +8312,12 @@ remote_insert_breakpoint (struct gdbarch *gdbarch,
 	  break;
 	}
     }
+
+  /* If this breakpoint has target-side commands but this stub doesn't
+     support Z0 packets, throw error.  */
+  if (!VEC_empty (agent_expr_p, bp_tgt->tcommands))
+    throw_error (NOT_SUPPORTED_ERROR, _("\
+Target doesn't support breakpoints that have target side commands."));
 
   return memory_insert_breakpoint (gdbarch, bp_tgt);
 }

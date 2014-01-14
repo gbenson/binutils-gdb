@@ -1,6 +1,6 @@
 /* Symbol table definitions for GDB.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -417,6 +417,10 @@ typedef enum domain_enum_tag
      `foo' in the STRUCT_DOMAIN.  */
 
   STRUCT_DOMAIN,
+
+  /* MODULE_DOMAIN is used in Fortran to hold module type names.  */
+
+  MODULE_DOMAIN,
 
   /* LABEL_DOMAIN may be used for names of labels (for gotos).  */
 

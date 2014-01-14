@@ -1,6 +1,6 @@
 /* BSD user-level threads support.
 
-   Copyright (C) 2005-2013 Free Software Foundation, Inc.
+   Copyright (C) 2005-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -518,7 +518,7 @@ bsd_uthread_pid_to_str (struct target_ops *ops, ptid_t ptid)
 static struct target_ops *
 bsd_uthread_target (void)
 {
-  struct target_ops *t = XZALLOC (struct target_ops);
+  struct target_ops *t = XCNEW (struct target_ops);
 
   t->to_shortname = "bsd-uthreads";
   t->to_longname = "BSD user-level threads";

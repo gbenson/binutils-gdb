@@ -1,6 +1,6 @@
 /* Ada language support routines for GDB, the GNU debugger.
 
-   Copyright (C) 1992-2013 Free Software Foundation, Inc.
+   Copyright (C) 1992-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -64,7 +64,6 @@
 #include "value.h"
 #include "mi/mi-common.h"
 #include "arch-utils.h"
-#include "exceptions.h"
 #include "cli/cli-utils.h"
 
 /* Define whether or not the C operator '/' truncates towards zero for
@@ -359,7 +358,7 @@ get_ada_inferior_data (struct inferior *inf)
   data = inferior_data (inf, ada_inferior_data);
   if (data == NULL)
     {
-      data = XZALLOC (struct ada_inferior_data);
+      data = XCNEW (struct ada_inferior_data);
       set_inferior_data (inf, ada_inferior_data, data);
     }
 
@@ -2788,9 +2787,9 @@ ada_index_type (struct type *type, int n, const char *name)
    by run-time quantities other than discriminants.  */
 
 static LONGEST
-ada_array_bound_from_type (struct type * arr_type, int n, int which)
+ada_array_bound_from_type (struct type *arr_type, int n, int which)
 {
-  struct type *type, *elt_type, *index_type_desc, *index_type;
+  struct type *type, *index_type_desc, *index_type;
   int i;
 
   gdb_assert (which == 0 || which == 1);
@@ -2806,17 +2805,20 @@ ada_array_bound_from_type (struct type * arr_type, int n, int which)
   else
     type = arr_type;
 
-  elt_type = type;
-  for (i = n; i > 1; i--)
-    elt_type = TYPE_TARGET_TYPE (type);
-
   index_type_desc = ada_find_parallel_type (type, "___XA");
   ada_fixup_array_indexes_type (index_type_desc);
   if (index_type_desc != NULL)
     index_type = to_fixed_range_type (TYPE_FIELD_TYPE (index_type_desc, n - 1),
 				      NULL);
   else
-    index_type = TYPE_INDEX_TYPE (elt_type);
+    {
+      struct type *elt_type = check_typedef (type);
+
+      for (i = 1; i < n; i++)
+	elt_type = check_typedef (TYPE_TARGET_TYPE (elt_type));
+
+      index_type = TYPE_INDEX_TYPE (elt_type);
+    }
 
   return
     (LONGEST) (which == 0

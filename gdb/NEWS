@@ -1,7 +1,11 @@
 		What has changed in GDB?
 	     (Organized release by release)
 
-*** Changes since GDB 7.6
+*** Changes since GDB 7.7
+
+*** Changes in GDB 7.7
+
+* GDB now supports SystemTap SDT probes on AArch64 GNU/Linux.
 
 * GDB now supports Fission DWP file format version 2.
   http://gcc.gnu.org/wiki/DebugFission
@@ -40,6 +44,9 @@
   ** Frame filters and frame decorators have been added.
   ** Temporary breakpoints are now supported.
   ** Line tables representation has been added.
+  ** New attribute 'parent_type' for gdb.Field objects.
+  ** gdb.Field objects can be used as subscripts on gdb.Value objects.
+  ** New attribute 'name' for gdb.Type objects.
 
 * New targets
 
@@ -191,7 +198,9 @@ show code-cache
   ** The -exec-run command now accepts an optional "--start" option.
      When used, the command follows the same semantics as the "start"
      command, stopping the program's execution at the start of its
-     main subprogram.
+     main subprogram.  Support for this feature can be verified using
+     the "-list-features" command, which should contain
+     "exec-run-start-option".
 
   ** The new commands -catch-assert and -catch-exceptions insert
      catchpoints stopping the program when Ada exceptions are raised.

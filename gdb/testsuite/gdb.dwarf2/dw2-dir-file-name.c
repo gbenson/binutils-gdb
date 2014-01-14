@@ -1,6 +1,6 @@
 /* This testcase is part of GDB, the GNU debugger.
 
-   Copyright 2012-2013 Free Software Foundation, Inc.
+   Copyright 2012-2014 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -64,8 +64,7 @@ FUNC (compdir_absolute_ldir_absolute_file_absolute_same)	\
 FUNC (compdir_absolute_ldir_absolute_file_absolute_different)
 
 #define FUNC(name)					\
-  asm (#name "_start: .globl " #name "_start\n");	\
-  static void						\
+  void							\
   name (void)						\
   {							\
     v++;						\

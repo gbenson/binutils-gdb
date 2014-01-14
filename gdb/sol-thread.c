@@ -1,6 +1,6 @@
 /* Solaris threads debugging interface.
 
-   Copyright (C) 1996-2013 Free Software Foundation, Inc.
+   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -577,6 +577,10 @@ check_for_thread_db (void)
 {
   td_err_e err;
   ptid_t ptid;
+
+  /* Don't attempt to use thread_db for remote targets.  */
+  if (!(target_can_run (&current_target) || core_bfd))
+    return;
 
   /* Do nothing if we couldn't load libthread_db.so.1.  */
   if (p_td_ta_new == NULL)

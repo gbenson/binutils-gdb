@@ -1,6 +1,6 @@
 /* Intel 386 target-dependent stuff.
 
-   Copyright (C) 1988-2013 Free Software Foundation, Inc.
+   Copyright (C) 1988-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -931,13 +931,14 @@ i386_follow_jump (struct gdbarch *gdbarch, CORE_ADDR pc)
   long delta = 0;
   int data16 = 0;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
 
   if (op == 0x66)
     {
       data16 = 1;
-      op = read_memory_unsigned_integer (pc + 1, 1, byte_order);
+
+      op = read_code_unsigned_integer (pc + 1, 1, byte_order);
     }
 
   switch (op)
@@ -999,13 +1000,13 @@ i386_analyze_struct_return (CORE_ADDR pc, CORE_ADDR current_pc,
   if (current_pc <= pc)
     return pc;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
 
   if (op != 0x58)		/* popl %eax */
     return pc;
 
-  if (target_read_memory (pc + 1, buf, 4))
+  if (target_read_code (pc + 1, buf, 4))
     return pc;
 
   if (memcmp (buf, proto1, 3) != 0 && memcmp (buf, proto2, 4) != 0)
@@ -1046,7 +1047,7 @@ i386_skip_probe (CORE_ADDR pc)
   gdb_byte buf[8];
   gdb_byte op;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
 
   if (op == 0x68 || op == 0x6a)
@@ -1116,7 +1117,7 @@ i386_analyze_stack_align (CORE_ADDR pc, CORE_ADDR current_pc,
     I386_EDI_REGNUM		/* %edi */
   };
 
-  if (target_read_memory (pc, buf, sizeof buf))
+  if (target_read_code (pc, buf, sizeof buf))
     return pc;
 
   /* Check caller-saved saved register.  The first instruction has
@@ -1205,7 +1206,7 @@ i386_match_pattern (CORE_ADDR pc, struct i386_insn pattern)
 {
   gdb_byte op;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return 0;
 
   if ((op & pattern.mask[0]) == pattern.insn[0])
@@ -1217,7 +1218,7 @@ i386_match_pattern (CORE_ADDR pc, struct i386_insn pattern)
       gdb_assert (pattern.len > 1);
       gdb_assert (pattern.len <= I386_MAX_MATCHED_INSN_LEN);
 
-      if (target_read_memory (pc + 1, buf, pattern.len - 1))
+      if (target_read_code (pc + 1, buf, pattern.len - 1))
 	return 0;
 
       for (i = 1; i < pattern.len; i++)
@@ -1347,7 +1348,7 @@ i386_skip_noop (CORE_ADDR pc)
   gdb_byte op;
   int check = 1;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
 
   while (check) 
@@ -1357,7 +1358,7 @@ i386_skip_noop (CORE_ADDR pc)
       if (op == 0x90) 
 	{
 	  pc += 1;
-	  if (target_read_memory (pc, &op, 1))
+	  if (target_read_code (pc, &op, 1))
 	    return pc;
 	  check = 1;
 	}
@@ -1374,13 +1375,13 @@ i386_skip_noop (CORE_ADDR pc)
 
       else if (op == 0x8b)
 	{
-	  if (target_read_memory (pc + 1, &op, 1))
+	  if (target_read_code (pc + 1, &op, 1))
 	    return pc;
 
 	  if (op == 0xff)
 	    {
 	      pc += 2;
-	      if (target_read_memory (pc, &op, 1))
+	      if (target_read_code (pc, &op, 1))
 		return pc;
 
 	      check = 1;
@@ -1408,7 +1409,7 @@ i386_analyze_frame_setup (struct gdbarch *gdbarch,
   if (limit <= pc)
     return limit;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
 
   if (op == 0x55)		/* pushl %ebp */
@@ -1444,7 +1445,7 @@ i386_analyze_frame_setup (struct gdbarch *gdbarch,
       if (limit <= pc + skip)
 	return limit;
 
-      if (target_read_memory (pc + skip, &op, 1))
+      if (target_read_code (pc + skip, &op, 1))
 	return pc + skip;
 
       /* The i386 prologue looks like
@@ -1465,19 +1466,19 @@ i386_analyze_frame_setup (struct gdbarch *gdbarch,
 	{
 	  /* Check for `movl %esp, %ebp' -- can be written in two ways.  */
 	case 0x8b:
-	  if (read_memory_unsigned_integer (pc + skip + 1, 1, byte_order)
+	  if (read_code_unsigned_integer (pc + skip + 1, 1, byte_order)
 	      != 0xec)
 	    return pc;
 	  pc += (skip + 2);
 	  break;
 	case 0x89:
-	  if (read_memory_unsigned_integer (pc + skip + 1, 1, byte_order)
+	  if (read_code_unsigned_integer (pc + skip + 1, 1, byte_order)
 	      != 0xe5)
 	    return pc;
 	  pc += (skip + 2);
 	  break;
 	case 0x8d: /* Check for 'lea (%ebp), %ebp'.  */
-	  if (read_memory_unsigned_integer (pc + skip + 1, 2, byte_order)
+	  if (read_code_unsigned_integer (pc + skip + 1, 2, byte_order)
 	      != 0x242c)
 	    return pc;
 	  pc += (skip + 3);
@@ -1504,38 +1505,38 @@ i386_analyze_frame_setup (struct gdbarch *gdbarch,
 
 	 NOTE: You can't subtract a 16-bit immediate from a 32-bit
 	 reg, so we don't have to worry about a data16 prefix.  */
-      if (target_read_memory (pc, &op, 1))
+      if (target_read_code (pc, &op, 1))
 	return pc;
       if (op == 0x83)
 	{
 	  /* `subl' with 8-bit immediate.  */
-	  if (read_memory_unsigned_integer (pc + 1, 1, byte_order) != 0xec)
+	  if (read_code_unsigned_integer (pc + 1, 1, byte_order) != 0xec)
 	    /* Some instruction starting with 0x83 other than `subl'.  */
 	    return pc;
 
 	  /* `subl' with signed 8-bit immediate (though it wouldn't
 	     make sense to be negative).  */
-	  cache->locals = read_memory_integer (pc + 2, 1, byte_order);
+	  cache->locals = read_code_integer (pc + 2, 1, byte_order);
 	  return pc + 3;
 	}
       else if (op == 0x81)
 	{
 	  /* Maybe it is `subl' with a 32-bit immediate.  */
-	  if (read_memory_unsigned_integer (pc + 1, 1, byte_order) != 0xec)
+	  if (read_code_unsigned_integer (pc + 1, 1, byte_order) != 0xec)
 	    /* Some instruction starting with 0x81 other than `subl'.  */
 	    return pc;
 
 	  /* It is `subl' with a 32-bit immediate.  */
-	  cache->locals = read_memory_integer (pc + 2, 4, byte_order);
+	  cache->locals = read_code_integer (pc + 2, 4, byte_order);
 	  return pc + 6;
 	}
       else if (op == 0x8d)
 	{
 	  /* The ModR/M byte is 0x64.  */
-	  if (read_memory_unsigned_integer (pc + 1, 1, byte_order) != 0x64)
+	  if (read_code_unsigned_integer (pc + 1, 1, byte_order) != 0x64)
 	    return pc;
 	  /* 'lea' with 8-bit displacement.  */
-	  cache->locals = -1 * read_memory_integer (pc + 3, 1, byte_order);
+	  cache->locals = -1 * read_code_integer (pc + 3, 1, byte_order);
 	  return pc + 4;
 	}
       else
@@ -1546,7 +1547,7 @@ i386_analyze_frame_setup (struct gdbarch *gdbarch,
     }
   else if (op == 0xc8)		/* enter */
     {
-      cache->locals = read_memory_unsigned_integer (pc + 1, 2, byte_order);
+      cache->locals = read_code_unsigned_integer (pc + 1, 2, byte_order);
       return pc + 4;
     }
 
@@ -1570,7 +1571,7 @@ i386_analyze_register_saves (CORE_ADDR pc, CORE_ADDR current_pc,
     offset -= cache->locals;
   for (i = 0; i < 8 && pc < current_pc; i++)
     {
-      if (target_read_memory (pc, &op, 1))
+      if (target_read_code (pc, &op, 1))
 	return pc;
       if (op < 0x50 || op > 0x57)
 	break;
@@ -1680,7 +1681,7 @@ i386_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
 
   for (i = 0; i < 6; i++)
     {
-      if (target_read_memory (pc + i, &op, 1))
+      if (target_read_code (pc + i, &op, 1))
 	return pc;
 
       if (pic_pat[i] != op)
@@ -1690,12 +1691,12 @@ i386_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
     {
       int delta = 6;
 
-      if (target_read_memory (pc + delta, &op, 1))
+      if (target_read_code (pc + delta, &op, 1))
 	return pc;
 
       if (op == 0x89)		/* movl %ebx, x(%ebp) */
 	{
-	  op = read_memory_unsigned_integer (pc + delta + 1, 1, byte_order);
+	  op = read_code_unsigned_integer (pc + delta + 1, 1, byte_order);
 
 	  if (op == 0x5d)	/* One byte offset from %ebp.  */
 	    delta += 3;
@@ -1704,13 +1705,13 @@ i386_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
 	  else			/* Unexpected instruction.  */
 	    delta = 0;
 
-          if (target_read_memory (pc + delta, &op, 1))
+          if (target_read_code (pc + delta, &op, 1))
 	    return pc;
 	}
 
       /* addl y,%ebx */
       if (delta > 0 && op == 0x81
-	  && read_memory_unsigned_integer (pc + delta + 1, 1, byte_order)
+	  && read_code_unsigned_integer (pc + delta + 1, 1, byte_order)
 	     == 0xc3)
 	{
 	  pc += delta + 6;
@@ -1735,13 +1736,13 @@ i386_skip_main_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   gdb_byte op;
 
-  if (target_read_memory (pc, &op, 1))
+  if (target_read_code (pc, &op, 1))
     return pc;
   if (op == 0xe8)
     {
       gdb_byte buf[4];
 
-      if (target_read_memory (pc + 1, buf, sizeof buf) == 0)
+      if (target_read_code (pc + 1, buf, sizeof buf) == 0)
  	{
 	  /* Make sure address is computed correctly as a 32bit
 	     integer even if CORE_ADDR is 64 bit wide.  */
@@ -1834,7 +1835,7 @@ i386_frame_cache_1 (struct frame_info *this_frame,
 	  cache->saved_regs[I386_EIP_REGNUM] -= cache->base;
 	}
       else if (cache->pc != 0
-	       || target_read_memory (get_frame_pc (this_frame), buf, 1))
+	       || target_read_code (get_frame_pc (this_frame), buf, 1))
 	{
 	  /* We're in a known function, but did not find a frame
 	     setup.  Assume that the function does not use %ebp.
@@ -1904,12 +1905,17 @@ i386_frame_this_id (struct frame_info *this_frame, void **this_cache,
 {
   struct i386_frame_cache *cache = i386_frame_cache (this_frame, this_cache);
 
-  /* This marks the outermost frame.  */
-  if (cache->base == 0)
-    return;
-
-  /* See the end of i386_push_dummy_call.  */
-  (*this_id) = frame_id_build (cache->base + 8, cache->pc);
+  if (!cache->base_p)
+    (*this_id) = frame_id_build_unavailable_stack (cache->pc);
+  else if (cache->base == 0)
+    {
+      /* This marks the outermost frame.  */
+    }
+  else
+    {
+      /* See the end of i386_push_dummy_call.  */
+      (*this_id) = frame_id_build (cache->base + 8, cache->pc);
+    }
 }
 
 static enum unwind_stop_reason
@@ -2090,9 +2096,9 @@ i386_epilogue_frame_this_id (struct frame_info *this_frame,
     i386_epilogue_frame_cache (this_frame, this_cache);
 
   if (!cache->base_p)
-    return;
-
-  (*this_id) = frame_id_build (cache->base + 8, cache->pc);
+    (*this_id) = frame_id_build_unavailable_stack (cache->pc);
+  else
+    (*this_id) = frame_id_build (cache->base + 8, cache->pc);
 }
 
 static struct value *
@@ -2283,10 +2289,12 @@ i386_sigtramp_frame_this_id (struct frame_info *this_frame, void **this_cache,
     i386_sigtramp_frame_cache (this_frame, this_cache);
 
   if (!cache->base_p)
-    return;
-
-  /* See the end of i386_push_dummy_call.  */
-  (*this_id) = frame_id_build (cache->base + 8, get_frame_pc (this_frame));
+    (*this_id) = frame_id_build_unavailable_stack (get_frame_pc (this_frame));
+  else
+    {
+      /* See the end of i386_push_dummy_call.  */
+      (*this_id) = frame_id_build (cache->base + 8, get_frame_pc (this_frame));
+    }
 }
 
 static struct value *
@@ -3597,6 +3605,299 @@ i386_stap_is_single_operand (struct gdbarch *gdbarch, const char *s)
 	  || (*s == '%' && isalpha (s[1]))); /* Register access.  */
 }
 
+/* Helper function for i386_stap_parse_special_token.
+
+   This function parses operands of the form `-8+3+1(%rbp)', which
+   must be interpreted as `*(-8 + 3 - 1 + (void *) $eax)'.
+
+   Return 1 if the operand was parsed successfully, zero
+   otherwise.  */
+
+static int
+i386_stap_parse_special_token_triplet (struct gdbarch *gdbarch,
+				       struct stap_parse_info *p)
+{
+  const char *s = p->arg;
+
+  if (isdigit (*s) || *s == '-' || *s == '+')
+    {
+      int got_minus[3];
+      int i;
+      long displacements[3];
+      const char *start;
+      char *regname;
+      int len;
+      struct stoken str;
+      char *endp;
+
+      got_minus[0] = 0;
+      if (*s == '+')
+	++s;
+      else if (*s == '-')
+	{
+	  ++s;
+	  got_minus[0] = 1;
+	}
+
+      displacements[0] = strtol (s, &endp, 10);
+      s = endp;
+
+      if (*s != '+' && *s != '-')
+	{
+	  /* We are not dealing with a triplet.  */
+	  return 0;
+	}
+
+      got_minus[1] = 0;
+      if (*s == '+')
+	++s;
+      else
+	{
+	  ++s;
+	  got_minus[1] = 1;
+	}
+
+      displacements[1] = strtol (s, &endp, 10);
+      s = endp;
+
+      if (*s != '+' && *s != '-')
+	{
+	  /* We are not dealing with a triplet.  */
+	  return 0;
+	}
+
+      got_minus[2] = 0;
+      if (*s == '+')
+	++s;
+      else
+	{
+	  ++s;
+	  got_minus[2] = 1;
+	}
+
+      displacements[2] = strtol (s, &endp, 10);
+      s = endp;
+
+      if (*s != '(' || s[1] != '%')
+	return 0;
+
+      s += 2;
+      start = s;
+
+      while (isalnum (*s))
+	++s;
+
+      if (*s++ != ')')
+	return 0;
+
+      len = s - start;
+      regname = alloca (len + 1);
+
+      strncpy (regname, start, len);
+      regname[len] = '\0';
+
+      if (user_reg_map_name_to_regnum (gdbarch, regname, len) == -1)
+	error (_("Invalid register name `%s' on expression `%s'."),
+	       regname, p->saved_arg);
+
+      for (i = 0; i < 3; i++)
+	{
+	  write_exp_elt_opcode (OP_LONG);
+	  write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
+	  write_exp_elt_longcst (displacements[i]);
+	  write_exp_elt_opcode (OP_LONG);
+	  if (got_minus[i])
+	    write_exp_elt_opcode (UNOP_NEG);
+	}
+
+      write_exp_elt_opcode (OP_REGISTER);
+      str.ptr = regname;
+      str.length = len;
+      write_exp_string (str);
+      write_exp_elt_opcode (OP_REGISTER);
+
+      write_exp_elt_opcode (UNOP_CAST);
+      write_exp_elt_type (builtin_type (gdbarch)->builtin_data_ptr);
+      write_exp_elt_opcode (UNOP_CAST);
+
+      write_exp_elt_opcode (BINOP_ADD);
+      write_exp_elt_opcode (BINOP_ADD);
+      write_exp_elt_opcode (BINOP_ADD);
+
+      write_exp_elt_opcode (UNOP_CAST);
+      write_exp_elt_type (lookup_pointer_type (p->arg_type));
+      write_exp_elt_opcode (UNOP_CAST);
+
+      write_exp_elt_opcode (UNOP_IND);
+
+      p->arg = s;
+
+      return 1;
+    }
+
+  return 0;
+}
+
+/* Helper function for i386_stap_parse_special_token.
+
+   This function parses operands of the form `register base +
+   (register index * size) + offset', as represented in
+   `(%rcx,%rax,8)', or `[OFFSET](BASE_REG,INDEX_REG[,SIZE])'.
+
+   Return 1 if the operand was parsed successfully, zero
+   otherwise.  */
+
+static int
+i386_stap_parse_special_token_three_arg_disp (struct gdbarch *gdbarch,
+					      struct stap_parse_info *p)
+{
+  const char *s = p->arg;
+
+  if (isdigit (*s) || *s == '(' || *s == '-' || *s == '+')
+    {
+      int offset_minus = 0;
+      long offset = 0;
+      int size_minus = 0;
+      long size = 0;
+      const char *start;
+      char *base;
+      int len_base;
+      char *index;
+      int len_index;
+      struct stoken base_token, index_token;
+
+      if (*s == '+')
+	++s;
+      else if (*s == '-')
+	{
+	  ++s;
+	  offset_minus = 1;
+	}
+
+      if (offset_minus && !isdigit (*s))
+	return 0;
+
+      if (isdigit (*s))
+	{
+	  char *endp;
+
+	  offset = strtol (s, &endp, 10);
+	  s = endp;
+	}
+
+      if (*s != '(' || s[1] != '%')
+	return 0;
+
+      s += 2;
+      start = s;
+
+      while (isalnum (*s))
+	++s;
+
+      if (*s != ',' || s[1] != '%')
+	return 0;
+
+      len_base = s - start;
+      base = alloca (len_base + 1);
+      strncpy (base, start, len_base);
+      base[len_base] = '\0';
+
+      if (user_reg_map_name_to_regnum (gdbarch, base, len_base) == -1)
+	error (_("Invalid register name `%s' on expression `%s'."),
+	       base, p->saved_arg);
+
+      s += 2;
+      start = s;
+
+      while (isalnum (*s))
+	++s;
+
+      len_index = s - start;
+      index = alloca (len_index + 1);
+      strncpy (index, start, len_index);
+      index[len_index] = '\0';
+
+      if (user_reg_map_name_to_regnum (gdbarch, index, len_index) == -1)
+	error (_("Invalid register name `%s' on expression `%s'."),
+	       index, p->saved_arg);
+
+      if (*s != ',' && *s != ')')
+	return 0;
+
+      if (*s == ',')
+	{
+	  char *endp;
+
+	  ++s;
+	  if (*s == '+')
+	    ++s;
+	  else if (*s == '-')
+	    {
+	      ++s;
+	      size_minus = 1;
+	    }
+
+	  size = strtol (s, &endp, 10);
+	  s = endp;
+
+	  if (*s != ')')
+	    return 0;
+	}
+
+      ++s;
+
+      if (offset)
+	{
+	  write_exp_elt_opcode (OP_LONG);
+	  write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
+	  write_exp_elt_longcst (offset);
+	  write_exp_elt_opcode (OP_LONG);
+	  if (offset_minus)
+	    write_exp_elt_opcode (UNOP_NEG);
+	}
+
+      write_exp_elt_opcode (OP_REGISTER);
+      base_token.ptr = base;
+      base_token.length = len_base;
+      write_exp_string (base_token);
+      write_exp_elt_opcode (OP_REGISTER);
+
+      if (offset)
+	write_exp_elt_opcode (BINOP_ADD);
+
+      write_exp_elt_opcode (OP_REGISTER);
+      index_token.ptr = index;
+      index_token.length = len_index;
+      write_exp_string (index_token);
+      write_exp_elt_opcode (OP_REGISTER);
+
+      if (size)
+	{
+	  write_exp_elt_opcode (OP_LONG);
+	  write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
+	  write_exp_elt_longcst (size);
+	  write_exp_elt_opcode (OP_LONG);
+	  if (size_minus)
+	    write_exp_elt_opcode (UNOP_NEG);
+	  write_exp_elt_opcode (BINOP_MUL);
+	}
+
+      write_exp_elt_opcode (BINOP_ADD);
+
+      write_exp_elt_opcode (UNOP_CAST);
+      write_exp_elt_type (lookup_pointer_type (p->arg_type));
+      write_exp_elt_opcode (UNOP_CAST);
+
+      write_exp_elt_opcode (UNOP_IND);
+
+      p->arg = s;
+
+      return 1;
+    }
+
+  return 0;
+}
+
 /* Implementation of `gdbarch_stap_parse_special_token', as defined in
    gdbarch.h.  */
 
@@ -3625,283 +3926,17 @@ i386_stap_parse_special_token (struct gdbarch *gdbarch,
 
   while (current_state != DONE)
     {
-      const char *s = p->arg;
-
       switch (current_state)
 	{
 	case TRIPLET:
-	    {
-	      if (isdigit (*s) || *s == '-' || *s == '+')
-		{
-		  int got_minus[3];
-		  int i;
-		  long displacements[3];
-		  const char *start;
-		  char *regname;
-		  int len;
-		  struct stoken str;
-		  char *endp;
+	  if (i386_stap_parse_special_token_triplet (gdbarch, p))
+	    return 1;
+	  break;
 
-		  got_minus[0] = 0;
-		  if (*s == '+')
-		    ++s;
-		  else if (*s == '-')
-		    {
-		      ++s;
-		      got_minus[0] = 1;
-		    }
-
-		  displacements[0] = strtol (s, &endp, 10);
-		  s = endp;
-
-		  if (*s != '+' && *s != '-')
-		    {
-		      /* We are not dealing with a triplet.  */
-		      break;
-		    }
-
-		  got_minus[1] = 0;
-		  if (*s == '+')
-		    ++s;
-		  else
-		    {
-		      ++s;
-		      got_minus[1] = 1;
-		    }
-
-		  displacements[1] = strtol (s, &endp, 10);
-		  s = endp;
-
-		  if (*s != '+' && *s != '-')
-		    {
-		      /* We are not dealing with a triplet.  */
-		      break;
-		    }
-
-		  got_minus[2] = 0;
-		  if (*s == '+')
-		    ++s;
-		  else
-		    {
-		      ++s;
-		      got_minus[2] = 1;
-		    }
-
-		  displacements[2] = strtol (s, &endp, 10);
-		  s = endp;
-
-		  if (*s != '(' || s[1] != '%')
-		    break;
-
-		  s += 2;
-		  start = s;
-
-		  while (isalnum (*s))
-		    ++s;
-
-		  if (*s++ != ')')
-		    break;
-
-		  len = s - start;
-		  regname = alloca (len + 1);
-
-		  strncpy (regname, start, len);
-		  regname[len] = '\0';
-
-		  if (user_reg_map_name_to_regnum (gdbarch,
-						   regname, len) == -1)
-		    error (_("Invalid register name `%s' "
-			     "on expression `%s'."),
-			   regname, p->saved_arg);
-
-		  for (i = 0; i < 3; i++)
-		    {
-		      write_exp_elt_opcode (OP_LONG);
-		      write_exp_elt_type
-			(builtin_type (gdbarch)->builtin_long);
-		      write_exp_elt_longcst (displacements[i]);
-		      write_exp_elt_opcode (OP_LONG);
-		      if (got_minus[i])
-			write_exp_elt_opcode (UNOP_NEG);
-		    }
-
-		  write_exp_elt_opcode (OP_REGISTER);
-		  str.ptr = regname;
-		  str.length = len;
-		  write_exp_string (str);
-		  write_exp_elt_opcode (OP_REGISTER);
-
-		  write_exp_elt_opcode (UNOP_CAST);
-		  write_exp_elt_type (builtin_type (gdbarch)->builtin_data_ptr);
-		  write_exp_elt_opcode (UNOP_CAST);
-
-		  write_exp_elt_opcode (BINOP_ADD);
-		  write_exp_elt_opcode (BINOP_ADD);
-		  write_exp_elt_opcode (BINOP_ADD);
-
-		  write_exp_elt_opcode (UNOP_CAST);
-		  write_exp_elt_type (lookup_pointer_type (p->arg_type));
-		  write_exp_elt_opcode (UNOP_CAST);
-
-		  write_exp_elt_opcode (UNOP_IND);
-
-		  p->arg = s;
-
-		  return 1;
-		}
-	      break;
-	    }
 	case THREE_ARG_DISPLACEMENT:
-	    {
-	      if (isdigit (*s) || *s == '(' || *s == '-' || *s == '+')
-		{
-		  int offset_minus = 0;
-		  long offset = 0;
-		  int size_minus = 0;
-		  long size = 0;
-		  const char *start;
-		  char *base;
-		  int len_base;
-		  char *index;
-		  int len_index;
-		  struct stoken base_token, index_token;
-
-		  if (*s == '+')
-		    ++s;
-		  else if (*s == '-')
-		    {
-		      ++s;
-		      offset_minus = 1;
-		    }
-
-		  if (offset_minus && !isdigit (*s))
-		    break;
-
-		  if (isdigit (*s))
-		    {
-		      char *endp;
-
-		      offset = strtol (s, &endp, 10);
-		      s = endp;
-		    }
-
-		  if (*s != '(' || s[1] != '%')
-		    break;
-
-		  s += 2;
-		  start = s;
-
-		  while (isalnum (*s))
-		    ++s;
-
-		  if (*s != ',' || s[1] != '%')
-		    break;
-
-		  len_base = s - start;
-		  base = alloca (len_base + 1);
-		  strncpy (base, start, len_base);
-		  base[len_base] = '\0';
-
-		  if (user_reg_map_name_to_regnum (gdbarch,
-						   base, len_base) == -1)
-		    error (_("Invalid register name `%s' "
-			     "on expression `%s'."),
-			   base, p->saved_arg);
-
-		  s += 2;
-		  start = s;
-
-		  while (isalnum (*s))
-		    ++s;
-
-		  len_index = s - start;
-		  index = alloca (len_index + 1);
-		  strncpy (index, start, len_index);
-		  index[len_index] = '\0';
-
-		  if (user_reg_map_name_to_regnum (gdbarch,
-						   index, len_index) == -1)
-		    error (_("Invalid register name `%s' "
-			     "on expression `%s'."),
-			   index, p->saved_arg);
-
-		  if (*s != ',' && *s != ')')
-		    break;
-
-		  if (*s == ',')
-		    {
-		      char *endp;
-
-		      ++s;
-		      if (*s == '+')
-			++s;
-		      else if (*s == '-')
-			{
-			  ++s;
-			  size_minus = 1;
-			}
-
-		      size = strtol (s, &endp, 10);
-		      s = endp;
-
-		      if (*s != ')')
-			break;
-		    }
-
-		  ++s;
-
-		  if (offset)
-		    {
-		      write_exp_elt_opcode (OP_LONG);
-		      write_exp_elt_type
-			(builtin_type (gdbarch)->builtin_long);
-		      write_exp_elt_longcst (offset);
-		      write_exp_elt_opcode (OP_LONG);
-		      if (offset_minus)
-			write_exp_elt_opcode (UNOP_NEG);
-		    }
-
-		  write_exp_elt_opcode (OP_REGISTER);
-		  base_token.ptr = base;
-		  base_token.length = len_base;
-		  write_exp_string (base_token);
-		  write_exp_elt_opcode (OP_REGISTER);
-
-		  if (offset)
-		    write_exp_elt_opcode (BINOP_ADD);
-
-		  write_exp_elt_opcode (OP_REGISTER);
-		  index_token.ptr = index;
-		  index_token.length = len_index;
-		  write_exp_string (index_token);
-		  write_exp_elt_opcode (OP_REGISTER);
-
-		  if (size)
-		    {
-		      write_exp_elt_opcode (OP_LONG);
-		      write_exp_elt_type
-			(builtin_type (gdbarch)->builtin_long);
-		      write_exp_elt_longcst (size);
-		      write_exp_elt_opcode (OP_LONG);
-		      if (size_minus)
-			write_exp_elt_opcode (UNOP_NEG);
-		      write_exp_elt_opcode (BINOP_MUL);
-		    }
-
-		  write_exp_elt_opcode (BINOP_ADD);
-
-		  write_exp_elt_opcode (UNOP_CAST);
-		  write_exp_elt_type (lookup_pointer_type (p->arg_type));
-		  write_exp_elt_opcode (UNOP_CAST);
-
-		  write_exp_elt_opcode (UNOP_IND);
-
-		  p->arg = s;
-
-		  return 1;
-		}
-	      break;
-	    }
+	  if (i386_stap_parse_special_token_three_arg_disp (gdbarch, p))
+	    return 1;
+	  break;
 	}
 
       /* Advancing to the next state.  */
@@ -3918,14 +3953,23 @@ i386_stap_parse_special_token (struct gdbarch *gdbarch,
 void
 i386_elf_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
 {
+  static const char *const stap_integer_prefixes[] = { "$", NULL };
+  static const char *const stap_register_prefixes[] = { "%", NULL };
+  static const char *const stap_register_indirection_prefixes[] = { "(",
+								    NULL };
+  static const char *const stap_register_indirection_suffixes[] = { ")",
+								    NULL };
+
   /* We typically use stabs-in-ELF with the SVR4 register numbering.  */
   set_gdbarch_stab_reg_to_regnum (gdbarch, i386_svr4_reg_to_regnum);
 
   /* Registering SystemTap handlers.  */
-  set_gdbarch_stap_integer_prefix (gdbarch, "$");
-  set_gdbarch_stap_register_prefix (gdbarch, "%");
-  set_gdbarch_stap_register_indirection_prefix (gdbarch, "(");
-  set_gdbarch_stap_register_indirection_suffix (gdbarch, ")");
+  set_gdbarch_stap_integer_prefixes (gdbarch, stap_integer_prefixes);
+  set_gdbarch_stap_register_prefixes (gdbarch, stap_register_prefixes);
+  set_gdbarch_stap_register_indirection_prefixes (gdbarch,
+					  stap_register_indirection_prefixes);
+  set_gdbarch_stap_register_indirection_suffixes (gdbarch,
+					  stap_register_indirection_suffixes);
   set_gdbarch_stap_is_single_operand (gdbarch,
 				      i386_stap_is_single_operand);
   set_gdbarch_stap_parse_special_token (gdbarch,
@@ -4192,9 +4236,9 @@ i386_record_lea_modrm_addr (struct i386_record_s *irp, uint64_t *addr)
   ULONGEST offset64;
 
   *addr = 0;
-  if (irp->aflag)
+  if (irp->aflag || irp->regmap[X86_RECORD_R8_REGNUM])
     {
-      /* 32 bits */
+      /* 32/64 bits */
       int havesib = 0;
       uint8_t scale = 0;
       uint8_t byte;
@@ -4264,6 +4308,13 @@ i386_record_lea_modrm_addr (struct i386_record_s *irp, uint64_t *addr)
 	    *addr += offset64 << scale;
 	  else
 	    *addr = (uint32_t) (*addr + (offset64 << scale));
+	}
+
+      if (!irp->aflag)
+	{
+	  /* Since we are in 64-bit mode with ADDR32 prefix, zero-extend
+	     address from 32-bit to 64-bit.  */
+	    *addr = (uint32_t) *addr;
 	}
     }
   else
@@ -7024,7 +7075,8 @@ no_support_3dnow_data:
     case 0x0ffc:
     case 0x0ffd:
     case 0x0ffe:
-      switch (prefixes)
+      /* Mask out PREFIX_ADDR.  */
+      switch ((prefixes & ~PREFIX_ADDR))
         {
         case PREFIX_REPNZ:
           opcode |= 0xf20000;
@@ -7767,7 +7819,7 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
     return arches->gdbarch;
 
   /* Allocate space for the new architecture.  */
-  tdep = XCALLOC (1, struct gdbarch_tdep);
+  tdep = XCNEW (struct gdbarch_tdep);
   gdbarch = gdbarch_alloc (&info, tdep);
 
   /* General-purpose registers.  */

@@ -1,6 +1,6 @@
 /* GDB routines for manipulating objfiles.
 
-   Copyright (C) 1992-2013 Free Software Foundation, Inc.
+   Copyright (C) 1992-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support, using pieces from other GDB modules.
 
@@ -102,7 +102,7 @@ get_objfile_pspace_data (struct program_space *pspace)
   info = program_space_data (pspace, objfiles_pspace_data);
   if (info == NULL)
     {
-      info = XZALLOC (struct objfile_pspace_info);
+      info = XCNEW (struct objfile_pspace_info);
       set_program_space_data (pspace, objfiles_pspace_data, info);
     }
 

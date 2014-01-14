@@ -1,6 +1,6 @@
 /* Interface between GDB and target environments, including files and processes
 
-   Copyright (C) 1990-2013 Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.  Written by John Gilmore.
 
@@ -238,6 +238,15 @@ enum trace_find_type
 typedef struct static_tracepoint_marker *static_tracepoint_marker_p;
 DEF_VEC_P(static_tracepoint_marker_p);
 
+typedef LONGEST
+  target_xfer_partial_ftype (struct target_ops *ops,
+			     enum target_object object,
+			     const char *annex,
+			     gdb_byte *readbuf,
+			     const gdb_byte *writebuf,
+			     ULONGEST offset,
+			     LONGEST len);
+
 /* Request that OPS transfer up to LEN 8-bit bytes of the target's
    OBJECT.  The OFFSET, for a seekable object, specifies the
    starting point.  The ANNEX can be used to provide additional
@@ -319,12 +328,7 @@ extern char *target_read_stralloc (struct target_ops *ops,
 				   const char *annex);
 
 /* See target_ops->to_xfer_partial.  */
-
-extern LONGEST target_xfer_partial (struct target_ops *ops,
-				    enum target_object object,
-				    const char *annex,
-				    void *readbuf, const void *writebuf,
-				    ULONGEST offset, LONGEST len);
+extern target_xfer_partial_ftype target_xfer_partial;
 
 /* Wrappers to target read/write that perform memory transfers.  They
    throw an error if the memory transfer fails.
@@ -1123,8 +1127,10 @@ int target_write_memory_blocks (VEC(memory_write_request_s) *requests,
 #define	target_files_info()	\
      (*current_target.to_files_info) (&current_target)
 
-/* Insert a breakpoint at address BP_TGT->placed_address in the target
-   machine.  Result is 0 for success, non-zero for error.  */
+/* Insert a hardware breakpoint at address BP_TGT->placed_address in
+   the target machine.  Returns 0 for success, and returns non-zero or
+   throws an error (with a detailed failure reason error code and
+   message) otherwise.  */
 
 extern int target_insert_breakpoint (struct gdbarch *gdbarch,
 				     struct bp_target_info *bp_tgt);
@@ -1552,6 +1558,11 @@ extern int target_insert_mask_watchpoint (CORE_ADDR, CORE_ADDR, int);
    for failure.  */
 
 extern int target_remove_mask_watchpoint (CORE_ADDR, CORE_ADDR, int);
+
+/* Insert a hardware breakpoint at address BP_TGT->placed_address in
+   the target machine.  Returns 0 for success, and returns non-zero or
+   throws an error (with a detailed failure reason error code and
+   message) otherwise.  */
 
 #define target_insert_hw_breakpoint(gdbarch, bp_tgt) \
      (*current_target.to_insert_hw_breakpoint) (gdbarch, bp_tgt)

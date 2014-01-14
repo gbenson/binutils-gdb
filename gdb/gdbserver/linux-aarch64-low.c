@@ -1,7 +1,7 @@
 /* GNU/Linux/AArch64 specific low level interface, for the remote server for
    GDB.
 
-   Copyright (C) 2009-2013 Free Software Foundation, Inc.
+   Copyright (C) 2009-2014 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of GDB.
@@ -602,10 +602,13 @@ aarch64_linux_set_debug_regs (const struct aarch64_debug_reg_state *state,
 
   memset (&regs, 0, sizeof (regs));
   iov.iov_base = &regs;
-  iov.iov_len = sizeof (regs);
   count = watchpoint ? aarch64_num_wp_regs : aarch64_num_bp_regs;
   addr = watchpoint ? state->dr_addr_wp : state->dr_addr_bp;
   ctrl = watchpoint ? state->dr_ctrl_wp : state->dr_ctrl_bp;
+  if (count == 0)
+    return;
+  iov.iov_len = (offsetof (struct user_hwdebug_state, dbg_regs[count - 1])
+		 + sizeof (regs.dbg_regs [count - 1]));
 
   for (i = 0; i < count; i++)
     {

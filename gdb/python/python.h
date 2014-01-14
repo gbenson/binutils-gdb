@@ -1,6 +1,6 @@
 /* Python/gdb header for generic use in gdb
 
-   Copyright (C) 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2008-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -88,6 +88,19 @@ typedef enum py_frame_args
      CLI. */
   CLI_ALL_VALUES
 } py_frame_args;
+
+/* Returns true if Python support is built into GDB, false
+   otherwise.  */
+
+static inline int
+have_python (void)
+{
+#ifdef HAVE_PYTHON
+  return 1;
+#else
+  return 0;
+#endif
+}
 
 extern void finish_python_initialization (void);
 

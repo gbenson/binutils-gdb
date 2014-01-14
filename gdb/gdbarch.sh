@@ -2,7 +2,7 @@
 
 # Architecture commands for GDB, the GNU debugger.
 #
-# Copyright (C) 1998-2013 Free Software Foundation, Inc.
+# Copyright (C) 1998-2014 Free Software Foundation, Inc.
 #
 # This file is part of GDB.
 #
@@ -340,8 +340,8 @@ function_list ()
   cat <<EOF
 i:const struct bfd_arch_info *:bfd_arch_info:::&bfd_default_arch_struct::::gdbarch_bfd_arch_info (gdbarch)->printable_name
 #
-i:int:byte_order:::BFD_ENDIAN_BIG
-i:int:byte_order_for_code:::BFD_ENDIAN_BIG
+i:enum bfd_endian:byte_order:::BFD_ENDIAN_BIG
+i:enum bfd_endian:byte_order_for_code:::BFD_ENDIAN_BIG
 #
 i:enum gdb_osabi:osabi:::GDB_OSABI_UNKNOWN
 #
@@ -826,29 +826,34 @@ M:LONGEST:get_syscall_number:ptid_t ptid:ptid
 
 # SystemTap related fields and functions.
 
-# Prefix used to mark an integer constant on the architecture's assembly
+# A NULL-terminated array of prefixes used to mark an integer constant
+# on the architecture's assembly.
 # For example, on x86 integer constants are written as:
 #
 #  \$10 ;; integer constant 10
 #
 # in this case, this prefix would be the character \`\$\'.
-v:const char *:stap_integer_prefix:::0:0::0:pstring (gdbarch->stap_integer_prefix)
+v:const char *const *:stap_integer_prefixes:::0:0::0:pstring_list (gdbarch->stap_integer_prefixes)
 
-# Suffix used to mark an integer constant on the architecture's assembly.
-v:const char *:stap_integer_suffix:::0:0::0:pstring (gdbarch->stap_integer_suffix)
+# A NULL-terminated array of suffixes used to mark an integer constant
+# on the architecture's assembly.
+v:const char *const *:stap_integer_suffixes:::0:0::0:pstring_list (gdbarch->stap_integer_suffixes)
 
-# Prefix used to mark a register name on the architecture's assembly.
+# A NULL-terminated array of prefixes used to mark a register name on
+# the architecture's assembly.
 # For example, on x86 the register name is written as:
 #
 #  \%eax ;; register eax
 #
 # in this case, this prefix would be the character \`\%\'.
-v:const char *:stap_register_prefix:::0:0::0:pstring (gdbarch->stap_register_prefix)
+v:const char *const *:stap_register_prefixes:::0:0::0:pstring_list (gdbarch->stap_register_prefixes)
 
-# Suffix used to mark a register name on the architecture's assembly
-v:const char *:stap_register_suffix:::0:0::0:pstring (gdbarch->stap_register_suffix)
+# A NULL-terminated array of suffixes used to mark a register name on
+# the architecture's assembly.
+v:const char *const *:stap_register_suffixes:::0:0::0:pstring_list (gdbarch->stap_register_suffixes)
 
-# Prefix used to mark a register indirection on the architecture's assembly.
+# A NULL-terminated array of prefixes used to mark a register
+# indirection on the architecture's assembly.
 # For example, on x86 the register indirection is written as:
 #
 #  \(\%eax\) ;; indirecting eax
@@ -857,9 +862,10 @@ v:const char *:stap_register_suffix:::0:0::0:pstring (gdbarch->stap_register_suf
 #
 # Please note that we use the indirection prefix also for register
 # displacement, e.g., \`4\(\%eax\)\' on x86.
-v:const char *:stap_register_indirection_prefix:::0:0::0:pstring (gdbarch->stap_register_indirection_prefix)
+v:const char *const *:stap_register_indirection_prefixes:::0:0::0:pstring_list (gdbarch->stap_register_indirection_prefixes)
 
-# Suffix used to mark a register indirection on the architecture's assembly.
+# A NULL-terminated array of suffixes used to mark a register
+# indirection on the architecture's assembly.
 # For example, on x86 the register indirection is written as:
 #
 #  \(\%eax\) ;; indirecting eax
@@ -868,9 +874,9 @@ v:const char *:stap_register_indirection_prefix:::0:0::0:pstring (gdbarch->stap_
 #
 # Please note that we use the indirection suffix also for register
 # displacement, e.g., \`4\(\%eax\)\' on x86.
-v:const char *:stap_register_indirection_suffix:::0:0::0:pstring (gdbarch->stap_register_indirection_suffix)
+v:const char *const *:stap_register_indirection_suffixes:::0:0::0:pstring_list (gdbarch->stap_register_indirection_suffixes)
 
-# Prefix used to name a register using GDB's nomenclature.
+# Prefix(es) used to name a register using GDB's nomenclature.
 #
 # For example, on PPC a register is represented by a number in the assembly
 # language (e.g., \`10\' is the 10th general-purpose register).  However,
@@ -1041,7 +1047,7 @@ cat <<EOF
 
 /* Dynamic architecture support for GDB, the GNU debugger.
 
-   Copyright (C) 1998-2013 Free Software Foundation, Inc.
+   Copyright (C) 1998-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -1273,9 +1279,9 @@ struct gdbarch_info
   const struct bfd_arch_info *bfd_arch_info;
 
   /* Use default: BFD_ENDIAN_UNKNOWN (NB: is not ZERO).  */
-  int byte_order;
+  enum bfd_endian byte_order;
 
-  int byte_order_for_code;
+  enum bfd_endian byte_order_for_code;
 
   /* Use default: NULL (ZERO).  */
   bfd *abfd;
@@ -1481,6 +1487,35 @@ pstring (const char *string)
   return string;
 }
 
+/* Helper function to print a list of strings, represented as "const
+   char *const *".  The list is printed comma-separated.  */
+
+static char *
+pstring_list (const char *const *list)
+{
+  static char ret[100];
+  const char *const *p;
+  size_t offset = 0;
+
+  if (list == NULL)
+    return "(null)";
+
+  ret[0] = '\0';
+  for (p = list; *p != NULL && offset < sizeof (ret); ++p)
+    {
+      size_t s = xsnprintf (ret + offset, sizeof (ret) - offset, "%s, ", *p);
+      offset += 2 + s;
+    }
+
+  if (offset > 0)
+    {
+      gdb_assert (offset - 2 < sizeof (ret));
+      ret[offset - 2] = '\0';
+    }
+
+  return ret;
+}
+
 EOF
 
 # gdbarch open the gdbarch object
@@ -1610,7 +1645,7 @@ gdbarch_alloc (const struct gdbarch_info *info,
 
   /* Create an obstack for allocating all the per-architecture memory,
      then use that to allocate the architecture vector.  */
-  struct obstack *obstack = XMALLOC (struct obstack);
+  struct obstack *obstack = XNEW (struct obstack);
   obstack_init (obstack);
   gdbarch = obstack_alloc (obstack, sizeof (*gdbarch));
   memset (gdbarch, 0, sizeof (*gdbarch));
@@ -1970,9 +2005,9 @@ gdbarch_data_register (gdbarch_data_pre_init_ftype *pre_init,
   for (curr = &gdbarch_data_registry.registrations;
        (*curr) != NULL;
        curr = &(*curr)->next);
-  (*curr) = XMALLOC (struct gdbarch_data_registration);
+  (*curr) = XNEW (struct gdbarch_data_registration);
   (*curr)->next = NULL;
-  (*curr)->data = XMALLOC (struct gdbarch_data);
+  (*curr)->data = XNEW (struct gdbarch_data);
   (*curr)->data->index = gdbarch_data_registry.nr++;
   (*curr)->data->pre_init = pre_init;
   (*curr)->data->post_init = post_init;
@@ -2141,7 +2176,7 @@ gdbarch_register (enum bfd_architecture bfd_architecture,
 			bfd_arch_info->printable_name,
 			host_address_to_string (init));
   /* Append it */
-  (*curr) = XMALLOC (struct gdbarch_registration);
+  (*curr) = XNEW (struct gdbarch_registration);
   (*curr)->bfd_architecture = bfd_architecture;
   (*curr)->init = init;
   (*curr)->dump_tdep = dump_tdep;
@@ -2285,7 +2320,7 @@ gdbarch_find_by_info (struct gdbarch_info info)
   /* Insert the new architecture into the front of the architecture
      list (keep the list sorted Most Recently Used).  */
   {
-    struct gdbarch_list *this = XMALLOC (struct gdbarch_list);
+    struct gdbarch_list *this = XNEW (struct gdbarch_list);
     this->next = rego->arches;
     this->gdbarch = new_gdbarch;
     rego->arches = this;

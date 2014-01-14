@@ -1,6 +1,6 @@
 /* Select target systems and architectures at runtime for GDB.
 
-   Copyright (C) 1990-2013 Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.
 
@@ -64,23 +64,17 @@ static int return_one (void);
 
 static int return_minus_one (void);
 
+static void *return_null (void);
+
 void target_ignore (void);
 
 static void target_command (char *, int);
 
 static struct target_ops *find_default_run_target (char *);
 
-static LONGEST default_xfer_partial (struct target_ops *ops,
-				     enum target_object object,
-				     const char *annex, gdb_byte *readbuf,
-				     const gdb_byte *writebuf,
-				     ULONGEST offset, LONGEST len);
+static target_xfer_partial_ftype default_xfer_partial;
 
-static LONGEST current_xfer_partial (struct target_ops *ops,
-				     enum target_object object,
-				     const char *annex, gdb_byte *readbuf,
-				     const gdb_byte *writebuf,
-				     ULONGEST offset, LONGEST len);
+static target_xfer_partial_ftype current_xfer_partial;
 
 static struct gdbarch *default_thread_architecture (struct target_ops *ops,
 						    ptid_t ptid);
@@ -814,10 +808,10 @@ update_current_target (void)
 	    return_zero);
   de_fault (to_extra_thread_info,
 	    (char *(*) (struct thread_info *))
-	    return_zero);
+	    return_null);
   de_fault (to_thread_name,
 	    (char *(*) (struct thread_info *))
-	    return_zero);
+	    return_null);
   de_fault (to_stop,
 	    (void (*) (ptid_t))
 	    target_ignore);
@@ -827,7 +821,7 @@ update_current_target (void)
 	    tcomplain);
   de_fault (to_pid_to_exec_file,
 	    (char *(*) (int))
-	    return_zero);
+	    return_null);
   de_fault (to_async,
 	    (void (*) (void (*) (enum inferior_event_type, void*), void*))
 	    tcomplain);
@@ -926,7 +920,7 @@ update_current_target (void)
 	    tcomplain);
   de_fault (to_traceframe_info,
 	    (struct traceframe_info * (*) (void))
-	    return_zero);
+	    return_null);
   de_fault (to_supports_evaluation_of_breakpoint_conditions,
 	    (int (*) (void))
 	    return_zero);
@@ -1695,7 +1689,7 @@ make_show_memory_breakpoints_cleanup (int show)
 LONGEST
 target_xfer_partial (struct target_ops *ops,
 		     enum target_object object, const char *annex,
-		     void *readbuf, const void *writebuf,
+		     gdb_byte *readbuf, const gdb_byte *writebuf,
 		     ULONGEST offset, LONGEST len)
 {
   LONGEST retval;
@@ -3640,6 +3634,12 @@ static int
 return_minus_one (void)
 {
   return -1;
+}
+
+static void *
+return_null (void)
+{
+  return 0;
 }
 
 /*

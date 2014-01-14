@@ -1,6 +1,6 @@
 /* Exception (throw catch) mechanism, for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -79,9 +79,6 @@ enum errors {
   /* Error accessing memory.  */
   MEMORY_ERROR,
 
-  /* Feature is not supported in this copy of GDB.  */
-  UNSUPPORTED_ERROR,
-
   /* Value not available.  E.g., a register was not collected in a
      traceframe.  */
   NOT_AVAILABLE_ERROR,
@@ -99,6 +96,9 @@ enum errors {
 
   /* An undefined command was executed.  */
   UNDEFINED_COMMAND_ERROR,
+
+  /* Requested feature, method, mechanism, etc. is not supported.  */
+  NOT_SUPPORTED_ERROR,
 
   /* Too many possibilities were encountered during line completion.  */
   TOO_MANY_COMPLETIONS_ERROR,
