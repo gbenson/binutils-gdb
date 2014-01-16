@@ -69,6 +69,8 @@ if ![runto_main] then {
 set oldtimeout1 $timeout
 set timeout 30
 
+gdb_test_no_output "set max-completions unlimited"
+
 set test "complete 'hfgfh'"
 send_gdb "hfgfh\t"
 gdb_test_multiple "" "$test" {
