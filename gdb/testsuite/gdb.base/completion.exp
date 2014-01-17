@@ -731,6 +731,30 @@ gdb_test "complete set listsize unl" "set listsize unlimited"
 gdb_test "complete set trace-buffer-size " "set trace-buffer-size unlimited"
 gdb_test "complete set trace-buffer-size unl" "set trace-buffer-size unlimited"
 
+#
+# Completion limiting.
+#
+
+gdb_test_no_output "set max-completions 5"
+
+set test "completion limiting"
+send_gdb "p\t"
+gdb_test_multiple "" "$test" {
+    -re "^p\\\x07$" {
+	send_gdb "\t"
+	gdb_test_multiple "" "$test" {
+	    -re "Too many possibilities.\r\n\\\x07$gdb_prompt p$" {
+		send_gdb "\n"
+		gdb_test_multiple "" "$test" {
+		    -re "$gdb_prompt $" {
+			pass "$test"
+		    }
+		}
+	    }
+        }
+    }
+}
+
 # Restore globals modified in this test...
 set timeout $oldtimeout1
 
