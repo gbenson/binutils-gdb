@@ -74,6 +74,10 @@
     this is default_make_symbol_completion_list(), which is a
     wrapper for default_make_symbol_completion_list_break_on().
 
+    7. a) gdb /usr/lib64/libreoffice/program/soffice.bin
+          start
+          b <Tab>
+
  8. default_make_symbol_completion_list_break_on() calls
     expand_partial_symbol_names().  This is (likely) the bit
     where we vanish into the nothing.  Note that there is a
