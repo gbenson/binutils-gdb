@@ -737,7 +737,7 @@ gdb_test "complete set trace-buffer-size unl" "set trace-buffer-size unlimited"
 
 gdb_test_no_output "set max-completions 5"
 
-set test "completion limiting"
+set test "completion limiting using tab character"
 send_gdb "p\t"
 gdb_test_multiple "" "$test" {
     -re "^p\\\x07$" {
@@ -752,6 +752,14 @@ gdb_test_multiple "" "$test" {
 		}
 	    }
         }
+    }
+}
+
+set test "completion limiting using complete command"
+send_gdb "complete p\n"
+gdb_test_multiple "" "$test" {
+    -re "Too many possibilities.\r\n$gdb_prompt $" {
+	pass "$test"
     }
 }
 
