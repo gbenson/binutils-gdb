@@ -1029,16 +1029,8 @@ void
 limit_completions (int num_completions)
 {
   if (max_completions >= 0 && num_completions > max_completions)
-    {
-      const char *basic = "Too many possibilities";
-      static const char *extra = " (see \"help set max-completions\")";
-      char msg[64];
-
-      xsnprintf (msg, sizeof(msg), "%s%s.", basic, extra);
-      extra = "";
-
-      throw_error (TOO_MANY_COMPLETIONS_ERROR, "%s", msg);
-    }
+    throw_error (TOO_MANY_COMPLETIONS_ERROR,
+		 _("Too many possibilities."));
 }
 
 extern initialize_file_ftype _initialize_completer; /* -Wmissing-prototypes */
