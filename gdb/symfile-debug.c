@@ -297,14 +297,14 @@ debug_qf_expand_symtabs_matching (struct objfile *objfile,
 		    "qf->expand_symtabs_matching (%s, %s, %s, %s, %s, %s)\n",
 		    debug_objfile_name (objfile),
 		    host_address_to_string (file_matcher),
-		    host_address_to_string (name_matcher),
+		    host_address_to_string (symbol_matcher),
 		    host_address_to_string (expansion_notify),
 		    search_domain_name (kind),
 		    host_address_to_string (data));
 
   debug_data->real_sf->qf->expand_symtabs_matching (objfile,
 						    file_matcher,
-						    name_matcher,
+						    symbol_matcher,
 						    expansion_notify,
 						    kind, data);
 }
