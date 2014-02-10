@@ -79,6 +79,8 @@
    large.  (400 - 31)/2 == 184 */
 #define MAX_AGENT_EXPR_LEN	184
 
+#define TFILE_PID (1)
+
 /* A hook used to notify the UI of tracepoint operations.  */
 
 void (*deprecated_trace_find_hook) (char *arg, int from_tty);
@@ -4372,6 +4374,10 @@ tfile_open (char *filename, int from_tty)
       throw_exception (ex);
     }
 
+  inferior_appeared (current_inferior (), TFILE_PID);
+  inferior_ptid = pid_to_ptid (TFILE_PID);
+  add_thread_silent (inferior_ptid);
+
   if (ts->traceframe_count <= 0)
     warning (_("No traceframes present in this file."));
 
@@ -4382,6 +4388,8 @@ tfile_open (char *filename, int from_tty)
   merge_uploaded_trace_state_variables (&uploaded_tsvs);
 
   merge_uploaded_tracepoints (&uploaded_tps);
+
+  post_create_inferior (&tfile_ops, from_tty);
 }
 
 /* Interpret the given line from the definitions part of the trace
@@ -4754,6 +4762,10 @@ tfile_close (void)
   if (trace_fd < 0)
     return;
 
+  pid = ptid_get_pid (inferior_ptid);
+  inferior_ptid = null_ptid;	/* Avoid confusion from thread stuff.  */
+  exit_inferior_silent (pid);
+
   close (trace_fd);
   trace_fd = -1;
   xfree (trace_filename);
@@ -5104,11 +5116,11 @@ tfile_fetch_registers (struct target_ops *ops,
 static LONGEST
 tfile_xfer_partial (struct target_ops *ops, enum target_object object,
 		    const char *annex, gdb_byte *readbuf,
-		    const gdb_byte *writebuf, ULONGEST offset, LONGEST len)
+		    const gdb_byte *writebuf, ULONGEST offset, ULONGEST len)
 {
   /* We're only doing regular memory for now.  */
   if (object != TARGET_OBJECT_MEMORY)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   if (readbuf == NULL)
     error (_("tfile_xfer_partial: trace file is read-only"));
@@ -5187,7 +5199,7 @@ tfile_xfer_partial (struct target_ops *ops, enum target_object object,
     }
 
   /* Indicate failure to find the requested memory block.  */
-  return -1;
+  return TARGET_XFER_E_IO;
 }
 
 /* Iterate through the blocks of a trace frame, looking for a 'V'
@@ -5248,6 +5260,12 @@ static int
 tfile_has_registers (struct target_ops *ops)
 {
   return traceframe_number != -1;
+}
+
+static int
+tfile_thread_alive (struct target_ops *ops, ptid_t ptid)
+{
+  return 1;
 }
 
 /* Callback for traceframe_walk_blocks.  Builds a traceframe_info
@@ -5336,6 +5354,7 @@ init_tfile_ops (void)
   tfile_ops.to_has_stack = tfile_has_stack;
   tfile_ops.to_has_registers = tfile_has_registers;
   tfile_ops.to_traceframe_info = tfile_traceframe_info;
+  tfile_ops.to_thread_alive = tfile_thread_alive;
   tfile_ops.to_magic = OPS_MAGIC;
 }
 

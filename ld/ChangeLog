@@ -1,3 +1,187 @@
+2014-02-10  Alan Modra  <amodra@gmail.com>
+
+	* po/ld.pot: Regenerate.
+
+2014-02-03  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/ppc32elf.em (no_tls_get_addr_opt, emit_stub_syms)
+	plt_style): Delete.  Adjust all refs to instead use..
+	(params): ..this.  New variable.
+	(ppc_after_open_output): New function.  Tweak params and pass to
+	ppc_elf_link_params.
+	(ppc_after_open): Adjust ppc_elf_select_plt_layout call.
+	(ppc_before_allocation): Adjust ppc_elf_tls_setup call.  Enable
+	relaxation for ppc476 workaround.
+	(PARSE_AND_LIST_*): Add --{no-,}ppc476-workaround support.
+	(LDEMUL_CREATE_OUTPUT_SECTION_STATEMENTS): Define.
+
+2014-02-02  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* ld/ld.texinfo: Change ALIGN_WITH_INPUT documentation.
+	* ld/ldlang.c (lang_size_sections_1): Add dotdelta
+	variable which reflects the VMA change due to alignment
+	requirements.  Use dotdelta do change the LMA if
+	ALIGN_WITH_INPUT is requested.
+
+2014-02-01  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* emultempl/mmix-elfnmmo.em (mmix_after_allocation): Fix typo in
+	call to bfd_set_section_vma exposed by recent bfd_set_section_vma
+	change.
+
+2014-01-30  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* Makefile.am (enios2elf.c, enios2linux.c): Update dependencies.
+	* Makefile.in: Regenerated.
+	* emulparams/nios2elf.sh (EXTRA_EM_FILE): Set.
+	* emulparams/nios2linux.sh (EXTRA_EM_FILE): Set.
+	* emultempl/nios2elf.em: New file.
+	* gen-doc.texi (NIOSII): Set.
+	* ld.texinfo (NIOSII): Set.
+
+2014-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* Makefile.am: Remove obsolete MSP430 emulations.
+	* configure.tgt: Likewise.
+	* emulparams/msp430all.sh: Likewise.
+	* Makefile.in: Regenerate.
+
+2014-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16498
+	* emultempl/elf32.em (gld${EMULATION_NAME}_place_orphan): Improve
+	orphaned TLS section handling.
+
+2014-01-24  Alan Modra  <amodra@gmail.com>
+
+	* ldlang.c (lang_output_section_find_by_flags): Be careful to
+	test look->bfd_section->flags if available rather than
+	look->flags.  Separate SEC_THREAD_LOCAL handling from
+	SEC_READONLY loop, and rewrite.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* ldlang.c (asneeded_list_head, asneeded_list_tail): New vars.
+	(lang_init): Initialise them.
+	(lang_print_asneeded): New function.
+	(lang_process): Call lang_print_asneeded.
+	* ldlang.h (struct asneeded_minfo): New.
+	(asneeded_list_tail): Declare.
+	* ldmain.c (add_archive_element): Improve archive map heading.
+	* ldmisc.c (minfo): Stash --as-needed info.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* ld.h (struct map_symbol_def): Move to..
+	* ldlang.h: ..here.
+	* ldlang.c (print_assignment): Don't set expld.assign_name to dot.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* ld.texinfo (Output Section Discarding): Mention assigning to dot
+	as a way of keeping otherwise empty sections.
+	* ldexp.c (is_dot, is_value, is_sym_value, is_dot_ne_0,
+	is_dot_plus_0, is_align_conditional): New predicates.
+	(exp_fold_tree_1): Set SEC_KEEP when assigning to dot inside an
+	output section, except for some special cases.
+	* scripttempl/elfmicroblaze.sc: Use canonical form to align at
+	end of .heap and .stack.
+
+2014-01-20  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* emulparams/aarch64linuxb.sh (ELF_INTERPRETER_NAME): Define.
+
+2014-01-20  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* emulparams/aarch64linux.sh (ELF_INTERPRETER_NAME): Define.
+
+2014-01-20  Alan Modra  <amodra@gmail.com>
+
+	* ldlang.h (struct lang_definedness_hash_entry): Add by_object and
+	by_script.  Make iteration a single bit field.
+	(lang_track_definedness, lang_symbol_definition_iteration): Delete.
+	(lang_symbol_defined): Declare.
+	* ldlang.c (lang_statement_iteration): Expand comment a little.
+	(lang_init <lang_definedness_table>): Make it bigger.
+	(lang_track_definedness, lang_symbol_definition): Delete.
+	(lang_definedness_newfunc): Update.
+	(lang_symbol_defined): New function.
+	(lang_update_definedness): Create entries here.  Do track whether
+	script definition of symbol is valid, even when also defined in
+	an object file.
+	* ldexp.c (fold_name <DEFINED>): Update.
+	(fold_name <NAME>): Allow self-assignment for absolute symbols
+	defined in a linker script.
+
+2014-01-20  Guy Martin <gmsoft@tuxicoman.be>
+	    Alan Modra  <amodra@gmail.com>
+
+	* ldlang.h (lang_output_section_get): Define.
+	* ldlang.c (lang_output_section_get): Likewise.
+	(init_os): Set the output_section userdata to the output
+	section statement.
+	* emultempl/hppaelf.em: Use lang_output_section_get instead of
+	lang_output_section_find where applicable.
+	* emultempl/aarch64elf.em: Likewise.
+	* emultempl/aix.em: Likewise.
+	* emultempl/armelf.em: Likewise.
+	* emultempl/m68hc1xelf.em: Likewise.
+	* emultempl/metagelf.em: Likewise.
+	* emultempl/mipself.em: Likewise.
+	* emultempl/ppc64elf.em: Likewise.
+	* emultempl/spuelf.em: Likewise.
+
+2014-01-17  Alan Modra  <amodra@gmail.com>
+
+	* genscripts.sh (COMPILE_IN): Don't set if already set.
+	* emulparams/nds32elf.sh: Don't clear EMULATION_LIBPATH, set
+	COMPILE_IN=no.
+	* emulparams/nds32elf16m.sh: Likewise.
+	* emulparams/nds32elf_linux.sh: Likewise.
+	* emultempl/aix.em: Test COMPILE_IN value is "yes".
+	* emultempl/armcoff.em: Likewise.
+	* emultempl/elf32.em: Likewise.
+	* emultempl/generic.em: Likewise.
+	* emultempl/gld960.em: Likewise.
+	* emultempl/gld960c.em: Likewise.
+	* emultempl/linux.em: Likewise.
+	* emultempl/lnk960.em: Likewise.
+	* emultempl/m68kcoff.em: Likewise.
+	* emultempl/sunos.em: Likewise.
+	* emultempl/ticoff.em: Likewise.
+
+2014-01-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16456
+	* genscripts.sh: Don't search directory with LIBPATH_SUFFIX_SKIP
+	suffix.
+	* emulparams/elf32_x86_64.sh (LIBPATH_SUFFIX_SKIP): Set to 64
+	for elf32_x86_64 emulation.
+	* emulparams/elf_i386.sh (LIBPATH_SUFFIX_SKIP): Set to 64
+	for elf_i386 emulation.
+
+2014-01-16  Alan Modra  <amodra@gmail.com>
+
+	* ld.h (fat_section_userdata_type, get_userdata): Move to..
+	* ldlang.h (input_section_userdata_type, get_userdata): ..here.
+	* ldlang.c (init_map_userdata): Delete.  Fold into..
+	(sort_def_symbol): ..here.  Don't attach input section userdata
+	to output sections or global bfd sections.
+	(lang_map): Don't pre-allocate input section userdata.
+	(init_os): Don't allocate userdata for output sections.
+	(print_all_symbols): Update.
+
+2014-01-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* emultempl/elf32.em (gld${EMULATION_NAME}_before_allocation):
+	Silence uninitialized warning on ehdr_start_save with older
+	GCC.
+
+2014-01-15  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/elf32.em (gld${EMULATION_NAME}_before_allocation): Define
+	__ehdr_start before size_dynamic_sections and restore afterwards.
+
 2014-01-10  Alan Modra  <amodra@gmail.com>
 
 	PR ld/14207

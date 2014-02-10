@@ -530,6 +530,19 @@ m:int:return_in_first_hidden_param_p:struct type *type:type::default_return_in_f
 
 m:CORE_ADDR:skip_prologue:CORE_ADDR ip:ip:0:0
 M:CORE_ADDR:skip_main_prologue:CORE_ADDR ip:ip
+# On some platforms, a single function may provide multiple entry points,
+# e.g. one that is used for function-pointer calls and a different one
+# that is used for direct function calls.
+# In order to ensure that breakpoints set on the function will trigger
+# no matter via which entry point the function is entered, a platform
+# may provide the skip_entrypoint callback.  It is called with IP set
+# to the main entry point of a function (as determined by the symbol table),
+# and should return the address of the innermost entry point, where the
+# actual breakpoint needs to be set.  Note that skip_entrypoint is used
+# by GDB common code even when debugging optimized code, where skip_prologue
+# is not used.
+M:CORE_ADDR:skip_entrypoint:CORE_ADDR ip:ip
+
 f:int:inner_than:CORE_ADDR lhs, CORE_ADDR rhs:lhs, rhs:0:0
 m:const gdb_byte *:breakpoint_from_pc:CORE_ADDR *pcptr, int *lenptr:pcptr, lenptr::0:
 # Return the adjusted address and kind to use for Z0/Z1 packets.
@@ -628,6 +641,10 @@ v:int:cannot_step_breakpoint:::0:0::0
 v:int:have_nonsteppable_watchpoint:::0:0::0
 F:int:address_class_type_flags:int byte_size, int dwarf2_addr_class:byte_size, dwarf2_addr_class
 M:const char *:address_class_type_flags_to_name:int type_flags:type_flags
+
+# Return the appropriate type_flags for the supplied address class.
+# This function should return 1 if the address class was recognized and
+# type_flags was set, zero otherwise.
 M:int:address_class_name_to_type_flags:const char *name, int *type_flags_ptr:name, type_flags_ptr
 # Is a register in a group
 m:int:register_reggroup_p:int regnum, struct reggroup *reggroup:regnum, reggroup::default_register_reggroup_p::0
@@ -655,12 +672,15 @@ F:char *:elfcore_write_linux_prpsinfo:bfd *obfd, char *note_data, int *note_size
 M:int:find_memory_regions:find_memory_region_ftype func, void *data:func, data
 
 # Read offset OFFSET of TARGET_OBJECT_LIBRARIES formatted shared libraries list from
-# core file into buffer READBUF with length LEN.
-M:LONGEST:core_xfer_shared_libraries:gdb_byte *readbuf, ULONGEST offset, LONGEST len:readbuf, offset, len
+# core file into buffer READBUF with length LEN.  Return the number of bytes read
+# (zero indicates failure).
+# failed, otherwise, return the red length of READBUF.
+M:ULONGEST:core_xfer_shared_libraries:gdb_byte *readbuf, ULONGEST offset, ULONGEST len:readbuf, offset, len
 
 # Read offset OFFSET of TARGET_OBJECT_LIBRARIES_AIX formatted shared
 # libraries list from core file into buffer READBUF with length LEN.
-M:LONGEST:core_xfer_shared_libraries_aix:gdb_byte *readbuf, ULONGEST offset, LONGEST len:readbuf, offset, len
+# Return the number of bytes read (zero indicates failure).
+M:ULONGEST:core_xfer_shared_libraries_aix:gdb_byte *readbuf, ULONGEST offset, ULONGEST len:readbuf, offset, len
 
 # How the core target converts a PTID from a core file to a string.
 M:char *:core_pid_to_str:ptid_t ptid:ptid
@@ -994,6 +1014,15 @@ m:void:iterate_over_objfiles_in_search_order:iterate_over_objfiles_in_search_ord
 
 # Ravenscar arch-dependent ops.
 v:struct ravenscar_arch_ops *:ravenscar_ops:::NULL:NULL::0:host_address_to_string (gdbarch->ravenscar_ops)
+
+# Return non-zero if the instruction at ADDR is a call; zero otherwise.
+m:int:insn_is_call:CORE_ADDR addr:addr::default_insn_is_call::0
+
+# Return non-zero if the instruction at ADDR is a return; zero otherwise.
+m:int:insn_is_ret:CORE_ADDR addr:addr::default_insn_is_ret::0
+
+# Return non-zero if the instruction at ADDR is a jump; zero otherwise.
+m:int:insn_is_jump:CORE_ADDR addr:addr::default_insn_is_jump::0
 EOF
 }
 

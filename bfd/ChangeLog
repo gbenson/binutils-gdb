@@ -1,3 +1,233 @@
+2014-02-10  Alan Modra  <amodra@gmail.com>
+
+	* po/SRC-POTFILES.in: Regenerate.
+	* po/bfd.pot: Regenerate.
+
+2014-02-09  Alan Modra  <amodra@gmail.com>
+
+	* elf-bfd.h (struct elf_backend_data): Add caches_rawsize.
+	* elfxx-target.h (elf_backend_caches_rawsize): Define.
+	(elfNN_bed): Init new field.
+	* elflink.c (elf_link_input_bfd): Handle caches_rawsize.
+	* elf32-ppc.c (shared_stub_entry): Zero addi offset.
+	(ppc_elf_relax_section): Don't reallocate section here, write
+	stubs, or write out relocs for ld -r here..
+	(ppc_elf_relocate_section): ..instead write stubs here, and use
+	existing code to write out relocs for ld -r.  Fix offset
+	adjustment on reloc for little-endian.
+	(elf_backend_caches_rawsize): Define.
+
+2014-02-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* cache.c (bfd_cache_max_open): Cast RLIM_INFINITY to rlim_t.
+
+2014-02-04  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* coff-rs6000.c (xcoff_write_archive_contents_big): Free OFFSETS in
+	return paths.  Three times.
+	* elf64-ppc.c (ppc64_elf_link_hash_table_create): Free HTAB in all
+	return paths.
+	(ppc64_elf_tls_optimize): Free TOC_REF in return path.
+	(ppc64_elf_edit_toc): Free USED in return path.
+
+2014-02-03  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* reloc.c (BFD_RELOC_NIOS2_GOT_LO, BFD_RELOC_NIOS2_GOT_HA): New.
+	(BFD_RELOC_NIOS2_CALL_LO, BFD_RELOC_NIOS2_CALL_HA): New.
+	* libbfd.h: Regenerated.
+	* bfd-in2.h: Regenerated.
+	* elf32-nios2.c (elf_nios2_howto_table_rel): Add new relocations.
+	(nios2_reloc_map): Likewise.
+	(GOT_USED, CALL_USED): Renamed from GOT16_USED and CALL16_USED.
+	Fixed all references.
+	(nios2_elf32_relocate_section): Add new relocations.
+	(nios2_elf32_check_relocs): Likewise.
+	(nios2_elf32_gc_sweep_hook): Likewise.
+
+2014-02-03  Alan Modra  <amodra@gmail.com>
+
+	* elf32-ppc.c (struct ppc_elf_link_hash_table): Add params.
+	Delete emit_stub_syms, no_tls_get_addr_opt.  Update all uses.
+	(ppc_elf_link_params): New function.
+	(ppc_elf_create_glink): Align .glink to 64 bytes for ppc476
+	workaround.
+	(ppc_elf_select_plt_layout): Remove plt_style and emit_stub_syms
+	parameters.  Use htab->params instead.
+	(ppc_elf_tls_setup): Remove no_tls_get_addr_opt parameter.
+	(ppc_elf_size_dynamic_sections): Align __glink_PLTresolve to
+	64 bytes for ppc476 workaround.
+	(struct ppc_elf_relax_info): New.
+	(ppc_elf_relax_section): Exclude linker created sections and
+	those too small to hold one instruction.  Don't add another
+	branch 	around trampolines on later relax passes.  Don't
+	generate trampolines for undefined symbols when !relocatable,
+	nor for plugin symbols.  Allocate space for ppc476 workaround
+	patch area.  Free fixups on error return path.
+	(ppc_elf_relocate_section): Handle ppc476 workaround patching.
+	* elf32-ppc.h (struct ppc_elf_params): New.
+	(ppc_elf_select_plt_layout, ppc_elf_tls_setup): Update prototype.
+	(ppc_elf_link_params): Declare.
+	* section.c (SEC_INFO_TYPE_TARGET): Define.
+	* bfd-in2.h: Regenerate.
+
+2014-02-02  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* elf32-nios2.c (struct elf32_nios2_link_hash_table): Add
+	h_gp_got field.
+	(nios2_elf32_relocate_section): Use got_base to adjust
+	GOT-pointer-relative relocations relative to _gp_got.
+	(create_got_section): Create _gp_got symbol.
+	(nios2_elf32_finish_dynamic_symbol): Make _gp_got absolute.
+	(nios2_elf32_size_dynamic_sections): Set _gp_got offset.
+
+2014-01-30  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* bfd-in2.h: Update from reloc.c.
+	* elf32-nios2.c: Include elf32-nios2.h.
+	(elf_nios2_howto_table_rel): Add entry for R_NIOS2_CALL26_NOAT.
+	(nios2_reloc_map): Likewise.
+	(enum elf32_nios2_stub_type): Declare.
+	(struct elf32_nios2_stub_hash_entry): Declare.
+	(nios2_stub_hash_entry, nios2_stub_hash_lookup): New macros.
+	(struct elf32_nios2_link_hash_entry): Add hsh_cache field.
+	(struct elf32_nios2_link_hash_table): Add new fields bstab,
+	stub_bfd, add_stub_section, layout_sections_again, stub_group,
+	bfd_count, top_index, input_list, all_local_syms.
+	(nios2_call26_stub_entry): New.
+	(nios2_elf32_install_imm16): Move up in file.
+	(nios2_elf32_install_data): Move up in file.
+	(hiadj): Move up in file.
+	(stub_hash_newfunc): New.
+	(link_hash_newfunc): Initialize hsh_cache field.
+	(STUB_SUFFIX): New.
+	(nios2_stub_name): New.
+	(nios2_get_stub_entry): New.
+	(nios2_add_stub): New.
+	(nios2_elf32_setup_section_lists): New.
+	(nios2_elf32_next_input_section): New.
+	(CALL26_SEGMENT): New.
+	(MAX_STUB_SECTION_SIZE): New.
+	(group_sections): New.
+	(nios2_type_of_stub): New.
+	(nios2_build_one_stub): New.
+	(nios2_size_one_stub): New.
+	(get_local_syms): New.
+	(nios2_elf32_size_stubs): New.
+	(nios2_elf32_build_stubs): New.
+	(nios2_elf32_do_call26_relocate): Correct CALL26 overflow test.
+	(nios2_elf32_relocate_section): Handle R_NIOS2_CALL26_NOAT.  Add
+	trampolines for R_NIOS2_CALL26 stubs.
+	(nios2_elf32_check_relocs): Handle R_NIOS2_CALL26_NOAT.
+	(nios2_elf32_gc_sweep_hook): Likewise.
+	(nios2_elf32_link_hash_table_create): Initialize the stub hash table.
+	(nios2_elf32_link_hash_table_free): New.
+	(bfd_elf32_bfd_link_hash_table_free): Define.
+	* elf32-nios2.h: New file.
+	* libbfd.h: Update from reloc.c.
+	* reloc.c (BFD_RELOC_NIOS2_CALL26_NOAT): New.
+
+2014-01-29  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/16318
+	* elf32-metag.c (elf_metag_post_process_headers): Call
+	_bfd_elf_post_process_headers.
+	* elf32-sh64.c (sh64_elf_copy_private_data): Call
+	_bfd_elf_copy_private_data.
+	* elf64-sh64.c (sh_elf64_copy_private_data_internal): Likewise.
+
+2014-01-29  Nick Clifton  <nickc@redhat.com>
+
+	* bfd-in.h (bfd_set_section_vma): Delete.
+	(bfd_set_section_alignment): Delete.
+	(bfd_set_section_userdata): Delete.
+	(bfd_set_cacheable): Delete.
+	* bfd.c (bfd_set_cacheable): New static inline function.
+	* section.c (bfd_set_section_userdata): Likewise.
+	(bfd_set_section_vma): Likewise.
+	(bfd_set_section_alignment): Likewise.
+	* bfd-in2.h: Regenerate.
+
+2014-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* dwarf2.c (find_abstract_instance_name): For DW_FORM_ref_addr
+	attributes select the CU containing the abbreviation, which may not
+	be the current CU.
+
+2014-01-24  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (ppc_build_one_stub): Correct reloc count passed
+	to get_relocs for ELFv2.
+
+2014-01-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16498
+	* elf.c (_bfd_elf_map_sections_to_segments): Issue a linker error
+	if TLS sections are not adjacent.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* elflink.c (elf_link_add_object_symbols): Call minfo for --as-needed.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (STK_LINKER): Comment typo fix.
+
+2014-01-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16467
+	* elflink.c (_bfd_elf_merge_symbol): When types of the existing
+	regular default symbol definition and the versioned dynamic
+	symbol definition mismatch, skip the default symbol definition
+	if one of them is IFUNC.
+
+2014-01-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/2404
+	* elflink.c (_bfd_elf_merge_symbol): Don't check info->shared,
+	info->export_dynamic nor h->ref_dynamic for type mismatch when
+	adding the default version.
+
+2014-01-16  Alan Modra  <amodra@gmail.com>
+
+	* elfxx-mips.c (mips_elf_record_got_page_entry): Pass in a
+	mips_elf_traverse_got_arg* rather than mips_got_info*.
+	Adjust caller.  Alloc on output_bfd rather than symbol section
+	owner.
+
+2014-01-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_allocate_dynrelocs): Revert the last
+	change.
+	* elf64-x86-64.c (elf_x86_64_allocate_dynrelocs): Likewise.
+
+2014-01-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16428
+	* elf32-i386.c (elf_i386_allocate_dynrelocs): Don't discard relocs
+	against __ehdr_start.
+	* elf64-x86-64.c (elf_x86_64_allocate_dynrelocs): Likewise.
+
+2014-01-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_allocate_dynrelocs): Revert the last
+	change.
+	* elf64-x86-64.c (elf_x86_64_allocate_dynrelocs): Likewise.
+
+2014-01-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16428
+	* elf32-i386.c (elf_i386_allocate_dynrelocs): Don't update reloc
+	count if there are any non pc-relative relocs.
+	* elf64-x86-64.c (elf_x86_64_allocate_dynrelocs): Likewise.
+
+2014-01-14  Michael Hudson-Doyle  <michael.hudson@linaro.org>
+	    Kugan Vivekanandarajah  <kugan.vivekanandarajah@linaro.org>
+
+	* elfnn-aarch64.c (elfNN_aarch64_final_link_relocate): Use correct
+	offset while calculating relocation address.
+	(elfNN_aarch64_create_small_pltn_entry): Likewise.
+	(elfNN_aarch64_init_small_plt0_entry): Likewise.
+
 2014-01-13  Ma Jiang  <ma.jiang@zte.com.cn>
 
 	PR ld/16202

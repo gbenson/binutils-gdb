@@ -1,3 +1,153 @@
+2014-02-02  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* ld-scripts/rgn-at9.d: New file.
+	* ld-scripts/rgn-at9.t: Likewise.
+	* ld-scripts/rgn-at10.d: Likewise.
+	* ld-scripts/rgn-at10.s: Likewise.
+	* ld-scripts/rgn-at10.t: Likewise.
+	* ld-scripts/rgn-at11.d: Likewise.
+	* ld-scripts/rgn-at11.t: Likewise.
+
+2014-01-30  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* ld-nios2/relax_call26.s: New.
+	* ld-nios2/relax_call26_boundary.ld: New.
+	* ld-nios2/relax_call26_boundary.s: New.
+	* ld-nios2/relax_call26_boundary_c8.d: New.
+	* ld-nios2/relax_call26_boundary_cc.d: New.
+	* ld-nios2/relax_call26_boundary_d0.d: New.
+	* ld-nios2/relax_call26_boundary_d4.d: New.
+	* ld-nios2/relax_call26_boundary_d8.d: New.
+	* ld-nios2/relax_call26_boundary_dc.d: New.
+	* ld-nios2/relax_call26_boundary_f0.d: New.
+	* ld-nios2/relax_call26_boundary_f4.d: New.
+	* ld-nios2/relax_call26_boundary_f8.d: New.
+	* ld-nios2/relax_call26_boundary_fc.d: New.
+	* ld-nios2/relax_call26_cache.d: New.
+	* ld-nios2/relax_call26_cache.ld: New.
+	* ld-nios2/relax_call26_cache.s: New.
+	* ld-nios2/relax_call26_multi.d: New.
+	* ld-nios2/relax_call26_multi.ld: New.
+	* ld-nios2/relax_call26_norelax.d: New.
+	* ld-nios2/relax_call26_shared.d: New.
+	* ld-nios2/relax_call26_shared.ld: New.
+
+2014-01-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-elf/rdynamic-1.c: New file.
+	* ld-elf/rdynamic-1.rd: Likewise.
+
+	* ld-elf/shared.exp (build_tests): Add rdynamic-1.
+
+2014-01-28  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/16317
+	* ld-tic6x/shlib-1.rd: Expect I attribute with RELA sections.
+	* ld-tic6x/shlib-1b.rd: Likewise.
+	* ld-tic6x/shlib-1r.rd: Likewise.
+	* ld-tic6x/shlib-1rb.rd: Likewise.
+	* ld-tic6x/shlib-app-1rd: Likewise.
+	* ld-tic6x/shlib-app-1b.rd: Likewise.
+	* ld-tic6x/shlib-app-1r.rd: Likewise.
+	* ld-tic6x/shlib-app-1rb.rd: Likewise.
+	* ld-tic6x/shlib-noindex.rd: Likewise.
+	* ld-tic6x/static-app-1.rd: Likewise.
+	* ld-tic6x/static-app-1b.rd: Likewise.
+	* ld-tic6x/static-app-1r.rd: Likewise.
+	* ld-tic6x/static-app-1rb.rd: Likewise.
+	PR binutils/16318
+	* ld-tic6x/tic6x.exp: Expect C6000 osabi value in relocatable
+	objects.
+
+2014-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-elf/pr16498a.s: Replace .align with .p2align.
+
+2014-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16498
+	* ld-elf/pr16498b.d: New file.
+	* ld-elf/pr16498b.t: Likewise.
+
+2014-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16498
+	* ld-elf/pr16498a.d: New file.
+	* ld-elf/pr16498a.s: Likewise.
+	* ld-elf/pr16498a.t: Likewise.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* ld-scripts/pr14962-2.d: Correct target triple.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* ld-shared/elf-offset.ld: Align end of .bss with canonical form
+	of ALIGN that allows an empty .bss to be removed.
+	* ld-arm/arm-dyn.ld: Likewise.
+	* ld-arm/arm-lib.ld: Likewise.
+	* ld-elfvsb/elf-offset.ld: Likewise.
+	* ld-mips-elf/mips-dyn.ld: Likewise.
+	* ld-mips-elf/mips-lib.ld: Likewise.
+	* ld-arm/arm-no-rel-plt.ld: Remove duplicate ALIGN.
+	* ld-powerpc/vle-multiseg-1.ld: Remove ALIGN at start of section.
+	ALIGN address of section instead.
+	* ld-powerpc/vle-multiseg-2.ld: Likewise.
+	* ld-powerpc/vle-multiseg-3.ld: Likewise.
+	* ld-powerpc/vle-multiseg-4.ld: Likewise.
+	* ld-powerpc/vle-multiseg-6.ld: Likewise.
+	* ld-scripts/empty-aligned.d: Check section headers not program
+	headers.  Remove xfail and notarget.
+	* ld-scripts/empty-aligned.t: Use canonical ALIGN for end of .text2.
+
+2014-01-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/16467
+	* ld-ifunc/dummy.c: New file.
+	* ld-ifunc/pr16467.out: Likewise.
+	* ld-ifunc/pr16467a.c: Likewise.
+	* ld-ifunc/pr16467a.map: Likewise.
+	* ld-ifunc/pr16467b.c: Likewise.
+	* ld-ifunc/pr16467b.map: Likewise.
+	* ld-ifunc/pr16467c.c: Likewise.
+
+	* ld-ifunc/ifunc.exp (run_cc_link_tests): New.
+	(run_ld_link_exec_tests): Run pr16467.
+
+2014-01-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/2404
+	* ld-elf/shared.exp: Add a PIE test for PR ld/2404.
+
+2014-01-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/2404
+	* ld-elf/pr2404.out: New file.
+	* ld-elf/pr2404a.c: Likewise.
+	* ld-elf/pr2404b.c: Likewise.
+
+	* ld-elf/shared.exp (build_tests): Build libpr2404a.so and
+	libpr2404b.a.
+	(run_tests): Run pr2404.
+
+2014-01-20  Alan Modra  <amodra@gmail.com>
+
+	* ld-scripts/pr14962-2.d,
+	* ld-scripts/pr14962-2.t: New test.
+	* ld-scripts/expr.exp: Run it.
+
+2014-01-15  Alan Modra  <amodra@gmail.com>
+
+	* ld-elf/ehdr_start-shared.d: New.
+	* ld-elf/ehdr_start-userdef.d: xfail frv.
+	* ld-elf/ehdr_start-weak.d: Likewise.
+	* ld-elf/ehdr_start.d: Likewise.
+
+2014-01-14  Vidya Praveen  <vidyapraveen@arm.com>
+
+	* lib/ld-lib.exp (default_ld_link): Remove support for ldflags.
+	(default_ld_simple_link): Likewise.
+
 2014-01-10  Alan Modra  <amodra@gmail.com>
 
 	* ld-x86-64/pr14207.d: Adjust.

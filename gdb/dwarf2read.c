@@ -3771,10 +3771,9 @@ dw2_map_matching_symbols (struct objfile *objfile,
 static void
 dw2_expand_symtabs_matching
   (struct objfile *objfile,
-   int (*file_matcher) (const char *, void *, int basenames),
-   int (*name_matcher) (const char *, void *),
-   void (*expansion_notify) (struct objfile *, struct partial_symtab *,
-			     void *),
+   expand_symtabs_file_matcher_ftype *file_matcher,
+   expand_symtabs_symbol_matcher_ftype *symbol_matcher,
+   expand_symtabs_exp_notify_ftype *expansion_notify,
    enum search_domain kind,
    void *data)
 {
@@ -3878,7 +3877,7 @@ dw2_expand_symtabs_matching
 
       name = index->constant_pool + MAYBE_SWAP (index->symbol_table[idx]);
 
-      if (! (*name_matcher) (name, data))
+      if (! (*symbol_matcher) (name, data))
 	continue;
 
       /* The name was matched, now expand corresponding CUs that were
@@ -10546,10 +10545,12 @@ open_and_init_dwp_file (void)
   if (dwp_file->cus->version != dwp_file->tus->version)
     {
       /* Technically speaking, we should try to limp along, but this is
-	 pretty bizarre.  */
-      error (_("Dwarf Error: DWP file CU version %d doesn't match"
-	       " TU version %d [in DWP file %s]"),
-	     dwp_file->cus->version, dwp_file->tus->version, dwp_name);
+	 pretty bizarre.  We use pulongest here because that's the established
+	 portability solution (e.g, we cannot use %u for uint32_t).  */
+      error (_("Dwarf Error: DWP file CU version %s doesn't match"
+	       " TU version %s [in DWP file %s]"),
+	     pulongest (dwp_file->cus->version),
+	     pulongest (dwp_file->tus->version), dwp_name);
     }
   dwp_file->version = dwp_file->cus->version;
 
@@ -15324,13 +15325,7 @@ read_partial_die (const struct die_reader_specs *reader,
 	     practice.  */
 	  if (DW_UNSND (&attr) == DW_CC_program
 	      && cu->language == language_fortran)
-	    {
-	      set_main_name (part_die->name);
-
-	      /* As this DIE has a static linkage the name would be difficult
-		 to look up later.  */
-	      language_of_main = language_fortran;
-	    }
+	    set_objfile_main_name (objfile, part_die->name, language_fortran);
 	  break;
 	case DW_AT_inline:
 	  if (DW_UNSND (&attr) == DW_INL_inlined

@@ -97,7 +97,8 @@ static void async_handle_remote_sigint_twice (int);
 
 static void remote_files_info (struct target_ops *ignore);
 
-static void remote_prepare_to_store (struct regcache *regcache);
+static void remote_prepare_to_store (struct target_ops *self,
+				     struct regcache *regcache);
 
 static void remote_open (char *name, int from_tty);
 
@@ -1731,11 +1732,9 @@ remote_pass_signals (int numsigs, unsigned char *pass_signals)
       *p = 0;
       if (!rs->last_pass_packet || strcmp (rs->last_pass_packet, pass_packet))
 	{
-	  char *buf = rs->buf;
-
 	  putpkt (pass_packet);
 	  getpkt (&rs->buf, &rs->buf_size, 0);
-	  packet_ok (buf, &remote_protocol_packets[PACKET_QPassSignals]);
+	  packet_ok (rs->buf, &remote_protocol_packets[PACKET_QPassSignals]);
 	  if (rs->last_pass_packet)
 	    xfree (rs->last_pass_packet);
 	  rs->last_pass_packet = pass_packet;
@@ -1784,11 +1783,9 @@ remote_program_signals (int numsigs, unsigned char *signals)
       if (!rs->last_program_signals_packet
 	  || strcmp (rs->last_program_signals_packet, packet) != 0)
 	{
-	  char *buf = rs->buf;
-
 	  putpkt (packet);
 	  getpkt (&rs->buf, &rs->buf_size, 0);
-	  packet_ok (buf, &remote_protocol_packets[PACKET_QProgramSignals]);
+	  packet_ok (rs->buf, &remote_protocol_packets[PACKET_QProgramSignals]);
 	  xfree (rs->last_program_signals_packet);
 	  rs->last_program_signals_packet = packet;
 	}
@@ -3667,7 +3664,7 @@ remote_start_remote (int from_tty, struct target_ops *target, int extended_p)
   /* If we connected to a live target, do some additional setup.  */
   if (target_has_execution)
     {
-      if (exec_bfd) 	/* No use without an exec file.  */
+      if (symfile_objfile) 	/* No use without a symbol-file.  */
 	remote_check_symbols ();
     }
 
@@ -6466,7 +6463,7 @@ remote_fetch_registers (struct target_ops *ops,
    first.  */
 
 static void
-remote_prepare_to_store (struct regcache *regcache)
+remote_prepare_to_store (struct target_ops *self, struct regcache *regcache)
 {
   struct remote_arch_state *rsa = get_remote_arch_state ();
   int i;
@@ -6847,7 +6844,7 @@ check_binary_download (CORE_ADDR addr)
 
 static LONGEST
 remote_write_bytes_aux (const char *header, CORE_ADDR memaddr,
-			const gdb_byte *myaddr, ssize_t len,
+			const gdb_byte *myaddr, ULONGEST len,
 			char packet_format, int use_length)
 {
   struct remote_state *rs = get_remote_state ();
@@ -6864,7 +6861,7 @@ remote_write_bytes_aux (const char *header, CORE_ADDR memaddr,
     internal_error (__FILE__, __LINE__,
 		    _("remote_write_bytes_aux: bad packet format"));
 
-  if (len <= 0)
+  if (len == 0)
     return 0;
 
   payload_size = get_memory_write_packet_size ();
@@ -7002,7 +6999,7 @@ remote_write_bytes_aux (const char *header, CORE_ADDR memaddr,
    packet.  */
 
 static LONGEST
-remote_write_bytes (CORE_ADDR memaddr, const gdb_byte *myaddr, ssize_t len)
+remote_write_bytes (CORE_ADDR memaddr, const gdb_byte *myaddr, ULONGEST len)
 {
   char *packet_format = 0;
 
@@ -7038,7 +7035,7 @@ remote_write_bytes (CORE_ADDR memaddr, const gdb_byte *myaddr, ssize_t len)
    target_xfer_error' value) for error.  */
 
 static LONGEST
-remote_read_bytes (CORE_ADDR memaddr, gdb_byte *myaddr, int len)
+remote_read_bytes (CORE_ADDR memaddr, gdb_byte *myaddr, ULONGEST len)
 {
   struct remote_state *rs = get_remote_state ();
   int max_buf_size;		/* Max size of packet output buffer.  */
@@ -7046,7 +7043,7 @@ remote_read_bytes (CORE_ADDR memaddr, gdb_byte *myaddr, int len)
   int todo;
   int i;
 
-  if (len <= 0)
+  if (len == 0)
     return 0;
 
   max_buf_size = get_memory_read_packet_size ();
@@ -7872,7 +7869,7 @@ getpkt_or_notif_sane (char **buf, long *sizeof_buf, int forever,
 static void
 remote_kill (struct target_ops *ops)
 {
-  struct gdb_exception ex;
+  volatile struct gdb_exception ex;
 
   /* Catch errors so the user can quit from gdb even when we
      aren't on speaking terms with the remote system.  */
@@ -8130,8 +8127,9 @@ extended_remote_run (char *args)
    environment.  */
 
 static void
-extended_remote_create_inferior_1 (char *exec_file, char *args,
-				   char **env, int from_tty)
+extended_remote_create_inferior (struct target_ops *ops,
+				 char *exec_file, char *args,
+				 char **env, int from_tty)
 {
   int run_worked;
   char *stop_reply;
@@ -8176,14 +8174,6 @@ extended_remote_create_inferior_1 (char *exec_file, char *args,
 
   /* Get updated offsets, if the stub uses qOffsets.  */
   get_offsets ();
-}
-
-static void
-extended_remote_create_inferior (struct target_ops *ops, 
-				 char *exec_file, char *args,
-				 char **env, int from_tty)
-{
-  extended_remote_create_inferior_1 (exec_file, args, env, from_tty);
 }
 
 
@@ -8257,7 +8247,8 @@ remote_add_target_side_commands (struct gdbarch *gdbarch,
    which don't, we insert a traditional memory breakpoint.  */
 
 static int
-remote_insert_breakpoint (struct gdbarch *gdbarch,
+remote_insert_breakpoint (struct target_ops *ops,
+			  struct gdbarch *gdbarch,
 			  struct bp_target_info *bp_tgt)
 {
   /* Try the "Z" s/w breakpoint packet if it is not already disabled.
@@ -8319,11 +8310,12 @@ remote_insert_breakpoint (struct gdbarch *gdbarch,
     throw_error (NOT_SUPPORTED_ERROR, _("\
 Target doesn't support breakpoints that have target side commands."));
 
-  return memory_insert_breakpoint (gdbarch, bp_tgt);
+  return memory_insert_breakpoint (ops, gdbarch, bp_tgt);
 }
 
 static int
-remote_remove_breakpoint (struct gdbarch *gdbarch,
+remote_remove_breakpoint (struct target_ops *ops,
+			  struct gdbarch *gdbarch,
 			  struct bp_target_info *bp_tgt)
 {
   CORE_ADDR addr = bp_tgt->placed_address;
@@ -8353,7 +8345,7 @@ remote_remove_breakpoint (struct gdbarch *gdbarch,
       return (rs->buf[0] == 'E');
     }
 
-  return memory_remove_breakpoint (gdbarch, bp_tgt);
+  return memory_remove_breakpoint (ops, gdbarch, bp_tgt);
 }
 
 static int
@@ -8757,7 +8749,7 @@ remote_write_qxfer (struct target_ops *ops, const char *object_name,
   int max_size = get_memory_write_packet_size (); 
 
   if (packet->support == PACKET_DISABLE)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   /* Insert header.  */
   i = snprintf (rs->buf, max_size, 
@@ -8773,7 +8765,7 @@ remote_write_qxfer (struct target_ops *ops, const char *object_name,
   if (putpkt_binary (rs->buf, i + buf_len) < 0
       || getpkt_sane (&rs->buf, &rs->buf_size, 0) < 0
       || packet_ok (rs->buf, packet) != PACKET_OK)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   unpack_varlen_hex (rs->buf, &n);
   return n;
@@ -8796,7 +8788,7 @@ remote_read_qxfer (struct target_ops *ops, const char *object_name,
   LONGEST i, n, packet_len;
 
   if (packet->support == PACKET_DISABLE)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   /* Check whether we've cached an end-of-object packet that matches
      this request.  */
@@ -8826,12 +8818,12 @@ remote_read_qxfer (struct target_ops *ops, const char *object_name,
 	    phex_nz (n, sizeof n));
   i = putpkt (rs->buf);
   if (i < 0)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   rs->buf[0] = '\0';
   packet_len = getpkt_sane (&rs->buf, &rs->buf_size, 0);
   if (packet_len < 0 || packet_ok (rs->buf, packet) != PACKET_OK)
-    return -1;
+    return TARGET_XFER_E_IO;
 
   if (rs->buf[0] != 'l' && rs->buf[0] != 'm')
     error (_("Unknown remote qXfer reply: %s"), rs->buf);
@@ -8862,7 +8854,7 @@ remote_read_qxfer (struct target_ops *ops, const char *object_name,
 static LONGEST
 remote_xfer_partial (struct target_ops *ops, enum target_object object,
 		     const char *annex, gdb_byte *readbuf,
-		     const gdb_byte *writebuf, ULONGEST offset, LONGEST len)
+		     const gdb_byte *writebuf, ULONGEST offset, ULONGEST len)
 {
   struct remote_state *rs;
   int i;
@@ -8928,7 +8920,7 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
 				  &remote_protocol_packets
 				  [PACKET_qXfer_statictrace_read]);
       else
-	return -1;
+	return TARGET_XFER_E_IO;
     }
 
   /* Only handle flash writes.  */
@@ -8942,7 +8934,7 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
 	  return remote_flash_write (ops, offset, len, writebuf);
 
 	default:
-	  return -1;
+	  return TARGET_XFER_E_IO;
 	}
     }
 
@@ -9010,7 +9002,7 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
         &remote_protocol_packets[PACKET_qXfer_btrace]);
 
     default:
-      return -1;
+      return TARGET_XFER_E_IO;
     }
 
   /* Note: a zero OFFSET and LEN can be used to query the minimum
@@ -9020,7 +9012,7 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
   /* Minimum outbuf size is get_remote_packet_size ().  If LEN is not
      large enough let the caller deal with it.  */
   if (len < get_remote_packet_size ())
-    return -1;
+    return TARGET_XFER_E_IO;
   len = get_remote_packet_size ();
 
   /* Except for querying the minimum buffer size, target must be open.  */
@@ -9052,7 +9044,7 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
 
   i = putpkt (rs->buf);
   if (i < 0)
-    return i;
+    return TARGET_XFER_E_IO;
 
   getpkt (&rs->buf, &rs->buf_size, 0);
   strcpy ((char *) readbuf, rs->buf);
@@ -11486,13 +11478,14 @@ remote_teardown_btrace (struct btrace_target_info *tinfo)
 
 /* Read the branch trace.  */
 
-static VEC (btrace_block_s) *
-remote_read_btrace (struct btrace_target_info *tinfo,
+static enum btrace_error
+remote_read_btrace (VEC (btrace_block_s) **btrace,
+		    struct btrace_target_info *tinfo,
 		    enum btrace_read_type type)
 {
   struct packet_config *packet = &remote_protocol_packets[PACKET_qXfer_btrace];
   struct remote_state *rs = get_remote_state ();
-  VEC (btrace_block_s) *btrace = NULL;
+  struct cleanup *cleanup;
   const char *annex;
   char *xml;
 
@@ -11505,11 +11498,14 @@ remote_read_btrace (struct btrace_target_info *tinfo,
 
   switch (type)
     {
-    case btrace_read_all:
+    case BTRACE_READ_ALL:
       annex = "all";
       break;
-    case btrace_read_new:
+    case BTRACE_READ_NEW:
       annex = "new";
+      break;
+    case BTRACE_READ_DELTA:
+      annex = "delta";
       break;
     default:
       internal_error (__FILE__, __LINE__,
@@ -11519,15 +11515,14 @@ remote_read_btrace (struct btrace_target_info *tinfo,
 
   xml = target_read_stralloc (&current_target,
                               TARGET_OBJECT_BTRACE, annex);
-  if (xml != NULL)
-    {
-      struct cleanup *cleanup = make_cleanup (xfree, xml);
+  if (xml == NULL)
+    return BTRACE_ERR_UNKNOWN;
 
-      btrace = parse_xml_btrace (xml);
-      do_cleanups (cleanup);
-    }
+  cleanup = make_cleanup (xfree, xml);
+  *btrace = parse_xml_btrace (xml);
+  do_cleanups (cleanup);
 
-  return btrace;
+  return BTRACE_ERR_NONE;
 }
 
 static int

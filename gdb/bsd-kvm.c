@@ -35,6 +35,7 @@
 #endif
 #include <paths.h>
 #include "readline/readline.h"
+#include <sys/param.h>
 #include <sys/proc.h>
 #include <sys/user.h>
 
@@ -134,7 +135,7 @@ static LONGEST
 bsd_kvm_xfer_partial (struct target_ops *ops, enum target_object object,
 		      const char *annex, gdb_byte *readbuf,
 		      const gdb_byte *writebuf,
-		      ULONGEST offset, LONGEST len)
+		      ULONGEST offset, ULONGEST len)
 {
   switch (object)
     {
@@ -142,7 +143,7 @@ bsd_kvm_xfer_partial (struct target_ops *ops, enum target_object object,
       return bsd_kvm_xfer_memory (offset, len, readbuf, writebuf);
 
     default:
-      return -1;
+      return TARGET_XFER_E_IO;
     }
 }
 

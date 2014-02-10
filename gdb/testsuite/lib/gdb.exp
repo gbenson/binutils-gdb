@@ -1568,6 +1568,12 @@ proc skip_java_tests {} {
     return 0
 }
 
+# Return a 1 if I don't even want to try to test D.
+
+proc skip_d_tests {} {
+    return 0
+}
+
 # Return a 1 for configurations that do not support Python scripting.
 
 proc skip_python_tests {} {
@@ -1801,7 +1807,8 @@ proc supports_process_record {} {
 	return [target_info gdb,use_precord]
     }
 
-    if { [istarget "x86_64-*-linux*"] || [istarget "i\[34567\]86-*-linux*"] } {
+    if { [istarget "arm*-*-linux*"] || [istarget "x86_64-*-linux*"]
+         || [istarget "i\[34567\]86-*-linux*"] } {
 	return 1
     }
 
@@ -1816,7 +1823,8 @@ proc supports_reverse {} {
 	return [target_info gdb,can_reverse]
     }
 
-    if { [istarget "x86_64-*-linux*"] || [istarget "i\[34567\]86-*-linux*"] } {
+    if { [istarget "arm*-*-linux*"] || [istarget "x86_64-*-linux*"]
+         || [istarget "i\[34567\]86-*-linux*"] } {
 	return 1
     }
 
@@ -4389,6 +4397,23 @@ proc get_hexadecimal_valueof { exp default } {
 
 proc get_sizeof { type default } {
     return [get_integer_valueof "sizeof (${type})" $default]
+}
+
+proc get_target_charset { } {
+    global gdb_prompt
+
+    gdb_test_multiple "show target-charset" "" {
+	-re "The target character set is \"auto; currently (\[^\"\]*)\".*$gdb_prompt $" {
+	    return $expect_out(1,string)
+	}
+	-re "The target character set is \"(\[^\"\]*)\".*$gdb_prompt $" {
+	    return $expect_out(1,string)
+	}
+    }
+
+    # Pick a reasonable default.
+    warning "Unable to read target-charset."
+    return "UTF-8"
 }
 
 # Get the current value for remotetimeout and return it.

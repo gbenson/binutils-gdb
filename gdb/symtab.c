@@ -107,6 +107,23 @@ void _initialize_symtab (void);
 
 /* */
 
+/* Program space key for finding name and language of "main".  */
+
+static const struct program_space_data *main_progspace_key;
+
+/* Type of the data stored on the program space.  */
+
+struct main_info
+{
+  /* Name of "main".  */
+
+  char *name_of_main;
+
+  /* Language of "main".  */
+
+  enum language language_of_main;
+};
+
 /* When non-zero, print debugging messages related to symtab creation.  */
 unsigned int symtab_create_debug = 0;
 
@@ -2936,6 +2953,8 @@ skip_prologue_sal (struct symtab_and_line *sal)
 
       /* Skip "first line" of function (which is actually its prologue).  */
       pc += gdbarch_deprecated_function_start_offset (gdbarch);
+      if (gdbarch_skip_entrypoint_p (gdbarch))
+        pc = gdbarch_skip_entrypoint (gdbarch, pc);
       if (skip)
 	pc = gdbarch_skip_prologue (gdbarch, pc);
 
@@ -3322,8 +3341,8 @@ sources_info (char *ignore, int from_tty)
 
   clear_filename_seen_cache (data.filename_seen_cache);
   data.first = 1;
-  map_partial_symbol_filenames (output_partial_symbol_filename, &data,
-				1 /*need_fullname*/);
+  map_symbol_filenames (output_partial_symbol_filename, &data,
+			1 /*need_fullname*/);
   printf_filtered ("\n");
 
   do_cleanups (cleanups);
@@ -3605,18 +3624,11 @@ search_symbols (char *regexp, enum search_domain kind,
 
   datum.nfiles = nfiles;
   datum.files = files;
-  ALL_OBJFILES (objfile)
-  {
-    if (objfile->sf)
-      objfile->sf->qf->expand_symtabs_matching (objfile,
-						(nfiles == 0
-						 ? NULL
-						 : search_symbols_file_matches),
-						search_symbols_name_matches,
-						NULL,
-						kind,
-						&datum);
-  }
+  expand_symtabs_matching ((nfiles == 0
+			    ? NULL
+			    : search_symbols_file_matches),
+			   search_symbols_name_matches,
+			   NULL, kind, &datum);
 
   /* Here, we search through the minimal symbol tables for functions
      and variables that match, and force their symbols to be read.
@@ -4257,7 +4269,7 @@ completion_list_add_fields (struct symbol *sym, const char *sym_text,
 }
 
 /* Type of the user_data argument passed to add_macro_name or
-   expand_partial_symbol_name.  The contents are simply whatever is
+   symbol_completion_matcher.  The contents are simply whatever is
    needed by completion_list_add_name.  */
 struct add_name_data
 {
@@ -4283,10 +4295,10 @@ add_macro_name (const char *name, const struct macro_definition *ignore,
 			    datum->text, datum->word);
 }
 
-/* A callback for expand_partial_symbol_names.  */
+/* A callback for expand_symtabs_matching.  */
 
 static int
-expand_partial_symbol_name (const char *name, void *user_data)
+symbol_completion_matcher (const char *name, void *user_data)
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
@@ -4415,8 +4427,8 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Look through the partial symtabs for all symbols which begin
      by matching SYM_TEXT.  Expand all CUs that you find to the list.
      The real names will get added by COMPLETION_LIST_ADD_SYMBOL below.  */
-  expand_partial_symbol_names (expand_partial_symbol_name,
-			       halt_large_expansions, &datum);
+  expand_symtabs_matching (NULL, symbol_completion_matcher,
+			   halt_large_expansions, ALL_DOMAIN, &datum);
 
   /* At this point scan through the misc symbol vectors and add each
      symbol you find to the list.  Eventually we want to ignore
@@ -4830,8 +4842,8 @@ make_source_files_completion_list (const char *text, const char *word)
   datum.word = word;
   datum.text_len = text_len;
   datum.list = &list;
-  map_partial_symbol_filenames (maybe_add_partial_symtab_filename, &datum,
-				0 /*need_fullname*/);
+  map_symbol_filenames (maybe_add_partial_symtab_filename, &datum,
+			0 /*need_fullname*/);
 
   do_cleanups (cache_cleanup);
   discard_cleanups (back_to);
@@ -5027,22 +5039,62 @@ skip_prologue_using_sal (struct gdbarch *gdbarch, CORE_ADDR func_addr)
 }
 
 /* Track MAIN */
-static char *name_of_main;
-enum language language_of_main = language_unknown;
 
-void
-set_main_name (const char *name)
+/* Return the "main_info" object for the current program space.  If
+   the object has not yet been created, create it and fill in some
+   default values.  */
+
+static struct main_info *
+get_main_info (void)
 {
-  if (name_of_main != NULL)
+  struct main_info *info = program_space_data (current_program_space,
+					       main_progspace_key);
+
+  if (info == NULL)
     {
-      xfree (name_of_main);
-      name_of_main = NULL;
-      language_of_main = language_unknown;
+      /* It may seem strange to store the main name in the progspace
+	 and also in whatever objfile happens to see a main name in
+	 its debug info.  The reason for this is mainly historical:
+	 gdb returned "main" as the name even if no function named
+	 "main" was defined the program; and this approach lets us
+	 keep compatibility.  */
+      info = XCNEW (struct main_info);
+      info->language_of_main = language_unknown;
+      set_program_space_data (current_program_space, main_progspace_key,
+			      info);
+    }
+
+  return info;
+}
+
+/* A cleanup to destroy a struct main_info when a progspace is
+   destroyed.  */
+
+static void
+main_info_cleanup (struct program_space *pspace, void *data)
+{
+  struct main_info *info = data;
+
+  if (info != NULL)
+    xfree (info->name_of_main);
+  xfree (info);
+}
+
+static void
+set_main_name (const char *name, enum language lang)
+{
+  struct main_info *info = get_main_info ();
+
+  if (info->name_of_main != NULL)
+    {
+      xfree (info->name_of_main);
+      info->name_of_main = NULL;
+      info->language_of_main = language_unknown;
     }
   if (name != NULL)
     {
-      name_of_main = xstrdup (name);
-      language_of_main = language_unknown;
+      info->name_of_main = xstrdup (name);
+      info->language_of_main = lang;
     }
 }
 
@@ -5053,6 +5105,23 @@ static void
 find_main_name (void)
 {
   const char *new_main_name;
+  struct objfile *objfile;
+
+  /* First check the objfiles to see whether a debuginfo reader has
+     picked up the appropriate main name.  Historically the main name
+     was found in a more or less random way; this approach instead
+     relies on the order of objfile creation -- which still isn't
+     guaranteed to get the correct answer, but is just probably more
+     accurate.  */
+  ALL_OBJFILES (objfile)
+  {
+    if (objfile->per_bfd->name_of_main != NULL)
+      {
+	set_main_name (objfile->per_bfd->name_of_main,
+		       objfile->per_bfd->language_of_main);
+	return;
+      }
+  }
 
   /* Try to see if the main procedure is in Ada.  */
   /* FIXME: brobecker/2005-03-07: Another way of doing this would
@@ -5073,36 +5142,59 @@ find_main_name (void)
   new_main_name = ada_main_name ();
   if (new_main_name != NULL)
     {
-      set_main_name (new_main_name);
+      set_main_name (new_main_name, language_ada);
+      return;
+    }
+
+  new_main_name = d_main_name ();
+  if (new_main_name != NULL)
+    {
+      set_main_name (new_main_name, language_d);
       return;
     }
 
   new_main_name = go_main_name ();
   if (new_main_name != NULL)
     {
-      set_main_name (new_main_name);
+      set_main_name (new_main_name, language_go);
       return;
     }
 
   new_main_name = pascal_main_name ();
   if (new_main_name != NULL)
     {
-      set_main_name (new_main_name);
+      set_main_name (new_main_name, language_pascal);
       return;
     }
 
   /* The languages above didn't identify the name of the main procedure.
      Fallback to "main".  */
-  set_main_name ("main");
+  set_main_name ("main", language_unknown);
 }
 
 char *
 main_name (void)
 {
-  if (name_of_main == NULL)
+  struct main_info *info = get_main_info ();
+
+  if (info->name_of_main == NULL)
     find_main_name ();
 
-  return name_of_main;
+  return info->name_of_main;
+}
+
+/* Return the language of the main function.  If it is not known,
+   return language_unknown.  */
+
+enum language
+main_language (void)
+{
+  struct main_info *info = get_main_info ();
+
+  if (info->name_of_main == NULL)
+    find_main_name ();
+
+  return info->language_of_main;
 }
 
 /* Handle ``executable_changed'' events for the symtab module.  */
@@ -5111,7 +5203,7 @@ static void
 symtab_observer_executable_changed (void)
 {
   /* NAME_OF_MAIN may no longer be the same, so reset it for now.  */
-  set_main_name (NULL);
+  set_main_name (NULL, language_unknown);
 }
 
 /* Return 1 if the supplied producer string matches the ARM RealView
@@ -5290,6 +5382,9 @@ void
 _initialize_symtab (void)
 {
   initialize_ordinary_address_classes ();
+
+  main_progspace_key
+    = register_program_space_data_with_cleanup (NULL, main_info_cleanup);
 
   add_info ("variables", variables_info, _("\
 All global and static variable names, or those matching REGEXP."));

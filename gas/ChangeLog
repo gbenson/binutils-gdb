@@ -1,3 +1,83 @@
+2014-02-10  Alan Modra  <amodra@gmail.com>
+
+	* po/POTFILES.in: Regenerate.
+	* po/gas.pot: Regenerate.
+
+2014-02-03  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* config/tc-nios2.c (md_apply_fix): Test for new relocs.
+	(nios2_special_reloc): Add %call_lo, %call_hiadj, %got_lo,
+	%got_hiadj relocation operators.  Sort table and add comment
+	to explain ordering.
+	(nios2_fix_adjustable): Test for new relocs.
+	* doc/c-nios2.texi (Nios II Relocations): Document new relocation
+	operators.
+
+2014-01-30  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* config/tc-nios2.c (md_apply_fix): Handle BFD_RELOC_NIOS2_CALL26_NOAT.
+	(nios2_assemble_args_m): Likewise.
+	(md_assemble): Likewise.
+
+2014-01-24  DJ Delorie  <dj@redhat.com>
+
+	* config/tc-msp430.c (msp430_section): Always flag data sections,
+	regardless of -md.
+	(msp430_frob_section): New.  Make sure all sections are noticed if
+	they have content.
+	(msp430_lcomm): New.  Flag bss if .lcomm is seen.
+	(msp430_comm): New.  Likewise.
+	(md_pseudo_table): Add them.
+	* config/tc-msp430.h (msp430_frob_section): Declare.
+	(tc_frob_section): Define.
+
+2014-01-23  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-msp430.c (show_mcu_list): Delete.
+	(md_parse_option): Accept any MCU name.  Accept several more
+	variants for the -mcpu option.
+	(md_show_usage): Do not call show_mcu_list.
+
+2014-01-22  DJ Delorie  <dj@redhat.com>
+
+	* config/tc-msp430.c (msp430_refsym): New: ".refsym <symbol>"
+	* doc/c-msp430.texi (MSP430 Directives): Document it.
+
+2014-01-22  Michael Zolotukhin  <michael.v.zolotukhin@gmail.com>
+
+	* config/tc-i386.c (check_VecOperands): Remove regzmm from AVX2
+	gather assert.
+
+2014-01-22  Michael Zolotukhin  <michael.v.zolotukhin@gmail.com>
+
+	PR gas/16489
+	* config/tc-i386.c (check_VecOperands): Add check for invalid
+	register set in AVX512 gathers.
+
+2014-01-22  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-tic4x.c (md_shortopts): s/CONST/const/.
+
+2014-01-21  DJ Delorie  <dj@redhat.com>
+
+	* config/tc-rl78.c (require_end_of_expr): New.
+	(md_operand): Call it.
+	(rl78_cons_fix_new): Mark LO16, HI16, ahd HI8 internal relocations
+	as not overflowing.
+
+2014-01-17  Will Newton  <will.newton@linaro.org>
+
+	* config/tc-arm.c (do_vfp_nsyn_cvt_fpv8): Set OP to 1
+	for the s32.f64 flavours of VCVT.
+
+2014-01-14  Nick Clifton  <nickc@redhat.com>
+
+	PR gas/16434
+	* config/tc-z80.c (wrong_match): Provide format string to
+	as_warn.
+	(parse_exp_not_indexed): Delete unused variable dummy.
+	(emit_byte): Delete unused variable fixp.
+
 2014-01-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/tc-i386.c (regbnd): Removed.
