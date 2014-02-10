@@ -284,13 +284,9 @@ debug_qf_map_matching_symbols (struct objfile *objfile,
 
 static void
 debug_qf_expand_symtabs_matching (struct objfile *objfile,
-				  int (*file_matcher) (const char *, void *,
-						       int basenames),
-				  int (*name_matcher) (const char *, void *),
-				  void (*expansion_notify)
-				    (struct objfile *,
-				     struct partial_symtab *,
-				     void *),
+				expand_symtabs_file_matcher_ftype *file_matcher,
+			    expand_symtabs_symbol_matcher_ftype *symbol_matcher,
+			      expand_symtabs_exp_notify_ftype *expansion_notify,
 				  enum search_domain kind,
 				  void *data)
 {
