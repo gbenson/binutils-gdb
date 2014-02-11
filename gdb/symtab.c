@@ -61,9 +61,9 @@
 #include "macrotab.h"
 #include "macroscope.h"
 
+#include "parser-defs.h"
 #include "psymtab.h"
 #include "psympriv.h"
-#include "parser-defs.h"
 #include "completer.h"
 
 /* Prototypes for local functions */
