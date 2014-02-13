@@ -100,7 +100,7 @@ enum errors {
   /* Requested feature, method, mechanism, etc. is not supported.  */
   NOT_SUPPORTED_ERROR,
 
-  /* Too many possibilities were encountered during line completion.  */
+  /* Too many candidates were encountered during line completion.  */
   TOO_MANY_COMPLETIONS_ERROR,
 
   /* Add more errors here.  */

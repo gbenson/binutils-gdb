@@ -765,7 +765,7 @@ complete_line_internal (const char *text,
   return list;
 }
 
-/* Maximum number of possibilities to consider before the completer
+/* Maximum number of candidates to consider before the completer
    bails by throwing TOO_MANY_COMPLETIONS_ERROR.  If set to -1 then
    no limiting will be performed.  */
 static int max_completions = 1000;
@@ -1040,9 +1040,9 @@ _initialize_completer (void)
 {
   add_setshow_zuinteger_unlimited_cmd ("max-completions", no_class,
 				       &max_completions, _("\
-Set maximum number of line completion possibilities."), _("\
-Show maximum number of line completion possibilities."), _("\
-Use this to limit the number of possibilities considered\n\
+Set maximum number of completion candidates to show."), _("\
+Show maximum number of completion candidates to show."), _("\
+Use this to limit the number of candidates considered\n\
 during line completion.  Specifying \"unlimited\" or -1\n\
 disables limiting.  Note that setting either no limit or\n\
 a very large limit can cause pauses during completion."),
