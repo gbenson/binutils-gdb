@@ -1603,6 +1603,7 @@ print a message rather than displaying the list:
 @smallexample
 (@value{GDBP}) b @key{TAB}@key{TAB}
 Too many possibilities.
+(@value{GDBP}) b
 @end smallexample
 
 @noindent
