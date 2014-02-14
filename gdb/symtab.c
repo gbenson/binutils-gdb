@@ -62,8 +62,6 @@
 #include "macroscope.h"
 
 #include "parser-defs.h"
-#include "psymtab.h"
-#include "psympriv.h"
 #include "completer.h"
 
 /* Prototypes for local functions */
@@ -4313,12 +4311,13 @@ symbol_completion_matcher (const char *name, void *user_data)
    available by the time limit_completions bails.  */
 
 static void
-halt_large_expansions (struct objfile *objfile,
-		       struct partial_symtab *pst, void *user_data)
+halt_large_expansions (struct symtab *s, void *user_data)
 {
   struct add_name_data *datum = (struct add_name_data *) user_data;
 
-  datum->n_global_syms += pst->n_global_syms;
+  datum->n_global_syms +=
+    dict_size (BLOCKVECTOR_BLOCK (BLOCKVECTOR (s), GLOBAL_BLOCK)->dict);
+
   limit_completions (datum->n_global_syms);
 }
 

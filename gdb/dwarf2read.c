@@ -3945,7 +3945,12 @@ dw2_expand_symtabs_matching
 
 	  per_cu = dw2_get_cu (cu_index);
 	  if (file_matcher == NULL || per_cu->v.quick->mark)
-	    dw2_instantiate_symtab (per_cu);
+	    {
+	      struct symtab *s = dw2_instantiate_symtab (per_cu);
+
+	      if (expansion_notify != NULL)
+		expansion_notify (s, data);
+	    }
 	}
     }
 }

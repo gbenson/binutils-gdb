@@ -35,7 +35,6 @@ struct value;
 struct frame_info;
 struct agent_expr;
 struct axs_value;
-struct partial_symtab;
 
 /* Comparison function for symbol look ups.  */
 
@@ -139,10 +138,9 @@ typedef int (expand_symtabs_symbol_matcher_ftype) (const char *name,
 						   void *data);
 
 /* Callback for quick_symbol_functions->expand_symtabs_matching
-   to be notified when a psymtab is expanded.  */
+   to be notified after a symtab has been expanded.  */
 
-typedef void (expand_symtabs_exp_notify_ftype) (struct objfile *objfile,
-						struct partial_symtab *pst,
+typedef void (expand_symtabs_exp_notify_ftype) (struct symtab *s,
 						void *data);
 
 /* The "quick" symbol functions exist so that symbol readers can

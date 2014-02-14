@@ -1409,10 +1409,10 @@ expand_symtabs_matching_via_partial
 
       if (recursively_search_psymtabs (ps, objfile, kind, symbol_matcher, data))
 	{
-	  if (expansion_notify != NULL)
-	    expansion_notify (objfile, ps, data);
+	  struct symtab *s = psymtab_to_symtab (objfile, ps);
 
-	  psymtab_to_symtab (objfile, ps);
+	  if (expansion_notify != NULL)
+	    expansion_notify (s, data);
 	}
     }
 }
