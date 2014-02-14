@@ -169,3 +169,18 @@
 
 19. It IS a problem that the signal for too many completions (beep,
     print nothing) is the same as the signal for no completions.
+
+20. Oh!
+
+    a) gdb /usr/lib64/libreoffice/program/soffice.bin
+       start
+       set max-completions -1
+       b m<Tab>
+       Display all 879 possibilities? (y or n)
+
+    b) gdb /usr/lib64/libreoffice/program/soffice.bin
+       start
+       b m<Tab>
+       Too many possibilities.
+
+    Noted as https://sourceware.org/bugzilla/show_bug.cgi?id=15548#c9
