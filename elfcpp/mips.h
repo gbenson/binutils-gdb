@@ -1,6 +1,6 @@
 // mips.h -- ELF definitions specific to EM_MIPS  -*- C++ -*-
 
-// Copyright 2012 Free Software Foundation, Inc.
+// Copyright (C) 2012-2014 Free Software Foundation, Inc.
 // Written by Aleksandar Simeonov <aleksandar.simeonov@rt-rk.com>.
 
 // This file is part of elfcpp.
@@ -164,6 +164,7 @@ enum
   E_MIPS_MACH_OCTEON = 0x008b0000,
   E_MIPS_MACH_XLR = 0x008c0000,
   E_MIPS_MACH_OCTEON2 = 0x008d0000,
+  E_MIPS_MACH_OCTEON3 = 0x008e0000,
   E_MIPS_MACH_5400 = 0x00910000,
   E_MIPS_MACH_5500 = 0x00980000,
   E_MIPS_MACH_9000 = 0x00990000,

@@ -1,5 +1,5 @@
 /* dwarf.c -- display DWARF contents of a BFD binary file
-   Copyright 2005-2013 Free Software Foundation, Inc.
+   Copyright (C) 2005-2014 Free Software Foundation, Inc.
 
    This file is part of GNU Binutils.
 
@@ -28,10 +28,6 @@
 #include "dwarf2.h"
 #include "dwarf.h"
 #include "gdb/gdb-index.h"
-
-#if !HAVE_DECL_STRNLEN
-size_t strnlen (const char *, size_t);
-#endif
 
 static const char *regname (unsigned int regno, int row);
 
@@ -1468,7 +1464,7 @@ read_and_display_attr_value (unsigned long attribute,
   unsigned char * orig_data = data;
   unsigned int bytes_read;
 
-  if (data == end)
+  if (data == end && form != DW_FORM_flag_present)
     {
       warn (_("corrupt attribute\n"));
       return data;
@@ -1805,11 +1801,10 @@ read_and_display_attr_value (unsigned long attribute,
     return data;
 
   /* For some attributes we can display further information.  */
-  printf ("\t");
-
   switch (attribute)
     {
     case DW_AT_inline:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_INL_not_inlined:
@@ -1832,6 +1827,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_language:
+      printf ("\t");
       switch (uvalue)
 	{
 	  /* Ordered by the numeric value of these constants.  */
@@ -1875,6 +1871,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_encoding:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_ATE_void:		printf ("(void)"); break;
@@ -1915,6 +1912,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_accessibility:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_ACCESS_public:		printf ("(public)"); break;
@@ -1927,6 +1925,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_visibility:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_VIS_local:		printf ("(local)"); break;
@@ -1937,6 +1936,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_virtuality:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_VIRTUALITY_none:	printf ("(none)"); break;
@@ -1947,6 +1947,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_identifier_case:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_ID_case_sensitive:	printf ("(case_sensitive)"); break;
@@ -1958,6 +1959,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_calling_convention:
+      printf ("\t");
       switch (uvalue)
 	{
 	case DW_CC_normal:	printf ("(normal)"); break;
@@ -1973,6 +1975,7 @@ read_and_display_attr_value (unsigned long attribute,
       break;
 
     case DW_AT_ordering:
+      printf ("\t");
       switch (uvalue)
 	{
 	case -1: printf (_("(undefined)")); break;
@@ -1998,7 +2001,7 @@ read_and_display_attr_value (unsigned long attribute,
       if ((dwarf_version < 4
            && (form == DW_FORM_data4 || form == DW_FORM_data8))
 	  || form == DW_FORM_sec_offset)
-	printf (_("(location list)"));
+	printf (_(" (location list)"));
       /* Fall through.  */
     case DW_AT_allocated:
     case DW_AT_associated:
@@ -2010,7 +2013,7 @@ read_and_display_attr_value (unsigned long attribute,
 	{
 	  int need_frame_base;
 
-	  printf ("(");
+	  printf ("\t(");
 	  need_frame_base = decode_location_expression (block_start,
 							pointer_size,
 							offset_size,
@@ -2046,7 +2049,7 @@ read_and_display_attr_value (unsigned long attribute,
 
 	    abbrev_number = read_uleb128 (section->start + uvalue, NULL, end);
 
-	    printf (_("[Abbrev Number: %ld"), abbrev_number);
+	    printf (_("\t[Abbrev Number: %ld"), abbrev_number);
 	    /* Don't look up abbrev for DW_FORM_ref_addr, as it very often will
 	       use different abbrev table, and we don't track .debug_info chunks
 	       yet.  */

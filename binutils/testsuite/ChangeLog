@@ -1,3 +1,25 @@
+2014-03-17  Nick Clifton  <nickc@redhat.com>
+
+	* binutils-all/readelf.ss: Add skip of MSP430 defined symbols.
+
+2014-01-29  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/16318
+	* binutils-all/strip-10.d: Revert previous delta.
+
+2014-01-28  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/16318
+	* binutils-all/strip-10.d: Allow "System V" in the osabi field.
+
+2013-12-20  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/16218
+	* binutils-all/dw2-1.W:	Update expected objdump output.
+	* binutils-all/i386/compressed-1a.d: Likewise.
+	* binutils-all/objdump.W: Likewise.
+	* binutils-all/x86-64/compressed-1a.d: Likewise.
+
 2013-12-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR binutils/16317
@@ -293,7 +315,7 @@
 
 For older changes see ChangeLog-0411
 
-Copyright (C) 2012 Free Software Foundation, Inc.
+Copyright (C) 2012-2014 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

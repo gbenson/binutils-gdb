@@ -1,6 +1,6 @@
 /* Target-dependent code for Atmel AVR, for GDB.
 
-   Copyright (C) 1996-2013 Free Software Foundation, Inc.
+   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -36,6 +36,7 @@
 #include "regcache.h"
 #include <string.h>
 #include "dis-asm.h"
+#include "objfiles.h"
 
 /* AVR Background:
 
@@ -492,7 +493,7 @@ avr_scan_prologue (struct gdbarch *gdbarch, CORE_ADDR pc_beg, CORE_ADDR pc_end,
   int i;
   unsigned short insn;
   int scan_stage = 0;
-  struct minimal_symbol *msymbol;
+  struct bound_minimal_symbol msymbol;
   unsigned char prologue[AVR_MAX_PROLOGUE_SIZE];
   int vpc = 0;
   int len;
@@ -586,7 +587,7 @@ avr_scan_prologue (struct gdbarch *gdbarch, CORE_ADDR pc_beg, CORE_ADDR pc_end,
       pc_offset += 2;
 
       msymbol = lookup_minimal_symbol ("__prologue_saves__", NULL, NULL);
-      if (!msymbol)
+      if (!msymbol.minsym)
 	break;
 
       insn = extract_unsigned_integer (&prologue[vpc + 8], 2, byte_order);
@@ -624,7 +625,7 @@ avr_scan_prologue (struct gdbarch *gdbarch, CORE_ADDR pc_beg, CORE_ADDR pc_end,
 
       /* Resolve offset (in words) from __prologue_saves__ symbol.
          Which is a pushes count in `-mcall-prologues' mode */
-      num_pushes = AVR_MAX_PUSHES - (i - SYMBOL_VALUE_ADDRESS (msymbol)) / 2;
+      num_pushes = AVR_MAX_PUSHES - (i - BMSYMBOL_VALUE_ADDRESS (msymbol)) / 2;
 
       if (num_pushes > AVR_MAX_PUSHES)
         {
@@ -1377,7 +1378,7 @@ avr_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
     }
 
   /* None found, create a new architecture from the information provided.  */
-  tdep = XMALLOC (struct gdbarch_tdep);
+  tdep = XNEW (struct gdbarch_tdep);
   gdbarch = gdbarch_alloc (&info, tdep);
   
   tdep->call_length = call_length;

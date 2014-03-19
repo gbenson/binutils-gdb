@@ -1,6 +1,6 @@
 /* libthread_db assisted debugging support, generic parts.
 
-   Copyright (C) 1999-2013 Free Software Foundation, Inc.
+   Copyright (C) 1999-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -565,16 +565,16 @@ enable_thread_event (int event, CORE_ADDR *bp)
 static int
 inferior_has_bug (const char *ver_symbol, int ver_major_min, int ver_minor_min)
 {
-  struct minimal_symbol *version_msym;
+  struct bound_minimal_symbol version_msym;
   CORE_ADDR version_addr;
   char *version;
   int err, got, retval = 0;
 
   version_msym = lookup_minimal_symbol (ver_symbol, NULL, NULL);
-  if (version_msym == NULL)
+  if (version_msym.minsym == NULL)
     return 0;
 
-  version_addr = SYMBOL_VALUE_ADDRESS (version_msym);
+  version_addr = BMSYMBOL_VALUE_ADDRESS (version_msym);
   got = target_read_string (version_addr, &version, 32, &err);
   if (err == 0 && memchr (version, 0, got) == &version[got -1])
     {
@@ -838,7 +838,7 @@ try_thread_db_load_1 (struct thread_db_info *info)
    relative, or just LIBTHREAD_DB.  */
 
 static int
-try_thread_db_load (const char *library)
+try_thread_db_load (const char *library, int check_auto_load_safe)
 {
   void *handle;
   struct thread_db_info *info;
@@ -846,6 +846,25 @@ try_thread_db_load (const char *library)
   if (libthread_db_debug)
     printf_unfiltered (_("Trying host libthread_db library: %s.\n"),
                        library);
+
+  if (check_auto_load_safe)
+    {
+      if (access (library, R_OK) != 0)
+	{
+	  /* Do not print warnings by file_is_auto_load_safe if the library does
+	     not exist at this place.  */
+	  if (libthread_db_debug)
+	    printf_unfiltered (_("open failed: %s.\n"), safe_strerror (errno));
+	  return 0;
+	}
+
+      if (!file_is_auto_load_safe (library, _("auto-load: Loading libthread-db "
+					      "library \"%s\" from explicit "
+					      "directory.\n"),
+				   library))
+	return 0;
+    }
+
   handle = dlopen (library, RTLD_NOW);
   if (handle == NULL)
     {
@@ -919,12 +938,7 @@ try_thread_db_load_from_pdir_1 (struct objfile *obj, const char *subdir)
     }
   strcat (cp, LIBTHREAD_DB_SO);
 
-  if (!file_is_auto_load_safe (path, _("auto-load: Loading libthread-db "
-				       "library \"%s\" from $pdir.\n"),
-			       path))
-    result = 0;
-  else
-    result = try_thread_db_load (path);
+  result = try_thread_db_load (path, 1);
 
   do_cleanups (cleanup);
   return result;
@@ -970,7 +984,7 @@ try_thread_db_load_from_pdir (const char *subdir)
 static int
 try_thread_db_load_from_sdir (void)
 {
-  return try_thread_db_load (LIBTHREAD_DB_SO);
+  return try_thread_db_load (LIBTHREAD_DB_SO, 0);
 }
 
 /* Try to load libthread_db from directory DIR of length DIR_LEN.
@@ -993,13 +1007,7 @@ try_thread_db_load_from_dir (const char *dir, size_t dir_len)
   path[dir_len] = '/';
   strcpy (path + dir_len + 1, LIBTHREAD_DB_SO);
 
-  if (!file_is_auto_load_safe (path, _("auto-load: Loading libthread-db "
-				       "library \"%s\" from explicit "
-				       "directory.\n"),
-			       path))
-    result = 0;
-  else
-    result = try_thread_db_load (path);
+  result = try_thread_db_load (path, 1);
 
   do_cleanups (cleanup);
   return result;
@@ -1394,7 +1402,7 @@ check_event (ptid_t ptid)
 
   /* Bail out early if we're not at a thread event breakpoint.  */
   stop_pc = regcache_read_pc (regcache)
-	    - gdbarch_decr_pc_after_break (gdbarch);
+	    - target_decr_pc_after_break (gdbarch);
   if (stop_pc != info->td_create_bp_addr
       && stop_pc != info->td_death_bp_addr)
     return;
@@ -1764,7 +1772,8 @@ thread_db_pid_to_str (struct target_ops *ops, ptid_t ptid)
    INFO.  */
 
 static char *
-thread_db_extra_thread_info (struct thread_info *info)
+thread_db_extra_thread_info (struct target_ops *self,
+			     struct thread_info *info)
 {
   if (info->private == NULL)
     return NULL;
@@ -1866,7 +1875,7 @@ thread_db_find_thread_from_tid (struct thread_info *thread, void *data)
 /* Implement the to_get_ada_task_ptid target method for this target.  */
 
 static ptid_t
-thread_db_get_ada_task_ptid (long lwp, long thread)
+thread_db_get_ada_task_ptid (struct target_ops *self, long lwp, long thread)
 {
   struct thread_info *thread_info;
 

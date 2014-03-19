@@ -1,6 +1,6 @@
 /* Low level packing and unpacking of values for GDB, the GNU Debugger.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -38,7 +38,7 @@
 #include "valprint.h"
 #include "cli/cli-decode.h"
 #include "exceptions.h"
-#include "python/python.h"
+#include "extension.h"
 #include <ctype.h>
 #include "tracepoint.h"
 #include "cp-abi.h"
@@ -216,6 +216,9 @@ struct value
   /* If the value has been released.  */
   unsigned int released : 1;
 
+  /* Register number if the value is from a register.  */
+  short regnum;
+
   /* Location of value (if lval).  */
   union
   {
@@ -323,9 +326,6 @@ struct value
      variables, put into the value history or exposed to Python are
      taken off this list.  */
   struct value *next;
-
-  /* Register number if the value is from a register.  */
-  short regnum;
 
   /* Actual contents of the value.  Target byte-order.  NULL or not
      valid if lazy is nonzero.  */
@@ -1642,9 +1642,7 @@ set_value_component_location (struct value *component,
 /* Access to the value history.  */
 
 /* Record a new value in the value history.
-   Returns the absolute history index of the entry.
-   Result of -1 indicates the value was not saved; otherwise it is the
-   value history index of this new item.  */
+   Returns the absolute history index of the entry.  */
 
 int
 record_latest_value (struct value *val)
@@ -1661,7 +1659,11 @@ record_latest_value (struct value *val)
      from.  This is a bit dubious, because then *&$1 does not just return $1
      but the current contents of that location.  c'est la vie...  */
   val->modifiable = 0;
-  release_value (val);
+
+  /* The value may have already been released, in which case we're adding a
+     new reference for its entry in the history.  That is why we call
+     release_value_or_incref here instead of release_value.  */
+  release_value_or_incref (val);
 
   /* Here we treat value_history_count as origin-zero
      and applying to the value being stored now.  */
@@ -2405,7 +2407,7 @@ preserve_values (struct objfile *objfile)
   for (var = internalvars; var; var = var->next)
     preserve_one_internalvar (var, objfile, copied_types);
 
-  preserve_python_values (objfile, copied_types);
+  preserve_ext_lang_values (objfile, copied_types);
 
   htab_delete (copied_types);
 }
@@ -2752,15 +2754,15 @@ value_static_field (struct type *type, int fieldno)
 	{
 	  /* With some compilers, e.g. HP aCC, static data members are
 	     reported as non-debuggable symbols.  */
-	  struct minimal_symbol *msym = lookup_minimal_symbol (phys_name,
-							       NULL, NULL);
+	  struct bound_minimal_symbol msym
+	    = lookup_minimal_symbol (phys_name, NULL, NULL);
 
-	  if (!msym)
+	  if (!msym.minsym)
 	    return allocate_optimized_out_value (type);
 	  else
 	    {
 	      retval = value_at_lazy (TYPE_FIELD_TYPE (type, fieldno),
-				      SYMBOL_VALUE_ADDRESS (msym));
+				      BMSYMBOL_VALUE_ADDRESS (msym));
 	    }
 	}
       else
@@ -2976,7 +2978,7 @@ value_fn_field (struct value **arg1p, struct fn_field *f,
 
       set_value_address (v,
 	gdbarch_convert_from_func_ptr_addr
-	   (gdbarch, SYMBOL_VALUE_ADDRESS (msym.minsym), &current_target));
+	   (gdbarch, BMSYMBOL_VALUE_ADDRESS (msym), &current_target));
     }
 
   if (arg1p)

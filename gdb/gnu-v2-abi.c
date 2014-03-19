@@ -1,6 +1,6 @@
 /* Abstraction of GNU v2 abi.
 
-   Copyright (C) 2001-2013 Free Software Foundation, Inc.
+   Copyright (C) 2001-2014 Free Software Foundation, Inc.
 
    Contributed by Daniel Berlin <dberlin@redhat.com>
 
@@ -246,7 +246,7 @@ gnuv2_value_rtti_type (struct value *v, int *full, int *top, int *using_enc)
   /* Try to find a symbol that is the vtable.  */
   minsym=lookup_minimal_symbol_by_pc(vtbl);
   if (minsym.minsym==NULL
-      || (linkage_name=SYMBOL_LINKAGE_NAME (minsym.minsym))==NULL
+      || (linkage_name=MSYMBOL_LINKAGE_NAME (minsym.minsym))==NULL
       || !is_vtable_name (linkage_name))
     return NULL;
 

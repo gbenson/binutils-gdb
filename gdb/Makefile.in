@@ -1,4 +1,4 @@
-# Copyright (C) 1989-2013 Free Software Foundation, Inc.
+# Copyright (C) 1989-2014 Free Software Foundation, Inc.
 
 # This file is part of GDB.
 
@@ -44,6 +44,8 @@ htmldir = @htmldir@
 pdfdir = @pdfdir@
 includedir = @includedir@
 
+install_sh = @install_sh@
+
 # This can be referenced by `LIBINTL' as computed by
 # ZW_GNU_GETTEXT_SISTER_DIR.
 top_builddir = .
@@ -56,6 +58,8 @@ LN_S = @LN_S@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 
 DESTDIR =
@@ -66,6 +70,7 @@ RANLIB = @RANLIB@
 DLLTOOL = @DLLTOOL@
 WINDRES = @WINDRES@
 MIG = @MIG@
+STRIP = @STRIP@
 
 XGETTEXT = @XGETTEXT@
 GMSGFMT = @GMSGFMT@
@@ -275,6 +280,58 @@ SUBDIR_TUI_LDFLAGS=
 SUBDIR_TUI_CFLAGS= \
 	-DTUI=1
 
+# Guile sub directory definitons for guile support.
+
+SUBDIR_GUILE_OBS = \
+	guile.o \
+	scm-arch.o \
+	scm-auto-load.o \
+	scm-block.o \
+	scm-breakpoint.o \
+	scm-disasm.o \
+	scm-exception.o \
+	scm-frame.o \
+	scm-gsmob.o \
+	scm-iterator.o \
+	scm-lazy-string.o \
+	scm-objfile.o \
+	scm-math.o \
+	scm-ports.o \
+	scm-pretty-print.o \
+	scm-safe-call.o \
+	scm-string.o \
+	scm-symbol.o \
+	scm-symtab.o \
+	scm-type.o \
+	scm-utils.o \
+	scm-value.o
+SUBDIR_GUILE_SRCS = \
+	guile/guile.c \
+	guile/scm-arch.c \
+	guile/scm-auto-load.c \
+	guile/scm-block.c \
+	guile/scm-breakpoint.c \
+	guile/scm-disasm.c \
+	guile/scm-exception.c \
+	guile/scm-frame.c \
+	guile/scm-gsmob.c \
+	guile/scm-iterator.c \
+	guile/scm-lazy-string.c \
+	guile/scm-objfile.c \
+	guile/scm-math.c \
+	guile/scm-ports.c \
+	guile/scm-pretty-print.c \
+	guile/scm-safe-call.c \
+	guile/scm-string.c \
+	guile/scm-symbol.c \
+	guile/scm-symtab.c \
+	guile/scm-type.c \
+	guile/scm-utils.c \
+	guile/scm-value.c
+SUBDIR_GUILE_DEPS =
+SUBDIR_GUILE_LDFLAGS=
+SUBDIR_GUILE_CFLAGS=
+
 #
 # python sub directory definitons
 #
@@ -455,7 +512,7 @@ CFLAGS = @CFLAGS@
 # are sometimes a little generic, we think that the risk of collision
 # with other header files is high.  If that happens, we try to mitigate
 # a bit the consequences by putting the Python includes last in the list.
-INTERNAL_CPPFLAGS = @CPPFLAGS@ @PYTHON_CPPFLAGS@
+INTERNAL_CPPFLAGS = @CPPFLAGS@ @GUILE_CPPFLAGS@ @PYTHON_CPPFLAGS@
 
 # Need to pass this to testsuite for "make check".  Probably should be
 # consistent with top-level Makefile.in and gdb/testsuite/Makefile.in
@@ -488,7 +545,8 @@ INTERNAL_LDFLAGS = $(CFLAGS) $(GLOBAL_CFLAGS) $(MH_LDFLAGS) $(LDFLAGS) $(CONFIG_
 # XM_CLIBS, defined in *config files, have host-dependent libs.
 # LIBIBERTY appears twice on purpose.
 CLIBS = $(SIM) $(READLINE) $(OPCODES) $(BFD) $(INTL) $(LIBIBERTY) $(LIBDECNUMBER) \
-	$(XM_CLIBS) $(NAT_CLIBS) $(GDBTKLIBS) @LIBS@ @PYTHON_LIBS@ \
+	$(XM_CLIBS) $(NAT_CLIBS) $(GDBTKLIBS) \
+	@LIBS@ @GUILE_LIBS@ @PYTHON_LIBS@ \
 	$(LIBEXPAT) $(LIBLZMA) $(LIBBABELTRACE) \
 	$(LIBIBERTY) $(WIN32LIBS) $(LIBGNU)
 CDEPS = $(XM_CDEPS) $(NAT_CDEPS) $(SIM) $(BFD) $(READLINE_DEPS) \
@@ -526,7 +584,7 @@ SER_HARDWIRE = @SER_HARDWIRE@
 # The `remote' debugging target is supported for most architectures,
 # but not all (e.g. 960)
 REMOTE_OBS = remote.o dcache.o tracepoint.o ax-general.o ax-gdb.o remote-fileio.o \
-	remote-notif.o ctf.o
+	remote-notif.o ctf.o tracefile.o tracefile-tfile.o
 
 # This is remote-sim.o if a simulator is to be linked in.
 SIM_OBS = @SIM_OBS@
@@ -648,6 +706,7 @@ FLAGS_TO_PASS = \
 	"MAKEHTMLFLAGS=$(MAKEHTMLFLAGS)" \
 	"INSTALL=$(INSTALL)" \
 	"INSTALL_PROGRAM=$(INSTALL_PROGRAM)" \
+	"INSTALL_SCRIPT=$(INSTALL_SCRIPT)" \
 	"INSTALL_DATA=$(INSTALL_DATA)" \
 	"RUNTEST=$(RUNTEST)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)"
@@ -707,7 +766,8 @@ TARGET_FLAGS_TO_PASS = \
 	"MAKEHTML=$(MAKEHTML)" \
 	"RUNTEST=$(RUNTEST)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)" \
-	"FORCE_PARALLEL=$(FORCE_PARALLEL)"
+	"FORCE_PARALLEL=$(FORCE_PARALLEL)" \
+	"TESTS=$(TESTS)"
 
 # All source files that go into linking GDB.
 # Links made at configuration time should not be specified here, since
@@ -727,13 +787,13 @@ SFILES = ada-exp.y ada-lang.c ada-typeprint.c ada-valprint.c ada-tasks.c \
 	charset.c cleanups.c cli-out.c coffread.c coff-pe-read.c \
 	complaints.c completer.c continuations.c corefile.c corelow.c \
 	cp-abi.c cp-support.c cp-namespace.c cp-valprint.c \
-	d-lang.c d-valprint.c \
+	d-lang.c d-support.c d-valprint.c \
 	cp-name-parser.y \
 	dbxread.c demangle.c dictionary.c disasm.c doublest.c dummy-frame.c \
 	dwarf2expr.c dwarf2loc.c dwarf2read.c dwarf2-frame.c \
 	dwarf2-frame-tailcall.c \
 	elfread.c environ.c eval.c event-loop.c event-top.c \
-	exceptions.c expprint.c \
+	exceptions.c expprint.c extension.c \
 	f-exp.y f-lang.c f-typeprint.c f-valprint.c filesystem.c \
 	findcmd.c findvar.c frame.c frame-base.c frame-unwind.c \
 	gdbarch.c arch-utils.c gdb_bfd.c gdb_obstack.c \
@@ -780,7 +840,7 @@ SFILES = ada-exp.y ada-lang.c ada-typeprint.c ada-valprint.c ada-tasks.c \
 	common/gdb_vecs.c common/common-utils.c common/xml-utils.c \
 	common/ptid.c common/buffer.c gdb-dlfcn.c common/agent.c \
 	common/format.c common/filestuff.c btrace.c record-btrace.c ctf.c \
-	target/waitstatus.c
+	target/waitstatus.c common/print-utils.c common/rsp-low.c
 
 LINTFILES = $(SFILES) $(YYFILES) $(CONFIG_SRCS) init.c
 
@@ -805,7 +865,7 @@ gnulib/import/string.in.h gnulib/import/str-two-way.h \
 gnulib/import/stdint.in.h remote.h remote-notif.h gdb.h sparc-nat.h \
 gdbthread.h dwarf2-frame.h dwarf2-frame-tailcall.h nbsd-nat.h dcache.h \
 amd64-nat.h s390-linux-tdep.h arm-linux-tdep.h exceptions.h macroscope.h \
-gdbarch.h bsd-uthread.h memory-map.h memrange.h \
+gdbarch.h bsd-uthread.h memory-map.h memrange.h obsd-nat.h \
 mdebugread.h m88k-tdep.h stabsread.h hppa-linux-offsets.h linux-fork.h \
 ser-unix.h inf-ptrace.h terminal.h ui-out.h frame-base.h \
 f-lang.h dwarf2loc.h value.h sparc-tdep.h defs.h target-descriptions.h \
@@ -820,6 +880,7 @@ tui/tui-windata.h tui/tui-data.h tui/tui-win.h tui/tui-stack.h \
 tui/tui-winsource.h tui/tui-regs.h tui/tui-io.h tui/tui-layout.h \
 tui/tui-source.h sol2-tdep.h gregset.h sh-tdep.h sh64-tdep.h \
 expression.h score-tdep.h gdb_select.h ser-tcp.h \
+extension.h extension-priv.h \
 build-id.h buildsym.h valprint.h \
 typeprint.h mi/mi-getopt.h mi/mi-parse.h mi/mi-console.h \
 mi/mi-out.h mi/mi-main.h mi/mi-common.h mi/mi-cmds.h linux-nat.h \
@@ -834,7 +895,7 @@ doublest.h regset.h hppa-tdep.h ppc-linux-tdep.h ppc64-tdep.h \
 rs6000-tdep.h rs6000-aix-tdep.h \
 common/gdb_locale.h arch-utils.h trad-frame.h gnu-nat.h \
 language.h nbsd-tdep.h solib-svr4.h \
-macroexp.h ui-file.h regcache.h tracepoint.h i386-tdep.h \
+macroexp.h ui-file.h regcache.h tracepoint.h tracefile.h i386-tdep.h \
 inf-child.h p-lang.h event-top.h gdbtypes.h user-regs.h \
 regformats/regdef.h config/alpha/nm-osf3.h  config/i386/nm-i386gnu.h \
 config/i386/nm-fbsd.h \
@@ -861,7 +922,8 @@ common/format.h common/host-defs.h utils.h common/queue.h \
 common/linux-osdata.h gdb-dlfcn.h auto-load.h probe.h stap-probe.h \
 gdb_bfd.h sparc-ravenscar-thread.h ppc-ravenscar-thread.h common/linux-btrace.h \
 ctf.h common/i386-cpuid.h common/i386-gcc-cpuid.h target/resume.h \
-target/wait.h target/waitstatus.h nat/linux-nat.h nat/linux-waitpid.h
+target/wait.h target/waitstatus.h nat/linux-nat.h nat/linux-waitpid.h \
+common/print-utils.h common/rsp-low.h
 
 # Header files that already have srcdir in them, or which are in objdir.
 
@@ -906,6 +968,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	infcmd.o infrun.o \
 	expprint.o environ.o stack.o thread.o \
 	exceptions.o \
+	extension.o \
 	filesystem.o \
 	filestuff.o \
 	inf-child.o \
@@ -947,6 +1010,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	inline-frame.o \
 	gnu-v2-abi.o gnu-v3-abi.o cp-abi.o cp-support.o \
 	cp-namespace.o \
+	d-support.o \
 	reggroups.o regset.o \
 	trad-frame.o \
 	tramp-frame.o \
@@ -957,7 +1021,8 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	inferior.o osdata.o gdb_usleep.o record.o record-full.o gcore.o \
 	gdb_vecs.o jit.o progspace.o skip.o probe.o \
 	common-utils.o buffer.o ptid.o gdb-dlfcn.o common-agent.o \
-	format.o registry.o btrace.o record-btrace.o waitstatus.o
+	format.o registry.o btrace.o record-btrace.o waitstatus.o \
+	print-utils.o rsp-low.o
 
 TSOBS = inflow.o
 
@@ -1050,6 +1115,28 @@ check//%: force
 	    "$$target"; \
 	else true; fi
 
+# The set of headers checked by 'check-headers' by default.
+CHECK_HEADERS = $(HFILES_NO_SRCDIR)
+
+# Try to compile each header in isolation, thus ensuring headers are
+# self-contained.
+#
+# Defaults to checking all $HFILES_NO_SRCDIR headers.
+#
+# Do:
+#
+#    make check-headers CHECK_HEADERS="header.h list.h"
+#
+# to check specific headers.
+#
+check-headers:
+	@echo Checking headers.
+	for i in $(CHECK_HEADERS) ; do \
+		$(CC) -x c -c -fsyntax-only $(INTERNAL_CFLAGS) \
+			-include defs.h $(srcdir)/$$i ; \
+	done
+.PHONY: check-headers
+
 info install-info clean-info dvi pdf install-pdf html install-html: force
 	@$(MAKE) $(FLAGS_TO_PASS) DO=$@ "DODIRS=$(SUBDIRS)" subdir_do
 
@@ -1084,10 +1171,19 @@ install-only: $(CONFIG_INSTALL)
 		    true ; \
 		  fi ; \
 		  $(SHELL) $(srcdir)/../mkinstalldirs $(DESTDIR)$(bindir) ; \
-		  $(INSTALL_PROGRAM) gcore \
+		  $(INSTALL_SCRIPT) gcore \
 			  $(DESTDIR)$(bindir)/$$transformed_name; \
 	fi
 	@$(MAKE) DO=install "DODIRS=$(SUBDIRS)" $(FLAGS_TO_PASS) subdir_do
+
+install-strip:
+	$(MAKE) $(FLAGS_TO_PASS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install-only
+
+install-guile:
+	$(SHELL) $(srcdir)/../mkinstalldirs $(DESTDIR)$(GDB_DATADIR)/guile/gdb
 
 install-python:
 	$(SHELL) $(srcdir)/../mkinstalldirs $(DESTDIR)$(GDB_DATADIR)/python/gdb
@@ -1544,7 +1640,7 @@ ALLDEPFILES = \
 	mips64obsd-nat.c mips64obsd-tdep.c \
 	msp430-tdep.c \
 	nios2-tdep.c nios2-linux-tdep.c \
-	nbsd-nat.c nbsd-tdep.c obsd-tdep.c \
+	nbsd-nat.c nbsd-tdep.c obsd-nat.c obsd-tdep.c \
 	solib-osf.c \
 	somread.c solib-som.c \
 	posix-hdep.c \
@@ -1571,7 +1667,8 @@ ALLDEPFILES = \
 	sparc-sol2-nat.c sparc-sol2-tdep.c sparc64-sol2-tdep.c \
 	sparc-nat.c sparc-tdep.c sparc64-linux-nat.c sparc64-linux-tdep.c \
 	sparc64-nat.c sparc64-tdep.c sparc64fbsd-nat.c sparc64fbsd-tdep.c \
-	sparc64nbsd-nat.c sparc64nbsd-tdep.c sparc64obsd-tdep.c \
+	sparc64nbsd-nat.c sparc64nbsd-tdep.c \
+	sparc64obsd-nat.c sparc64obsd-tdep.c \
 	sparcnbsd-nat.c sparcnbsd-tdep.c sparcobsd-tdep.c \
 	sparc-ravenscar-thread.c \
 	spu-linux-nat.c spu-tdep.c spu-multiarch.c solib-spu.c \
@@ -2047,6 +2144,14 @@ mips-linux-watch.o: ${srcdir}/common/mips-linux-watch.c
 	$(COMPILE) $(srcdir)/common/mips-linux-watch.c
 	$(POSTCOMPILE)
 
+print-utils.o: ${srcdir}/common/print-utils.c
+	$(COMPILE) $(srcdir)/common/print-utils.c
+	$(POSTCOMPILE)
+
+rsp-low.o: ${srcdir}/common/rsp-low.c
+	$(COMPILE) $(srcdir)/common/rsp-low.c
+	$(POSTCOMPILE)
+
 #
 # gdb/target/ dependencies
 #
@@ -2140,7 +2245,99 @@ tui-winsource.o: $(srcdir)/tui/tui-winsource.c
 	$(COMPILE) $(srcdir)/tui/tui-winsource.c
 	$(POSTCOMPILE)
 
+# gdb/guile dependencies
 #
+# Need to explicitly specify the compile rule as make will do nothing
+# or try to compile the object file into the sub-directory.
+
+guile.o: $(srcdir)/guile/guile.c
+	$(COMPILE) $(srcdir)/guile/guile.c
+	$(POSTCOMPILE)
+
+scm-arch.o: $(srcdir)/guile/scm-arch.c
+	$(COMPILE) $(srcdir)/guile/scm-arch.c
+	$(POSTCOMPILE)
+
+scm-auto-load.o: $(srcdir)/guile/scm-auto-load.c
+	$(COMPILE) $(srcdir)/guile/scm-auto-load.c
+	$(POSTCOMPILE)
+
+scm-block.o: $(srcdir)/guile/scm-block.c
+	$(COMPILE) $(srcdir)/guile/scm-block.c
+	$(POSTCOMPILE)
+
+scm-breakpoint.o: $(srcdir)/guile/scm-breakpoint.c
+	$(COMPILE) $(srcdir)/guile/scm-breakpoint.c
+	$(POSTCOMPILE)
+
+scm-disasm.o: $(srcdir)/guile/scm-disasm.c
+	$(COMPILE) $(srcdir)/guile/scm-disasm.c
+	$(POSTCOMPILE)
+
+scm-exception.o: $(srcdir)/guile/scm-exception.c
+	$(COMPILE) $(srcdir)/guile/scm-exception.c
+	$(POSTCOMPILE)
+
+scm-frame.o: $(srcdir)/guile/scm-frame.c
+	$(COMPILE) $(srcdir)/guile/scm-frame.c
+	$(POSTCOMPILE)
+
+scm-gsmob.o: $(srcdir)/guile/scm-gsmob.c
+	$(COMPILE) $(srcdir)/guile/scm-gsmob.c
+	$(POSTCOMPILE)
+
+scm-iterator.o: $(srcdir)/guile/scm-iterator.c
+	$(COMPILE) $(srcdir)/guile/scm-iterator.c
+	$(POSTCOMPILE)
+
+scm-lazy-string.o: $(srcdir)/guile/scm-lazy-string.c
+	$(COMPILE) $(srcdir)/guile/scm-lazy-string.c
+	$(POSTCOMPILE)
+
+scm-math.o: $(srcdir)/guile/scm-math.c
+	$(COMPILE) $(srcdir)/guile/scm-math.c
+	$(POSTCOMPILE)
+
+scm-objfile.o: $(srcdir)/guile/scm-objfile.c
+	$(COMPILE) $(srcdir)/guile/scm-objfile.c
+	$(POSTCOMPILE)
+
+scm-ports.o: $(srcdir)/guile/scm-ports.c
+	$(COMPILE) $(srcdir)/guile/scm-ports.c
+	$(POSTCOMPILE)
+
+scm-pretty-print.o: $(srcdir)/guile/scm-pretty-print.c
+	$(COMPILE) $(srcdir)/guile/scm-pretty-print.c
+	$(POSTCOMPILE)
+
+scm-safe-call.o: $(srcdir)/guile/scm-safe-call.c
+	$(COMPILE) $(srcdir)/guile/scm-safe-call.c
+	$(POSTCOMPILE)
+
+scm-string.o: $(srcdir)/guile/scm-string.c
+	$(COMPILE) $(srcdir)/guile/scm-string.c
+	$(POSTCOMPILE)
+
+scm-symbol.o: $(srcdir)/guile/scm-symbol.c
+	$(COMPILE) $(srcdir)/guile/scm-symbol.c
+	$(POSTCOMPILE)
+
+scm-symtab.o: $(srcdir)/guile/scm-symtab.c
+	$(COMPILE) $(srcdir)/guile/scm-symtab.c
+	$(POSTCOMPILE)
+
+scm-type.o: $(srcdir)/guile/scm-type.c
+	$(COMPILE) $(srcdir)/guile/scm-type.c
+	$(POSTCOMPILE)
+
+scm-utils.o: $(srcdir)/guile/scm-utils.c
+	$(COMPILE) $(srcdir)/guile/scm-utils.c
+	$(POSTCOMPILE)
+
+scm-value.o: $(srcdir)/guile/scm-value.c
+	$(COMPILE) $(srcdir)/guile/scm-value.c
+	$(POSTCOMPILE)
+
 # gdb/python/ dependencies
 #
 # Need to explicitly specify the compile rule as make will do nothing

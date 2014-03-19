@@ -1,6 +1,6 @@
 /* Core dump and executable file functions above target vector, for GDB.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -194,7 +194,7 @@ Use the \"file\" or \"exec-file\" command."));
 
 
 char *
-memory_error_message (enum target_xfer_error err,
+memory_error_message (enum target_xfer_status err,
 		      struct gdbarch *gdbarch, CORE_ADDR memaddr)
 {
   switch (err)
@@ -204,13 +204,13 @@ memory_error_message (enum target_xfer_error err,
 	 bounds.  */
       return xstrprintf (_("Cannot access memory at address %s"),
 			 paddress (gdbarch, memaddr));
-    case TARGET_XFER_E_UNAVAILABLE:
+    case TARGET_XFER_UNAVAILABLE:
       return xstrprintf (_("Memory at address %s unavailable."),
 			 paddress (gdbarch, memaddr));
     default:
       internal_error (__FILE__, __LINE__,
-		      "unhandled target_xfer_error: %s (%s)",
-		      target_xfer_error_to_string (err),
+		      "unhandled target_xfer_status: %s (%s)",
+		      target_xfer_status_to_string (err),
 		      plongest (err));
     }
 }
@@ -218,9 +218,10 @@ memory_error_message (enum target_xfer_error err,
 /* Report a memory error by throwing a suitable exception.  */
 
 void
-memory_error (enum target_xfer_error err, CORE_ADDR memaddr)
+memory_error (enum target_xfer_status err, CORE_ADDR memaddr)
 {
   char *str;
+  enum errors exception = GDB_NO_ERROR;
 
   /* Build error string.  */
   str = memory_error_message (err, target_gdbarch (), memaddr);
@@ -230,15 +231,15 @@ memory_error (enum target_xfer_error err, CORE_ADDR memaddr)
   switch (err)
     {
     case TARGET_XFER_E_IO:
-      err = MEMORY_ERROR;
+      exception = MEMORY_ERROR;
       break;
-    case TARGET_XFER_E_UNAVAILABLE:
-      err = NOT_AVAILABLE_ERROR;
+    case TARGET_XFER_UNAVAILABLE:
+      exception = NOT_AVAILABLE_ERROR;
       break;
     }
 
   /* Throw it.  */
-  throw_error (err, ("%s"), str);
+  throw_error (exception, ("%s"), str);
 }
 
 /* Same as target_read_memory, but report an error if can't read.  */
@@ -246,20 +247,24 @@ memory_error (enum target_xfer_error err, CORE_ADDR memaddr)
 void
 read_memory (CORE_ADDR memaddr, gdb_byte *myaddr, ssize_t len)
 {
-  LONGEST xfered = 0;
+  ULONGEST xfered = 0;
 
   while (xfered < len)
     {
-      LONGEST xfer = target_xfer_partial (current_target.beneath,
-					  TARGET_OBJECT_MEMORY, NULL,
-					  myaddr + xfered, NULL,
-					  memaddr + xfered, len - xfered);
+      enum target_xfer_status status;
+      ULONGEST xfered_len;
 
-      if (xfer == 0)
-	memory_error (TARGET_XFER_E_IO, memaddr + xfered);
-      if (xfer < 0)
-	memory_error (xfer, memaddr + xfered);
-      xfered += xfer;
+      status = target_xfer_partial (current_target.beneath,
+				    TARGET_OBJECT_MEMORY, NULL,
+				    myaddr + xfered, NULL,
+				    memaddr + xfered, len - xfered,
+				    &xfered_len);
+
+      if (status != TARGET_XFER_OK)
+	memory_error (status == TARGET_XFER_EOF ? TARGET_XFER_E_IO : status,
+		      memaddr + xfered);
+
+      xfered += xfered_len;
       QUIT;
     }
 }

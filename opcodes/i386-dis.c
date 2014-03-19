@@ -1,7 +1,5 @@
 /* Print i386 instructions for GDB, the GNU debugger.
-   Copyright 1988, 1989, 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013
-   Free Software Foundation, Inc.
+   Copyright (C) 1988-2014 Free Software Foundation, Inc.
 
    This file is part of the GNU opcodes library.
 
@@ -769,6 +767,9 @@ enum
   MOD_0FB2,
   MOD_0FB4,
   MOD_0FB5,
+  MOD_0FC7_REG_3,
+  MOD_0FC7_REG_4,
+  MOD_0FC7_REG_5,
   MOD_0FC7_REG_6,
   MOD_0FC7_REG_7,
   MOD_0FD7,
@@ -884,6 +885,7 @@ enum
   PREFIX_0FAE_REG_1,
   PREFIX_0FAE_REG_2,
   PREFIX_0FAE_REG_3,
+  PREFIX_0FAE_REG_7,
   PREFIX_0FB8,
   PREFIX_0FBC,
   PREFIX_0FBD,
@@ -3354,9 +3356,9 @@ static const struct dis386 reg_table[][8] = {
     { Bad_Opcode },
     { "cmpxchg8b", { { CMPXCHG8B_Fixup, q_mode } } },
     { Bad_Opcode },
-    { Bad_Opcode },
-    { Bad_Opcode },
-    { Bad_Opcode },
+    { MOD_TABLE (MOD_0FC7_REG_3) },
+    { MOD_TABLE (MOD_0FC7_REG_4) },
+    { MOD_TABLE (MOD_0FC7_REG_5) },
     { MOD_TABLE (MOD_0FC7_REG_6) },
     { MOD_TABLE (MOD_0FC7_REG_7) },
   },
@@ -3757,6 +3759,13 @@ static const struct dis386 prefix_table[][4] = {
   {
     { Bad_Opcode },
     { "wrgsbase", { Ev } },
+  },
+
+  /* PREFIX_0FAE_REG_7 */
+  {
+    { "clflush",	{ Mb } },
+    { Bad_Opcode },
+    { "clflushopt",	{ Mb } },
   },
 
   /* PREFIX_0FB8 */
@@ -11286,7 +11295,7 @@ static const struct dis386 mod_table[][2] = {
   },
   {
     /* MOD_0FAE_REG_7 */
-    { "clflush",	{ Mb } },
+    { PREFIX_TABLE (PREFIX_0FAE_REG_7) },
     { RM_TABLE (RM_0FAE_REG_7) },
   },
   {
@@ -11300,6 +11309,18 @@ static const struct dis386 mod_table[][2] = {
   {
     /* MOD_0FB5 */
     { "lgsS",		{ Gv, Mp } },
+  },
+  {
+    /* MOD_0FC7_REG_3 */
+    { "xrstors",		{ FXSAVE } },
+  },
+  {
+    /* MOD_0FC7_REG_4 */
+    { "xsavec",		{ FXSAVE } },
+  },
+  {
+    /* MOD_0FC7_REG_5 */
+    { "xsaves",		{ FXSAVE } },
   },
   {
     /* MOD_0FC7_REG_6 */
@@ -12645,7 +12666,7 @@ print_insn (bfd_vma pc, disassemble_info *info)
     }
 
   /* Check if the REX prefix is used.  */
-  if (rex_ignored == 0 && (rex ^ rex_used) == 0)
+  if (rex_ignored == 0 && (rex ^ rex_used) == 0 && last_rex_prefix >= 0)
     all_prefixes[last_rex_prefix] = 0;
 
   /* Check if the SEG prefix is used.  */
@@ -14206,12 +14227,10 @@ OP_E_memory (int bytemode, int sizeflag)
       switch (bytemode)
 	{
 	case vex_vsib_d_w_dq_mode:
+	case vex_vsib_q_w_dq_mode:
 	case evex_x_gscat_mode:
 	case xmm_mdq_mode:
 	  shift = vex.w ? 3 : 2;
-	  break;
-	case vex_vsib_q_w_dq_mode:
-	  shift = 3;
 	  break;
 	case x_mode:
 	case evex_half_bcst_xmmq_mode:

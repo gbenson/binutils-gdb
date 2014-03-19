@@ -7,7 +7,7 @@
 
 /* Main header file for the bfd library -- portable access to object files.
 
-   Copyright 1990-2013 Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.
 
@@ -299,9 +299,6 @@ typedef struct bfd_section *sec_ptr;
 
 #define bfd_is_com_section(ptr) (((ptr)->flags & SEC_IS_COMMON) != 0)
 
-#define bfd_set_section_vma(bfd, ptr, val) (((ptr)->vma = (ptr)->lma = (val)), ((ptr)->user_set_vma = TRUE), TRUE)
-#define bfd_set_section_alignment(bfd, ptr, val) (((ptr)->alignment_power = (val)),TRUE)
-#define bfd_set_section_userdata(bfd, ptr, val) (((ptr)->userdata = (val)),TRUE)
 /* Find the address one past the end of SEC.  */
 #define bfd_get_section_limit(bfd, sec) \
   (((bfd)->direction != write_direction && (sec)->rawsize != 0	\
@@ -523,8 +520,6 @@ extern void warn_deprecated (const char *, const char *, int, const char *);
 #define bfd_get_dynamic_symcount(abfd) ((abfd)->dynsymcount)
 
 #define bfd_get_symbol_leading_char(abfd) ((abfd)->xvec->symbol_leading_char)
-
-#define bfd_set_cacheable(abfd,bool) (((abfd)->cacheable = bool), TRUE)
 
 extern bfd_boolean bfd_cache_close
   (bfd *abfd);
@@ -889,15 +884,19 @@ extern bfd_boolean bfd_elf32_arm_get_bfd_for_interworking
 extern bfd_boolean bfd_elf32_arm_add_glue_sections_to_bfd
   (bfd *, struct bfd_link_info *);
 
-/* ELF ARM mapping symbol support */
+/* ELF ARM mapping symbol support.  */
 #define BFD_ARM_SPECIAL_SYM_TYPE_MAP	(1 << 0)
 #define BFD_ARM_SPECIAL_SYM_TYPE_TAG	(1 << 1)
 #define BFD_ARM_SPECIAL_SYM_TYPE_OTHER  (1 << 2)
 #define BFD_ARM_SPECIAL_SYM_TYPE_ANY	(~0)
-extern bfd_boolean bfd_is_arm_special_symbol_name
-  (const char * name, int type);
 
-extern void bfd_elf32_arm_set_byteswap_code (struct bfd_link_info *, int);
+extern bfd_boolean bfd_is_arm_special_symbol_name
+  (const char *, int);
+
+extern void bfd_elf32_arm_set_byteswap_code
+  (struct bfd_link_info *, int);
+
+extern void bfd_elf32_arm_use_long_plt (void);
 
 /* ARM Note section processing.  */
 extern bfd_boolean bfd_arm_merge_machines
@@ -1029,7 +1028,7 @@ bfd *bfd_openr (const char *filename, const char *target);
 
 bfd *bfd_fdopenr (const char *filename, const char *target, int fd);
 
-bfd *bfd_openstreamr (const char *, const char *, void *);
+bfd *bfd_openstreamr (const char * filename, const char * target, void * stream);
 
 bfd *bfd_openr_iovec (const char *filename, const char *target,
     void *(*open_func) (struct bfd *nbfd,
@@ -1442,6 +1441,7 @@ typedef struct bfd_section
 #define SEC_INFO_TYPE_MERGE     2
 #define SEC_INFO_TYPE_EH_FRAME  3
 #define SEC_INFO_TYPE_JUST_SYMS 4
+#define SEC_INFO_TYPE_TARGET    5
 
   /* Nonzero if this section uses RELA relocations, rather than REL.  */
   unsigned int use_rela_p:1;
@@ -1595,6 +1595,32 @@ struct relax_table {
   /* Number of bytes to be deleted.  */
   int size;
 };
+
+/* Note: the following are provided as inline functions rather than macros
+   because not all callers use the return value.  A macro implementation
+   would use a comma expression, eg: "((ptr)->foo = val, TRUE)" and some
+   compilers will complain about comma expressions that have no effect.  */
+static inline bfd_boolean
+bfd_set_section_userdata (bfd * abfd ATTRIBUTE_UNUSED, asection * ptr, void * val)
+{
+  ptr->userdata = val;
+  return TRUE;
+}
+
+static inline bfd_boolean
+bfd_set_section_vma (bfd * abfd ATTRIBUTE_UNUSED, asection * ptr, bfd_vma val)
+{
+  ptr->vma = ptr->lma = val;
+  ptr->user_set_vma = TRUE;
+  return TRUE;
+}
+
+static inline bfd_boolean
+bfd_set_section_alignment (bfd * abfd ATTRIBUTE_UNUSED, asection * ptr, unsigned int val)
+{
+  ptr->alignment_power = val;
+  return TRUE;
+}
 
 /* These sections are global, and are managed by BFD.  The application
    and target back end are not permitted to change the values in
@@ -3233,6 +3259,7 @@ instruction.  */
   BFD_RELOC_PPC64_PLTGOT16_LO_DS,
   BFD_RELOC_PPC64_ADDR16_HIGH,
   BFD_RELOC_PPC64_ADDR16_HIGHA,
+  BFD_RELOC_PPC64_ADDR64_LOCAL,
 
 /* PowerPC and PowerPC64 thread-local storage relocations.  */
   BFD_RELOC_PPC_TLS,
@@ -5204,6 +5231,11 @@ a matching LO8XG part.  */
   BFD_RELOC_NIOS2_JUMP_SLOT,
   BFD_RELOC_NIOS2_RELATIVE,
   BFD_RELOC_NIOS2_GOTOFF,
+  BFD_RELOC_NIOS2_CALL26_NOAT,
+  BFD_RELOC_NIOS2_GOT_LO,
+  BFD_RELOC_NIOS2_GOT_HA,
+  BFD_RELOC_NIOS2_CALL_LO,
+  BFD_RELOC_NIOS2_CALL_HA,
 
 /* IQ2000 Relocations.  */
   BFD_RELOC_IQ2000_OFFSET_16,
@@ -6414,6 +6446,14 @@ struct bfd
      this object.  Used by VMS linkers.  */
   unsigned int selective_search : 1;
 };
+
+/* See note beside bfd_set_section_userdata.  */
+static inline bfd_boolean
+bfd_set_cacheable (bfd * abfd, bfd_boolean val)
+{
+  abfd->cacheable = val;
+  return TRUE;
+}
 
 typedef enum bfd_error
 {

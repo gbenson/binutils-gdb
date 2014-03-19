@@ -2,7 +2,7 @@
 
 # Architecture commands for GDB, the GNU debugger.
 #
-# Copyright (C) 1998-2013 Free Software Foundation, Inc.
+# Copyright (C) 1998-2014 Free Software Foundation, Inc.
 #
 # This file is part of GDB.
 #
@@ -340,8 +340,8 @@ function_list ()
   cat <<EOF
 i:const struct bfd_arch_info *:bfd_arch_info:::&bfd_default_arch_struct::::gdbarch_bfd_arch_info (gdbarch)->printable_name
 #
-i:int:byte_order:::BFD_ENDIAN_BIG
-i:int:byte_order_for_code:::BFD_ENDIAN_BIG
+i:enum bfd_endian:byte_order:::BFD_ENDIAN_BIG
+i:enum bfd_endian:byte_order_for_code:::BFD_ENDIAN_BIG
 #
 i:enum gdb_osabi:osabi:::GDB_OSABI_UNKNOWN
 #
@@ -530,6 +530,19 @@ m:int:return_in_first_hidden_param_p:struct type *type:type::default_return_in_f
 
 m:CORE_ADDR:skip_prologue:CORE_ADDR ip:ip:0:0
 M:CORE_ADDR:skip_main_prologue:CORE_ADDR ip:ip
+# On some platforms, a single function may provide multiple entry points,
+# e.g. one that is used for function-pointer calls and a different one
+# that is used for direct function calls.
+# In order to ensure that breakpoints set on the function will trigger
+# no matter via which entry point the function is entered, a platform
+# may provide the skip_entrypoint callback.  It is called with IP set
+# to the main entry point of a function (as determined by the symbol table),
+# and should return the address of the innermost entry point, where the
+# actual breakpoint needs to be set.  Note that skip_entrypoint is used
+# by GDB common code even when debugging optimized code, where skip_prologue
+# is not used.
+M:CORE_ADDR:skip_entrypoint:CORE_ADDR ip:ip
+
 f:int:inner_than:CORE_ADDR lhs, CORE_ADDR rhs:lhs, rhs:0:0
 m:const gdb_byte *:breakpoint_from_pc:CORE_ADDR *pcptr, int *lenptr:pcptr, lenptr::0:
 # Return the adjusted address and kind to use for Z0/Z1 packets.
@@ -628,6 +641,10 @@ v:int:cannot_step_breakpoint:::0:0::0
 v:int:have_nonsteppable_watchpoint:::0:0::0
 F:int:address_class_type_flags:int byte_size, int dwarf2_addr_class:byte_size, dwarf2_addr_class
 M:const char *:address_class_type_flags_to_name:int type_flags:type_flags
+
+# Return the appropriate type_flags for the supplied address class.
+# This function should return 1 if the address class was recognized and
+# type_flags was set, zero otherwise.
 M:int:address_class_name_to_type_flags:const char *name, int *type_flags_ptr:name, type_flags_ptr
 # Is a register in a group
 m:int:register_reggroup_p:int regnum, struct reggroup *reggroup:regnum, reggroup::default_register_reggroup_p::0
@@ -655,12 +672,15 @@ F:char *:elfcore_write_linux_prpsinfo:bfd *obfd, char *note_data, int *note_size
 M:int:find_memory_regions:find_memory_region_ftype func, void *data:func, data
 
 # Read offset OFFSET of TARGET_OBJECT_LIBRARIES formatted shared libraries list from
-# core file into buffer READBUF with length LEN.
-M:LONGEST:core_xfer_shared_libraries:gdb_byte *readbuf, ULONGEST offset, LONGEST len:readbuf, offset, len
+# core file into buffer READBUF with length LEN.  Return the number of bytes read
+# (zero indicates failure).
+# failed, otherwise, return the red length of READBUF.
+M:ULONGEST:core_xfer_shared_libraries:gdb_byte *readbuf, ULONGEST offset, ULONGEST len:readbuf, offset, len
 
 # Read offset OFFSET of TARGET_OBJECT_LIBRARIES_AIX formatted shared
 # libraries list from core file into buffer READBUF with length LEN.
-M:LONGEST:core_xfer_shared_libraries_aix:gdb_byte *readbuf, ULONGEST offset, LONGEST len:readbuf, offset, len
+# Return the number of bytes read (zero indicates failure).
+M:ULONGEST:core_xfer_shared_libraries_aix:gdb_byte *readbuf, ULONGEST offset, ULONGEST len:readbuf, offset, len
 
 # How the core target converts a PTID from a core file to a string.
 M:char *:core_pid_to_str:ptid_t ptid:ptid
@@ -994,6 +1014,21 @@ m:void:iterate_over_objfiles_in_search_order:iterate_over_objfiles_in_search_ord
 
 # Ravenscar arch-dependent ops.
 v:struct ravenscar_arch_ops *:ravenscar_ops:::NULL:NULL::0:host_address_to_string (gdbarch->ravenscar_ops)
+
+# Return non-zero if the instruction at ADDR is a call; zero otherwise.
+m:int:insn_is_call:CORE_ADDR addr:addr::default_insn_is_call::0
+
+# Return non-zero if the instruction at ADDR is a return; zero otherwise.
+m:int:insn_is_ret:CORE_ADDR addr:addr::default_insn_is_ret::0
+
+# Return non-zero if the instruction at ADDR is a jump; zero otherwise.
+m:int:insn_is_jump:CORE_ADDR addr:addr::default_insn_is_jump::0
+
+# Read one auxv entry from *READPTR, not reading locations >= ENDPTR.
+# Return 0 if *READPTR is already at the end of the buffer.
+# Return -1 if there is insufficient buffer for a whole entry.
+# Return 1 if an entry was read into *TYPEP and *VALP.
+M:int:auxv_parse:gdb_byte **readptr, gdb_byte *endptr, CORE_ADDR *typep, CORE_ADDR *valp:readptr, endptr, typep, valp
 EOF
 }
 
@@ -1047,7 +1082,7 @@ cat <<EOF
 
 /* Dynamic architecture support for GDB, the GNU debugger.
 
-   Copyright (C) 1998-2013 Free Software Foundation, Inc.
+   Copyright (C) 1998-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -1127,11 +1162,6 @@ struct elf_internal_linux_prpsinfo;
 
 /* This is a convenience wrapper for 'current_inferior ()->gdbarch'.  */
 extern struct gdbarch *target_gdbarch (void);
-
-/* The initial, default architecture.  It uses host values (for want of a better
-   choice).  */
-extern struct gdbarch startup_gdbarch;
-
 
 /* Callback type for the 'iterate_over_objfiles_in_search_order'
    gdbarch  method.  */
@@ -1279,9 +1309,9 @@ struct gdbarch_info
   const struct bfd_arch_info *bfd_arch_info;
 
   /* Use default: BFD_ENDIAN_UNKNOWN (NB: is not ZERO).  */
-  int byte_order;
+  enum bfd_endian byte_order;
 
-  int byte_order_for_code;
+  enum bfd_endian byte_order_for_code;
 
   /* Use default: NULL (ZERO).  */
   bfd *abfd;
@@ -1566,9 +1596,6 @@ cat <<EOF
      gdbarch_dump(): Add a fprintf_unfiltered call so that the new
      field is dumped out
 
-     \`\`startup_gdbarch()'': Append an initial value to the static
-     variable (base values on the host's c-type system).
-
      get_gdbarch(): Implement the set/get functions (probably using
      the macro's as shortcuts).
 
@@ -1587,48 +1614,6 @@ do
 done
 printf "};\n"
 
-# A pre-initialized vector
-printf "\n"
-printf "\n"
-cat <<EOF
-/* The default architecture uses host values (for want of a better
-   choice).  */
-EOF
-printf "\n"
-printf "extern const struct bfd_arch_info bfd_default_arch_struct;\n"
-printf "\n"
-printf "struct gdbarch startup_gdbarch =\n"
-printf "{\n"
-printf "  1, /* Always initialized.  */\n"
-printf "  NULL, /* The obstack.  */\n"
-printf "  /* basic architecture information.  */\n"
-function_list | while do_read
-do
-    if class_is_info_p
-    then
-	printf "  ${staticdefault},  /* ${function} */\n"
-    fi
-done
-cat <<EOF
-  /* target specific vector and its dump routine.  */
-  NULL, NULL,
-  /*per-architecture data-pointers.  */
-  0, NULL,
-  /* Multi-arch values */
-EOF
-function_list | while do_read
-do
-    if class_is_function_p || class_is_variable_p
-    then
-	printf "  ${staticdefault},  /* ${function} */\n"
-    fi
-done
-cat <<EOF
-  /* startup_gdbarch() */
-};
-
-EOF
-
 # Create a new gdbarch struct
 cat <<EOF
 
@@ -1645,7 +1630,7 @@ gdbarch_alloc (const struct gdbarch_info *info,
 
   /* Create an obstack for allocating all the per-architecture memory,
      then use that to allocate the architecture vector.  */
-  struct obstack *obstack = XMALLOC (struct obstack);
+  struct obstack *obstack = XNEW (struct obstack);
   obstack_init (obstack);
   gdbarch = obstack_alloc (obstack, sizeof (*gdbarch));
   memset (gdbarch, 0, sizeof (*gdbarch));
@@ -2005,9 +1990,9 @@ gdbarch_data_register (gdbarch_data_pre_init_ftype *pre_init,
   for (curr = &gdbarch_data_registry.registrations;
        (*curr) != NULL;
        curr = &(*curr)->next);
-  (*curr) = XMALLOC (struct gdbarch_data_registration);
+  (*curr) = XNEW (struct gdbarch_data_registration);
   (*curr)->next = NULL;
-  (*curr)->data = XMALLOC (struct gdbarch_data);
+  (*curr)->data = XNEW (struct gdbarch_data);
   (*curr)->data->index = gdbarch_data_registry.nr++;
   (*curr)->data->pre_init = pre_init;
   (*curr)->data->post_init = post_init;
@@ -2176,7 +2161,7 @@ gdbarch_register (enum bfd_architecture bfd_architecture,
 			bfd_arch_info->printable_name,
 			host_address_to_string (init));
   /* Append it */
-  (*curr) = XMALLOC (struct gdbarch_registration);
+  (*curr) = XNEW (struct gdbarch_registration);
   (*curr)->bfd_architecture = bfd_architecture;
   (*curr)->init = init;
   (*curr)->dump_tdep = dump_tdep;
@@ -2320,7 +2305,7 @@ gdbarch_find_by_info (struct gdbarch_info info)
   /* Insert the new architecture into the front of the architecture
      list (keep the list sorted Most Recently Used).  */
   {
-    struct gdbarch_list *this = XMALLOC (struct gdbarch_list);
+    struct gdbarch_list *this = XNEW (struct gdbarch_list);
     this->next = rego->arches;
     this->gdbarch = new_gdbarch;
     rego->arches = this;

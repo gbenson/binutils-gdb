@@ -1,6 +1,6 @@
 /* Machine independent variables that describe the core file under GDB.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -41,12 +41,12 @@ extern int have_core_file_p (void);
 
 /* Report a memory error with error().  */
 
-extern void memory_error (enum target_xfer_error status, CORE_ADDR memaddr);
+extern void memory_error (enum target_xfer_status status, CORE_ADDR memaddr);
 
 /* The string 'memory_error' would use as exception message.  Space
    for the result is malloc'd, caller must free.  */
 
-extern char *memory_error_message (enum target_xfer_error err,
+extern char *memory_error_message (enum target_xfer_status err,
 				   struct gdbarch *gdbarch, CORE_ADDR memaddr);
 
 /* Like target_read_memory, but report an error if can't read.  */
@@ -228,7 +228,5 @@ struct core_fns
 extern void deprecated_add_core_fns (struct core_fns *cf);
 extern int default_core_sniffer (struct core_fns *cf, bfd * abfd);
 extern int default_check_format (bfd * abfd);
-
-struct target_section *deprecated_core_resize_section_table (int num_added);
 
 #endif /* !defined (GDBCORE_H) */

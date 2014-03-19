@@ -1,7 +1,7 @@
 /* Target-struct-independent code to start (run) and stop an inferior
    process.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -1240,7 +1240,7 @@ use_displaced_stepping (struct gdbarch *gdbarch)
   return (((can_use_displaced_stepping == AUTO_BOOLEAN_AUTO && non_stop)
 	   || can_use_displaced_stepping == AUTO_BOOLEAN_TRUE)
 	  && gdbarch_displaced_step_copy_insn_p (gdbarch)
-	  && !RECORD_IS_USED);
+	  && find_record_target () == NULL);
 }
 
 /* Clean out any stray displaced stepping state.  */
@@ -2963,7 +2963,7 @@ adjust_pc_after_break (struct execution_control_state *ecs)
   struct regcache *regcache;
   struct gdbarch *gdbarch;
   struct address_space *aspace;
-  CORE_ADDR breakpoint_pc;
+  CORE_ADDR breakpoint_pc, decr_pc;
 
   /* If we've hit a breakpoint, we'll normally be stopped with SIGTRAP.  If
      we aren't, just return.
@@ -3025,15 +3025,16 @@ adjust_pc_after_break (struct execution_control_state *ecs)
      we have nothing to do.  */
   regcache = get_thread_regcache (ecs->ptid);
   gdbarch = get_regcache_arch (regcache);
-  if (gdbarch_decr_pc_after_break (gdbarch) == 0)
+
+  decr_pc = target_decr_pc_after_break (gdbarch);
+  if (decr_pc == 0)
     return;
 
   aspace = get_regcache_aspace (regcache);
 
   /* Find the location where (if we've hit a breakpoint) the
      breakpoint would be.  */
-  breakpoint_pc = regcache_read_pc (regcache)
-		  - gdbarch_decr_pc_after_break (gdbarch);
+  breakpoint_pc = regcache_read_pc (regcache) - decr_pc;
 
   /* Check whether there actually is a software breakpoint inserted at
      that location.
@@ -3048,7 +3049,7 @@ adjust_pc_after_break (struct execution_control_state *ecs)
     {
       struct cleanup *old_cleanups = make_cleanup (null_cleanup, NULL);
 
-      if (RECORD_IS_USED)
+      if (record_full_is_used ())
 	record_full_gdb_operation_disable_set ();
 
       /* When using hardware single-step, a SIGTRAP is reported for both
@@ -3157,6 +3158,10 @@ fill_in_stop_func (struct gdbarch *gdbarch,
 				&ecs->stop_func_start, &ecs->stop_func_end);
       ecs->stop_func_start
 	+= gdbarch_deprecated_function_start_offset (gdbarch);
+
+      if (gdbarch_skip_entrypoint_p (gdbarch))
+	ecs->stop_func_start = gdbarch_skip_entrypoint (gdbarch,
+							ecs->stop_func_start);
 
       ecs->stop_func_filled_in = 1;
     }
@@ -3776,22 +3781,20 @@ handle_signal_stop (struct execution_control_state *ecs)
   enum stop_kind stop_soon;
   int random_signal;
 
-  if (ecs->ws.kind == TARGET_WAITKIND_STOPPED)
-    {
-      /* Do we need to clean up the state of a thread that has
-	 completed a displaced single-step?  (Doing so usually affects
-	 the PC, so do it here, before we set stop_pc.)  */
-      displaced_step_fixup (ecs->ptid,
-			    ecs->event_thread->suspend.stop_signal);
+  gdb_assert (ecs->ws.kind == TARGET_WAITKIND_STOPPED);
 
-      /* If we either finished a single-step or hit a breakpoint, but
-	 the user wanted this thread to be stopped, pretend we got a
-	 SIG0 (generic unsignaled stop).  */
+  /* Do we need to clean up the state of a thread that has
+     completed a displaced single-step?  (Doing so usually affects
+     the PC, so do it here, before we set stop_pc.)  */
+  displaced_step_fixup (ecs->ptid,
+			ecs->event_thread->suspend.stop_signal);
 
-      if (ecs->event_thread->stop_requested
-	  && ecs->event_thread->suspend.stop_signal == GDB_SIGNAL_TRAP)
-	ecs->event_thread->suspend.stop_signal = GDB_SIGNAL_0;
-    }
+  /* If we either finished a single-step or hit a breakpoint, but
+     the user wanted this thread to be stopped, pretend we got a
+     SIG0 (generic unsignaled stop).  */
+  if (ecs->event_thread->stop_requested
+      && ecs->event_thread->suspend.stop_signal == GDB_SIGNAL_TRAP)
+    ecs->event_thread->suspend.stop_signal = GDB_SIGNAL_0;
 
   stop_pc = regcache_read_pc (get_thread_regcache (ecs->ptid));
 
@@ -4379,7 +4382,11 @@ handle_signal_stop (struct execution_control_state *ecs)
 	  ecs->event_thread->step_after_step_resume_breakpoint = 1;
 	  /* Reset trap_expected to ensure breakpoints are re-inserted.  */
 	  ecs->event_thread->control.trap_expected = 0;
-	  keep_going (ecs);
+
+	  /* If we were nexting/stepping some other thread, switch to
+	     it, so that we don't continue it, losing control.  */
+	  if (!switch_back_to_stepped_thread (ecs))
+	    keep_going (ecs);
 	  return;
 	}
 
@@ -5644,7 +5651,7 @@ insert_exception_resume_breakpoint (struct thread_info *tp,
 
 static void
 insert_exception_resume_from_probe (struct thread_info *tp,
-				    const struct probe *probe,
+				    const struct bound_probe *probe,
 				    struct frame_info *frame)
 {
   struct value *arg_value;
@@ -5678,7 +5685,7 @@ check_exception_resume (struct execution_control_state *ecs,
 			struct frame_info *frame)
 {
   volatile struct gdb_exception e;
-  const struct probe *probe;
+  struct bound_probe probe;
   struct symbol *func;
 
   /* First see if this exception unwinding breakpoint was set via a
@@ -5686,9 +5693,9 @@ check_exception_resume (struct execution_control_state *ecs,
      CFA and the HANDLER.  We ignore the CFA, extract the handler, and
      set a breakpoint there.  */
   probe = find_probe_by_pc (get_frame_pc (frame));
-  if (probe)
+  if (probe.probe)
     {
-      insert_exception_resume_from_probe (ecs->event_thread, probe, frame);
+      insert_exception_resume_from_probe (ecs->event_thread, &probe, frame);
       return;
     }
 
@@ -5989,6 +5996,68 @@ print_no_history_reason (void)
   ui_out_text (current_uiout, "\nNo more reverse-execution history.\n");
 }
 
+/* Print current location without a level number, if we have changed
+   functions or hit a breakpoint.  Print source line if we have one.
+   bpstat_print contains the logic deciding in detail what to print,
+   based on the event(s) that just occurred.  */
+
+void
+print_stop_event (struct target_waitstatus *ws)
+{
+  int bpstat_ret;
+  int source_flag;
+  int do_frame_printing = 1;
+  struct thread_info *tp = inferior_thread ();
+
+  bpstat_ret = bpstat_print (tp->control.stop_bpstat, ws->kind);
+  switch (bpstat_ret)
+    {
+    case PRINT_UNKNOWN:
+      /* FIXME: cagney/2002-12-01: Given that a frame ID does (or
+	 should) carry around the function and does (or should) use
+	 that when doing a frame comparison.  */
+      if (tp->control.stop_step
+	  && frame_id_eq (tp->control.step_frame_id,
+			  get_frame_id (get_current_frame ()))
+	  && step_start_function == find_pc_function (stop_pc))
+	{
+	  /* Finished step, just print source line.  */
+	  source_flag = SRC_LINE;
+	}
+      else
+	{
+	  /* Print location and source line.  */
+	  source_flag = SRC_AND_LOC;
+	}
+      break;
+    case PRINT_SRC_AND_LOC:
+      /* Print location and source line.  */
+      source_flag = SRC_AND_LOC;
+      break;
+    case PRINT_SRC_ONLY:
+      source_flag = SRC_LINE;
+      break;
+    case PRINT_NOTHING:
+      /* Something bogus.  */
+      source_flag = SRC_LINE;
+      do_frame_printing = 0;
+      break;
+    default:
+      internal_error (__FILE__, __LINE__, _("Unknown value."));
+    }
+
+  /* The behavior of this routine with respect to the source
+     flag is:
+     SRC_LINE: Print only source line
+     LOCATION: Print only location
+     SRC_AND_LOC: Print location and source line.  */
+  if (do_frame_printing)
+    print_stack_frame (get_selected_frame (NULL), 0, source_flag, 1);
+
+  /* Display the auto-display expressions.  */
+  do_displays ();
+}
+
 /* Here to return control to GDB when the inferior stops for real.
    Print appropriate messages, remove breakpoints, give terminal our modes.
 
@@ -6111,65 +6180,11 @@ normal_stop (void)
     {
       select_frame (get_current_frame ());
 
-      /* Print current location without a level number, if
-         we have changed functions or hit a breakpoint.
-         Print source line if we have one.
-         bpstat_print() contains the logic deciding in detail
-         what to print, based on the event(s) that just occurred.  */
-
       /* If --batch-silent is enabled then there's no need to print the current
 	 source location, and to try risks causing an error message about
 	 missing source files.  */
       if (stop_print_frame && !batch_silent)
-	{
-	  int bpstat_ret;
-	  int source_flag;
-	  int do_frame_printing = 1;
-	  struct thread_info *tp = inferior_thread ();
-
-	  bpstat_ret = bpstat_print (tp->control.stop_bpstat, last.kind);
-	  switch (bpstat_ret)
-	    {
-	    case PRINT_UNKNOWN:
-	      /* FIXME: cagney/2002-12-01: Given that a frame ID does
-	         (or should) carry around the function and does (or
-	         should) use that when doing a frame comparison.  */
-	      if (tp->control.stop_step
-		  && frame_id_eq (tp->control.step_frame_id,
-				  get_frame_id (get_current_frame ()))
-		  && step_start_function == find_pc_function (stop_pc))
-		source_flag = SRC_LINE;		/* Finished step, just
-						   print source line.  */
-	      else
-		source_flag = SRC_AND_LOC;	/* Print location and
-						   source line.  */
-	      break;
-	    case PRINT_SRC_AND_LOC:
-	      source_flag = SRC_AND_LOC;	/* Print location and
-						   source line.  */
-	      break;
-	    case PRINT_SRC_ONLY:
-	      source_flag = SRC_LINE;
-	      break;
-	    case PRINT_NOTHING:
-	      source_flag = SRC_LINE;	/* something bogus */
-	      do_frame_printing = 0;
-	      break;
-	    default:
-	      internal_error (__FILE__, __LINE__, _("Unknown value."));
-	    }
-
-	  /* The behavior of this routine with respect to the source
-	     flag is:
-	     SRC_LINE: Print only source line
-	     LOCATION: Print only location
-	     SRC_AND_LOC: Print location and source line.  */
-	  if (do_frame_printing)
-	    print_stack_frame (get_selected_frame (NULL), 0, source_flag, 1);
-
-	  /* Display the auto-display expressions.  */
-	  do_displays ();
-	}
+	print_stop_event (&last);
     }
 
   /* Save the function value return registers, if we care.
@@ -6851,7 +6866,7 @@ save_infcall_suspend_state (void)
 	}
     }
 
-  inf_state = XZALLOC (struct infcall_suspend_state);
+  inf_state = XCNEW (struct infcall_suspend_state);
 
   if (siginfo_data)
     {
@@ -7083,20 +7098,6 @@ discard_infcall_control_state (struct infcall_control_state *inf_status)
   xfree (inf_status);
 }
 
-int
-ptid_match (ptid_t ptid, ptid_t filter)
-{
-  if (ptid_equal (filter, minus_one_ptid))
-    return 1;
-  if (ptid_is_pid (filter)
-      && ptid_get_pid (ptid) == ptid_get_pid (filter))
-    return 1;
-  else if (ptid_equal (ptid, filter))
-    return 1;
-
-  return 0;
-}
-
 /* restore_inferior_ptid() will be used by the cleanup machinery
    to restore the inferior_ptid value saved in a call to
    save_inferior_ptid().  */

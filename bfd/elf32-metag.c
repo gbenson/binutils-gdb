@@ -1,5 +1,5 @@
 /* Meta support for 32-bit ELF
-   Copyright (C) 2013 Free Software Foundation, Inc.
+   Copyright (C) 2013-2014 Free Software Foundation, Inc.
    Contributed by Imagination Technologies Ltd.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -3249,10 +3249,11 @@ elf_metag_finish_dynamic_symbol (bfd *output_bfd,
 /* Set the Meta ELF ABI version.  */
 
 static void
-elf_metag_post_process_headers (bfd * abfd, struct bfd_link_info * link_info ATTRIBUTE_UNUSED)
+elf_metag_post_process_headers (bfd * abfd, struct bfd_link_info * link_info)
 {
   Elf_Internal_Ehdr * i_ehdrp;	/* ELF file header, internal form.  */
 
+  _bfd_elf_post_process_headers (abfd, link_info);
   i_ehdrp = elf_elfheader (abfd);
   i_ehdrp->e_ident[EI_ABIVERSION] = METAG_ELF_ABI_VERSION;
 }

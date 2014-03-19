@@ -1,6 +1,5 @@
 # This shell script emits a C file. -*- C -*-
-#   Copyright 2006, 2007, 2008, 2009, 2010, 2011, 2012
-#   Free Software Foundation, Inc.
+#   Copyright (C) 2006-2014 Free Software Foundation, Inc.
 #
 # This file is part of the GNU Binutils.
 #
@@ -138,8 +137,9 @@ spu_place_special_section (asection *s, asection *o, const char *output_name)
   lang_output_section_statement_type *os;
 
   if (o != NULL)
-    output_name = o->name;
-  os = lang_output_section_find (output_name);
+    os = lang_output_section_get (o);
+  else
+    os = lang_output_section_find (output_name);
   if (os == NULL)
     {
       os = gld${EMULATION_NAME}_place_orphan (s, output_name, 0);

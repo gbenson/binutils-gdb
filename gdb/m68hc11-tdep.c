@@ -1,6 +1,6 @@
 /* Target-dependent code for Motorola 68HC11 & 68HC12
 
-   Copyright (C) 1999-2013 Free Software Foundation, Inc.
+   Copyright (C) 1999-2014 Free Software Foundation, Inc.
 
    Contributed by Stephane Carrez, stcarrez@nerim.fr
 
@@ -199,12 +199,12 @@ static int soft_reg_initialized = 0;
 static void
 m68hc11_get_register_info (struct m68hc11_soft_reg *reg, const char *name)
 {
-  struct minimal_symbol *msymbol;
+  struct bound_minimal_symbol msymbol;
 
   msymbol = lookup_minimal_symbol (name, NULL, NULL);
-  if (msymbol)
+  if (msymbol.minsym)
     {
-      reg->addr = SYMBOL_VALUE_ADDRESS (msymbol);
+      reg->addr = BMSYMBOL_VALUE_ADDRESS (msymbol);
       reg->name = xstrdup (name);
 
       /* Keep track of the address range for soft registers.  */

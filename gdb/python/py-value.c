@@ -1,6 +1,6 @@
 /* Python interface to values.
 
-   Copyright (C) 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2008-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -29,8 +29,6 @@
 #include "expression.h"
 #include "cp-abi.h"
 #include "python.h"
-
-#ifdef HAVE_PYTHON
 
 #include "python-internal.h"
 
@@ -163,7 +161,8 @@ valpy_new (PyTypeObject *subtype, PyObject *args, PyObject *keywords)
 /* Iterate over all the Value objects, calling preserve_one_value on
    each.  */
 void
-preserve_python_values (struct objfile *objfile, htab_t copied_types)
+gdbpy_preserve_values (const struct extension_language_defn *extlang,
+		       struct objfile *objfile, htab_t copied_types)
 {
   value_object *iter;
 
@@ -552,7 +551,8 @@ static int
 get_field_flag (PyObject *field, const char *flag_name)
 {
   int flag_value;
-  PyObject *flag_object = PyObject_GetAttrString (field, flag_name);
+  /* Python 2.4 did not have a 'const' here.  */
+  PyObject *flag_object = PyObject_GetAttrString (field, (char *) flag_name);
 
   if (flag_object == NULL)
     return -1;
@@ -561,6 +561,27 @@ get_field_flag (PyObject *field, const char *flag_name)
   Py_DECREF (flag_object);
 
   return flag_value;
+}
+
+/* Return the "type" attribute of a gdb.Field object.
+   Returns NULL on error, with a Python exception set.  */
+
+static struct type *
+get_field_type (PyObject *field)
+{
+  PyObject *ftype_obj = PyObject_GetAttrString (field, "type");
+  struct type *ftype;
+
+  if (ftype_obj == NULL)
+    return NULL;
+  ftype = type_object_to_type (ftype_obj);
+  Py_DECREF (ftype_obj);
+  if (ftype == NULL)
+    PyErr_SetString (PyExc_TypeError,
+		     _("'type' attribute of gdb.Field object is not a "
+		       "gdb.Type object."));
+
+  return ftype;
 }
 
 /* Given string name or a gdb.Field object corresponding to an element inside
@@ -572,7 +593,8 @@ valpy_getitem (PyObject *self, PyObject *key)
 {
   value_object *self_value = (value_object *) self;
   char *field = NULL;
-  PyObject *base_class_type_object = NULL;
+  struct type *base_class_type = NULL, *field_type = NULL;
+  long bitpos = -1;
   volatile struct gdb_exception except;
   PyObject *result = NULL;
 
@@ -603,8 +625,8 @@ valpy_getitem (PyObject *self, PyObject *key)
 	return NULL;
       else if (is_base_class > 0)
 	{
-	  base_class_type_object = PyObject_GetAttrString (key, "type");
-	  if (base_class_type_object == NULL)
+	  base_class_type = get_field_type (key);
+	  if (base_class_type == NULL)
 	    return NULL;
 	}
       else
@@ -614,10 +636,40 @@ valpy_getitem (PyObject *self, PyObject *key)
 	  if (name_obj == NULL)
 	    return NULL;
 
-	  field = python_string_to_host_string (name_obj);
-	  Py_DECREF (name_obj);
-	  if (field == NULL)
-	    return NULL;
+	  if (name_obj != Py_None)
+	    {
+	      field = python_string_to_host_string (name_obj);
+	      Py_DECREF (name_obj);
+	      if (field == NULL)
+		return NULL;
+	    }
+	  else
+	    {
+	      PyObject *bitpos_obj;
+	      int valid;
+
+	      Py_DECREF (name_obj);
+
+	      if (!PyObject_HasAttrString (key, "bitpos"))
+		{
+		  PyErr_SetString (PyExc_AttributeError,
+				   _("gdb.Field object has no name and no "
+                                     "'bitpos' attribute."));
+
+		  return NULL;
+		}
+	      bitpos_obj = PyObject_GetAttrString (key, "bitpos");
+	      if (bitpos_obj == NULL)
+		return NULL;
+	      valid = gdb_py_int_as_long (bitpos_obj, &bitpos);
+	      Py_DECREF (bitpos_obj);
+	      if (!valid)
+		return NULL;
+
+	      field_type = get_field_type (key);
+	      if (field_type == NULL)
+		return NULL;
+	    }
 	}
     }
 
@@ -629,14 +681,12 @@ valpy_getitem (PyObject *self, PyObject *key)
 
       if (field)
 	res_val = value_struct_elt (&tmp, NULL, field, 0, NULL);
-      else if (base_class_type_object != NULL)
+      else if (bitpos >= 0)
+	res_val = value_struct_elt_bitpos (&tmp, bitpos, field_type,
+					   "struct/class/union");
+      else if (base_class_type != NULL)
 	{
-	  struct type *base_class_type, *val_type;
-
-	  base_class_type = type_object_to_type (base_class_type_object);
-	  Py_DECREF (base_class_type_object);
-	  if (base_class_type == NULL)
-	    error (_("Field type not an instance of gdb.Type."));
+	  struct type *val_type;
 
 	  val_type = check_typedef (value_type (tmp));
 	  if (TYPE_CODE (val_type) == TYPE_CODE_PTR)
@@ -884,6 +934,8 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
       struct value *arg1, *arg2;
       struct cleanup *cleanup = make_cleanup_value_free_to_mark (value_mark ());
       struct value *res_val = NULL;
+      enum exp_opcode op = OP_NULL;
+      int handled = 0;
 
       /* If the gdb.Value object is the second operand, then it will be passed
 	 to us as the OTHER argument, and SELF will be an entirely different
@@ -915,6 +967,7 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
 	    CHECK_TYPEDEF (rtype);
 	    rtype = STRIP_REFERENCE (rtype);
 
+	    handled = 1;
 	    if (TYPE_CODE (ltype) == TYPE_CODE_PTR
 		&& is_integral_type (rtype))
 	      res_val = value_ptradd (arg1, value_as_long (arg2));
@@ -922,7 +975,10 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
 		     && is_integral_type (ltype))
 	      res_val = value_ptradd (arg2, value_as_long (arg1));
 	    else
-	      res_val = value_binop (arg1, arg2, BINOP_ADD);
+	      {
+		handled = 0;
+		op = BINOP_ADD;
+	      }
 	  }
 	  break;
 	case VALPY_SUB:
@@ -935,6 +991,7 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
 	    CHECK_TYPEDEF (rtype);
 	    rtype = STRIP_REFERENCE (rtype);
 
+	    handled = 1;
 	    if (TYPE_CODE (ltype) == TYPE_CODE_PTR
 		&& TYPE_CODE (rtype) == TYPE_CODE_PTR)
 	      /* A ptrdiff_t for the target would be preferable here.  */
@@ -944,36 +1001,47 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
 		     && is_integral_type (rtype))
 	      res_val = value_ptradd (arg1, - value_as_long (arg2));
 	    else
-	      res_val = value_binop (arg1, arg2, BINOP_SUB);
+	      {
+		handled = 0;
+		op = BINOP_SUB;
+	      }
 	  }
 	  break;
 	case VALPY_MUL:
-	  res_val = value_binop (arg1, arg2, BINOP_MUL);
+	  op = BINOP_MUL;
 	  break;
 	case VALPY_DIV:
-	  res_val = value_binop (arg1, arg2, BINOP_DIV);
+	  op = BINOP_DIV;
 	  break;
 	case VALPY_REM:
-	  res_val = value_binop (arg1, arg2, BINOP_REM);
+	  op = BINOP_REM;
 	  break;
 	case VALPY_POW:
-	  res_val = value_binop (arg1, arg2, BINOP_EXP);
+	  op = BINOP_EXP;
 	  break;
 	case VALPY_LSH:
-	  res_val = value_binop (arg1, arg2, BINOP_LSH);
+	  op = BINOP_LSH;
 	  break;
 	case VALPY_RSH:
-	  res_val = value_binop (arg1, arg2, BINOP_RSH);
+	  op = BINOP_RSH;
 	  break;
 	case VALPY_BITAND:
-	  res_val = value_binop (arg1, arg2, BINOP_BITWISE_AND);
+	  op = BINOP_BITWISE_AND;
 	  break;
 	case VALPY_BITOR:
-	  res_val = value_binop (arg1, arg2, BINOP_BITWISE_IOR);
+	  op = BINOP_BITWISE_IOR;
 	  break;
 	case VALPY_BITXOR:
-	  res_val = value_binop (arg1, arg2, BINOP_BITWISE_XOR);
+	  op = BINOP_BITWISE_XOR;
 	  break;
+	}
+
+      if (!handled)
+	{
+	  if (binop_user_defined_p (op, arg1, arg2))
+	    res_val = value_x_binop (arg1, arg2, op, OP_NULL, EVAL_NORMAL);
+	  else
+	    res_val = value_binop (arg1, arg2, op);
 	}
 
       if (res_val)
@@ -1652,13 +1720,3 @@ PyTypeObject value_object_type = {
   0,				  /* tp_alloc */
   valpy_new			  /* tp_new */
 };
-
-#else
-
-void
-preserve_python_values (struct objfile *objfile, htab_t copied_types)
-{
-  /* Nothing.  */
-}
-
-#endif /* HAVE_PYTHON */

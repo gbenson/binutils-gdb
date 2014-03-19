@@ -1,5 +1,5 @@
 /* YACC parser for C expressions, for GDB.
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -169,8 +169,10 @@ static struct stoken operator_stoken (const char *);
 static void check_parameter_typelist (VEC (type_ptr) *);
 static void write_destructor_name (struct stoken);
 
+#ifdef YYBISON
 static void c_print_token (FILE *file, int type, YYSTYPE value);
 #define YYPRINT(FILE, TYPE, VALUE) c_print_token (FILE, TYPE, VALUE)
+#endif
 %}
 
 %type <voidval> exp exp1 type_exp start variable qualified_name lcurly
@@ -2933,7 +2935,7 @@ classify_name (const struct block *block, int is_quoted_name)
   if (sym == NULL
       && parse_language->la_language == language_cplus
       && is_a_field_of_this.type == NULL
-      && !lookup_minimal_symbol (copy, NULL, NULL))
+      && lookup_minimal_symbol (copy, NULL, NULL).minsym == NULL)
     return UNKNOWN_CPP_NAME;
 
   return NAME;
@@ -3201,6 +3203,8 @@ c_parse (void)
   return result;
 }
 
+#ifdef YYBISON
+
 /* This is called via the YYPRINT macro when parser debugging is
    enabled.  It prints a token's value.  */
 
@@ -3254,6 +3258,8 @@ c_print_token (FILE *file, int type, YYSTYPE value)
       break;
     }
 }
+
+#endif
 
 void
 yyerror (char *msg)

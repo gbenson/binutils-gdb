@@ -1,6 +1,6 @@
 /* Partial symbol tables.
    
-   Copyright (C) 2009-2013 Free Software Foundation, Inc.
+   Copyright (C) 2009-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -226,7 +226,7 @@ static struct partial_symtab *
 find_pc_sect_psymtab_closer (struct objfile *objfile,
 			     CORE_ADDR pc, struct obj_section *section,
 			     struct partial_symtab *pst,
-			     struct minimal_symbol *msymbol)
+			     struct bound_minimal_symbol msymbol)
 {
   struct partial_symtab *tpst;
   struct partial_symtab *best_pst = pst;
@@ -242,7 +242,7 @@ find_pc_sect_psymtab_closer (struct objfile *objfile,
       section == 0)	/* Can't validate section this way.  */
     return pst;
 
-  if (msymbol == NULL)
+  if (msymbol.minsym == NULL)
     return (pst);
 
   /* The code range of partial symtabs sometimes overlap, so, in
@@ -266,7 +266,7 @@ find_pc_sect_psymtab_closer (struct objfile *objfile,
 	  p = find_pc_sect_psymbol (objfile, tpst, pc, section);
 	  if (p != NULL
 	      && SYMBOL_VALUE_ADDRESS (p)
-	      == SYMBOL_VALUE_ADDRESS (msymbol))
+	      == BMSYMBOL_VALUE_ADDRESS (msymbol))
 	    return tpst;
 
 	  /* Also accept the textlow value of a psymtab as a
@@ -305,7 +305,7 @@ find_pc_sect_psymtab_closer (struct objfile *objfile,
 static struct partial_symtab *
 find_pc_sect_psymtab (struct objfile *objfile, CORE_ADDR pc,
 		      struct obj_section *section,
-		      struct minimal_symbol *msymbol)
+		      struct bound_minimal_symbol msymbol)
 {
   struct partial_symtab *pst;
 
@@ -320,7 +320,7 @@ find_pc_sect_psymtab (struct objfile *objfile, CORE_ADDR pc,
 	  /* FIXME: addrmaps currently do not handle overlayed sections,
 	     so fall back to the non-addrmap case if we're debugging
 	     overlays and the addrmap returned the wrong section.  */
-	  if (overlay_debugging && msymbol && section)
+	  if (overlay_debugging && msymbol.minsym && section)
 	    {
 	      struct partial_symbol *p;
 
@@ -331,7 +331,7 @@ find_pc_sect_psymtab (struct objfile *objfile, CORE_ADDR pc,
 	      p = find_pc_sect_psymbol (objfile, pst, pc, section);
 	      if (!p
 		  || SYMBOL_VALUE_ADDRESS (p)
-		  != SYMBOL_VALUE_ADDRESS (msymbol))
+		  != BMSYMBOL_VALUE_ADDRESS (msymbol))
 		goto next;
 	    }
 
@@ -373,7 +373,7 @@ find_pc_sect_psymtab (struct objfile *objfile, CORE_ADDR pc,
 
 static struct symtab *
 find_pc_sect_symtab_from_partial (struct objfile *objfile,
-				  struct minimal_symbol *msymbol,
+				  struct bound_minimal_symbol msymbol,
 				  CORE_ADDR pc, struct obj_section *section,
 				  int warn_if_readin)
 {
@@ -1281,7 +1281,7 @@ static int
 recursively_search_psymtabs (struct partial_symtab *ps,
 			     struct objfile *objfile,
 			     enum search_domain kind,
-			     int (*name_matcher) (const char *, void *),
+			     expand_symtabs_symbol_matcher_ftype *sym_matcher,
 			     void *data)
 {
   struct partial_symbol **psym;
@@ -1304,7 +1304,7 @@ recursively_search_psymtabs (struct partial_symtab *ps,
 	continue;
 
       r = recursively_search_psymtabs (ps->dependencies[i],
-				       objfile, kind, name_matcher, data);
+				       objfile, kind, sym_matcher, data);
       if (r != 0)
 	{
 	  ps->searched_flag = PST_SEARCHED_AND_FOUND;
@@ -1346,7 +1346,7 @@ recursively_search_psymtabs (struct partial_symtab *ps,
 		   && PSYMBOL_CLASS (*psym) == LOC_BLOCK)
 	       || (kind == TYPES_DOMAIN
 		   && PSYMBOL_CLASS (*psym) == LOC_TYPEDEF))
-	      && (*name_matcher) (SYMBOL_SEARCH_NAME (*psym), data))
+	      && (*sym_matcher) (SYMBOL_SEARCH_NAME (*psym), data))
 	    {
 	      /* Found a match, so notify our caller.  */
 	      result = PST_SEARCHED_AND_FOUND;
@@ -1363,8 +1363,8 @@ recursively_search_psymtabs (struct partial_symtab *ps,
 static void
 expand_symtabs_matching_via_partial
   (struct objfile *objfile,
-   int (*file_matcher) (const char *, void *, int basenames),
-   int (*name_matcher) (const char *, void *),
+   expand_symtabs_file_matcher_ftype *file_matcher,
+   expand_symtabs_symbol_matcher_ftype *symbol_matcher,
    enum search_domain kind,
    void *data)
 {
@@ -1406,7 +1406,7 @@ expand_symtabs_matching_via_partial
 	    continue;
 	}
 
-      if (recursively_search_psymtabs (ps, objfile, kind, name_matcher, data))
+      if (recursively_search_psymtabs (ps, objfile, kind, symbol_matcher, data))
 	psymtab_to_symtab (objfile, ps);
     }
 }
@@ -1530,7 +1530,7 @@ psymbol_compare (const void *addr1, const void *addr2, int length)
 struct psymbol_bcache *
 psymbol_bcache_init (void)
 {
-  struct psymbol_bcache *bcache = XCALLOC (1, struct psymbol_bcache);
+  struct psymbol_bcache *bcache = XCNEW (struct psymbol_bcache);
   bcache->bcache = bcache_xmalloc (psymbol_hash, psymbol_compare);
   return bcache;
 }
@@ -2087,34 +2087,6 @@ maintenance_check_psymtabs (char *ignore, int from_tty)
 }
 
 
-
-void
-expand_partial_symbol_names (int (*fun) (const char *, void *),
-			     void *data)
-{
-  struct objfile *objfile;
-
-  ALL_OBJFILES (objfile)
-  {
-    if (objfile->sf)
-      objfile->sf->qf->expand_symtabs_matching (objfile, NULL, fun,
-						ALL_DOMAIN, data);
-  }
-}
-
-void
-map_partial_symbol_filenames (symbol_filename_ftype *fun, void *data,
-			      int need_fullname)
-{
-  struct objfile *objfile;
-
-  ALL_OBJFILES (objfile)
-  {
-    if (objfile->sf)
-      objfile->sf->qf->map_symbol_filenames (objfile, fun, data,
-					     need_fullname);
-  }
-}
 
 extern initialize_file_ftype _initialize_psymtab;
 

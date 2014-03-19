@@ -1,5 +1,5 @@
 /* DWARF 2 support.
-   Copyright 1994-2013 Free Software Foundation, Inc.
+   Copyright (C) 1994-2014 Free Software Foundation, Inc.
 
    Adapted from gdb/dwarf2read.c by Gavin Koch of Cygnus Solutions
    (gavin@cygnus.com).
@@ -2128,6 +2128,28 @@ find_abstract_instance_name (struct comp_unit *unit,
 	abort ();
 
       info_ptr = unit->sec_info_ptr + die_ref;
+
+      /* Now find the CU containing this pointer.  */
+      if (info_ptr >= unit->info_ptr_unit && info_ptr < unit->end_ptr)
+	;
+      else
+	{
+	  /* Check other CUs to see if they contain the abbrev.  */
+	  struct comp_unit * u;
+
+	  for (u = unit->prev_unit; u != NULL; u = u->prev_unit)
+	    if (info_ptr >= u->info_ptr_unit && info_ptr < u->end_ptr)
+	      break;
+
+	  if (u == NULL)
+	    for (u = unit->next_unit; u != NULL; u = u->next_unit)
+	      if (info_ptr >= u->info_ptr_unit && info_ptr < u->end_ptr)
+		break;
+
+	  if (u)
+	    unit = u;
+	  /* else FIXME: What do we do now ?  */
+	}
     }
   else if (attr_ptr->form == DW_FORM_GNU_ref_alt)
     {
@@ -2139,6 +2161,8 @@ find_abstract_instance_name (struct comp_unit *unit,
 	  bfd_set_error (bfd_error_bad_value);
 	  return name;
 	}
+      /* FIXME: Do we need to locate the correct CU, in a similar
+	 fashion to the code in the DW_FORM_ref_addr case above ?  */
     }
   else
     info_ptr = unit->info_ptr_unit + die_ref;

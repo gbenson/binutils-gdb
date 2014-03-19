@@ -1,3 +1,162 @@
+2014-03-12  Alan Modra  <amodra@gmail.com>
+
+	* Makefile.in: Regenerate.
+
+2014-03-10  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* symtab.h (Symbol::set_nonvis): New function.
+
+2014-03-10  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* symtab.cc (Sized_symbol<32>::init_output_data):
+	Instantiate the template.
+	(Sized_symbol<64>::init_output_data): Likewise.
+
+2014-03-10  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* symtab.cc (Symbol_table::sized_write_globals): Allow a target to
+	adjust dynamic symbol value.
+	* target.h (Target::adjust_dyn_symbol): New function.
+	(Target::do_adjust_dyn_symbol): New function.
+
+2014-03-10  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+  
+	* output.cc (Output_data_dynamic::Dynamic_entry::write):
+	Get the value of DYNAMIC_CUSTOM dynamic entry.
+	* output.h (Output_data_dynamic::add_custom): New function.
+	(Dynamic_entry::Dynamic_entry): New constructor for DYNAMIC_CUSTOM
+	dynamic entry.
+	(enum Dynamic_entry::Classification): Add DYNAMIC_CUSTOM.
+	* target.h (Target::dynamic_tag_custom_value): New function.
+	(Target::do_dynamic_tag_custom_value): New function.
+
+2014-03-10  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* symtab.cc (Symbol_table::set_dynsym_indexes): Allow a target to set
+	dynsym indexes.
+	* target.h (Target::has_custom_set_dynsym_indexes): New function.
+	(Target::do_has_custom_set_dynsym_indexes): New function.
+	(Target::set_dynsym_indexes): New function.
+	(Target::do_set_dynsym_indexes): New function.
+
+2014-03-07  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Powerpc_relocate_functions::Overflow_check): Add
+	CHECK_UNSIGNED, CHECK_LOW_INSN, CHECK_HIGH_INSN.
+	(Powerpc_relocate_functions::has_overflow_unsigned): New function.
+	(Powerpc_relocate_functions::has_overflow_bitfield,
+	overflowed): Use the above.
+	(Target_powerpc::Relocate::relocate): Correct overflow checking
+	for a number of relocations.  Modify overflow test for 16-bit
+	fields in instructions to signed/unsigned according to whether
+	the field takes a signed or unsigned value.
+
+2014-03-05  Alan Modra  <amodra@gmail.com>
+
+	Update copyright years.
+
+2014-03-05  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Target_powerpc::Scan::local, global): Support
+	R_PPC64_ADDR64_LOCAL.
+	(Target_powerpc::Relocate::relocate): Likewise.
+
+2014-03-03  Alan Modra  <amodra@gmail.com>
+
+	* dwp.cc (print_version): Update copyright year to current.
+
+2014-02-10  Alan Modra  <amodra@gmail.com>
+
+	* po/gold.pot: Regenerate.
+
+2014-02-06  Cary Coutant  <ccoutant@google.com>
+
+	Fix problem where -u is ignored when a weak undef is seen.
+
+	* archive.cc (Library_base::should_include_member): Reorder
+	code to check for -u option if a weak undef has already been seen.
+	* testsuite/Makefile.am (weak_undef_test_2): New test case.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/weak_undef_file3.cc: New file.
+	* testsuite/weak_undef_file4.cc: New file.
+	* testsuite/weak_undef_test_2.cc: New file.
+
+2014-02-05  Cary Coutant  <ccoutant@google.com>
+
+	Fix issues with gold undefined symbol diagnostics.
+
+	PR binutils/15435
+	* errors.cc (Errors::undefined_symbol): Move undef vtable symbol
+	check to here.
+	* target-reloc.h (is_strong_undefined): New function.
+	(relocate_section): Move undef vtable symbol check from here.
+	Check for is_strong_undefined.
+
+2014-02-05  Cary Coutant  <ccoutant@google.com>
+    
+	Fix problems with the --dynamic-list option.
+
+	PR gold/13577
+	* options.cc (General_options::parse_dynamic_list):
+	Set have_dynamic_list_.
+	(General_options::General_options): Initialize have_dynamic_list_.
+	(General_options::finalize): Turn off -Bsymbolic and
+	-Bsymbolic-functions if --dynamic-list provided.
+	* options.h (General_options::have_dynamic_list): New function.
+	(General_options::have_dynamic_list_): New data member.
+	* symtab.h (Symbol::is_preemptible): Handle --dynamic-list
+	correctly.
+   
+	PR gold/16530
+	* symtab.cc (Symbol_table::add_from_relobj): If symbol is named
+	in --dynamic-list, mark it.
+   
+	* testsuite/Makefile.am (gc_dynamic_list_test.sh): New test case.
+	(dynamic_list_2): New test case.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/dynamic_list_2.cc: New file.
+	* testsuite/dynamic_list_2.t: New file.
+	* testsuite/dynamic_list_lib1.cc: New file.
+	* testsuite/dynamic_list_lib2.cc: New file.
+	* testsuite/gc_dynamic_list_test.c: New file.
+	* testsuite/gc_dynamic_list_test.sh: New file.
+	* testsuite/gc_dynamic_list_test.t: New file.
+
+2014-01-28  Cary Coutant  <ccoutant@google.com>
+
+	Add .gdb_index version 7 support.
+
+	* gold/dwarf_reader.cc: include <utility> (for make_pair).
+	(Dwarf_abbrev_table::do_read_abbrevs): Check for compressed
+	debug sections.
+	(Dwarf_ranges_table::read_ranges_table): Likewise.
+	(Dwarf_pubnames_table::read_section): Check for GNU-style
+	sections, and for compressed debug sections.
+	(Dwarf_pubnames_table::read_header): Compute end address of table.
+	(Dwarf_pubnames_table::next_name): Return flag_byte.  Check
+	for end of list by offset, not by offset == 0.
+	(Dwarf_info_reader::do_read_string_table): Check for compressed
+	debug sections.
+	* gold/dwarf_reader.h (Dwarf_pubnames_table::Dwarf_pubnames_table):
+	Initialize new data members.
+	(Dwarf_pubnames_table::next_name): return flag_byte.
+	(Dwarf_pubnames_table::end_of_table_): New data member.
+	(Dwarf_pubnames_table::is_gnu_style_): New data member.
+	* gold/gdb-index.cc (gdb_index_version): Update to version 7.
+	(Gdb_index_info_reader::read_pubtable): Read flag_byte.
+	(Gdb_index_info_reader::read_pubnames_and_pubtypes): Don't
+	read skeleton type unit DIEs.
+	(Gdb_index::add_symbol): Add flag_byte; adjust all callers.
+	(Gdb_index::do_write): Write flag_byte.
+	* gold/gdb-index.h (Gdb_index::add_symbol): Add flags parameter.
+	(Gdb_index::Cu_vector): Store flags along with cu indexes.
+	* gold/testsuite/gdb_index_test_3.sh: Allow versions 4-7.
+	* gold/testsuite/gdb_index_test_comm.sh: Likewise.
+
+2014-01-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* version.cc (print_version): Update copyright year to 2014.
+
 2013-12-19  Dimitry Andric  <dimitry@andric.com>
 
 	* stringpool.cc (Stringpool_template::reserve): Add
@@ -15486,7 +15645,7 @@
 
 	* Added source code to GNU binutils.
 
-Copyright (C) 2008-2013 Free Software Foundation, Inc.
+Copyright (C) 2008-2014 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

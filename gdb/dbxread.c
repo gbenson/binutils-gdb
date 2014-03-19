@@ -1,5 +1,5 @@
 /* Read dbx symbol tables and convert to internal format, for GDB.
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -58,7 +58,6 @@
 #include "block.h"
 
 #include "gdb_assert.h"
-#include <string.h>
 
 #include "aout/aout64.h"
 #include "aout/stab_gnu.h"	/* We always use GNU stabs, not
@@ -1046,20 +1045,14 @@ read_dbx_dynamic_symtab (struct objfile *objfile)
 
 	  if (bfd_get_section_flags (abfd, sec) & SEC_CODE)
 	    {
-	      sym_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_TEXT (objfile));
 	      type = N_TEXT;
 	    }
 	  else if (bfd_get_section_flags (abfd, sec) & SEC_DATA)
 	    {
-	      sym_value	+= ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_DATA (objfile));
 	      type = N_DATA;
 	    }
 	  else if (bfd_get_section_flags (abfd, sec) & SEC_ALLOC)
 	    {
-	      sym_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_BSS (objfile));
 	      type = N_BSS;
 	    }
 	  else
@@ -1099,9 +1092,7 @@ read_dbx_dynamic_symtab (struct objfile *objfile)
        counter++, relptr++)
     {
       arelent *rel = *relptr;
-      CORE_ADDR address =
-	rel->address + ANOFFSET (objfile->section_offsets,
-				 SECT_OFF_DATA (objfile));
+      CORE_ADDR address = rel->address;
 
       switch (bfd_get_arch (abfd))
 	{
@@ -1134,7 +1125,7 @@ static CORE_ADDR
 find_stab_function_addr (char *namestring, const char *filename,
 			 struct objfile *objfile)
 {
-  struct minimal_symbol *msym;
+  struct bound_minimal_symbol msym;
   char *p;
   int n;
 
@@ -1147,7 +1138,7 @@ find_stab_function_addr (char *namestring, const char *filename,
   p[n] = 0;
 
   msym = lookup_minimal_symbol (p, filename, objfile);
-  if (msym == NULL)
+  if (msym.minsym == NULL)
     {
       /* Sun Fortran appends an underscore to the minimal symbol name,
          try again with an appended underscore if the minimal symbol
@@ -1157,13 +1148,13 @@ find_stab_function_addr (char *namestring, const char *filename,
       msym = lookup_minimal_symbol (p, filename, objfile);
     }
 
-  if (msym == NULL && filename != NULL)
+  if (msym.minsym == NULL && filename != NULL)
     {
       /* Try again without the filename.  */
       p[n] = 0;
       msym = lookup_minimal_symbol (p, NULL, objfile);
     }
-  if (msym == NULL && filename != NULL)
+  if (msym.minsym == NULL && filename != NULL)
     {
       /* And try again for Sun Fortran, but without the filename.  */
       p[n] = '_';
@@ -1171,7 +1162,7 @@ find_stab_function_addr (char *namestring, const char *filename,
       msym = lookup_minimal_symbol (p, NULL, objfile);
     }
 
-  return msym == NULL ? 0 : SYMBOL_VALUE_ADDRESS (msym);
+  return msym.minsym == NULL ? 0 : BMSYMBOL_VALUE_ADDRESS (msym);
 }
 
 static void
@@ -1200,7 +1191,6 @@ read_dbx_symtab (struct objfile *objfile)
   char *namestring;
   int nsl;
   int past_first_source_file = 0;
-  CORE_ADDR last_o_file_start = 0;
   CORE_ADDR last_function_start = 0;
   struct cleanup *back_to;
   bfd *abfd;
@@ -1328,22 +1318,16 @@ read_dbx_symtab (struct objfile *objfile)
 
 	case N_TEXT | N_EXT:
 	case N_NBTEXT | N_EXT:
-	  nlist.n_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_TEXT (objfile));
 	  goto record_it;
 
 	case N_DATA | N_EXT:
 	case N_NBDATA | N_EXT:
-	  nlist.n_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_DATA (objfile));
 	  goto record_it;
 
 	case N_BSS:
 	case N_BSS | N_EXT:
 	case N_NBBSS | N_EXT:
 	case N_SETV | N_EXT:		/* FIXME, is this in BSS? */
-	  nlist.n_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_BSS (objfile));
 	  goto record_it;
 
 	case N_ABS | N_EXT:
@@ -1366,14 +1350,15 @@ read_dbx_symtab (struct objfile *objfile)
 	case N_FN:
 	case N_FN_SEQ:
 	case N_TEXT:
-	  nlist.n_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_TEXT (objfile));
 	  namestring = set_namestring (objfile, &nlist);
 
 	  if ((namestring[0] == '-' && namestring[1] == 'l')
 	      || (namestring[(nsl = strlen (namestring)) - 1] == 'o'
 		  && namestring[nsl - 2] == '.'))
 	    {
+	      nlist.n_value += ANOFFSET (objfile->section_offsets,
+					 SECT_OFF_TEXT (objfile));
+
 	      if (past_first_source_file && pst
 		  /* The gould NP1 uses low values for .o and -l symbols
 		     which are not the address.  */
@@ -1392,15 +1377,12 @@ read_dbx_symtab (struct objfile *objfile)
 		}
 	      else
 		past_first_source_file = 1;
-	      last_o_file_start = nlist.n_value;
 	    }
 	  else
 	    goto record_it;
 	  continue;
 
 	case N_DATA:
-	  nlist.n_value += ANOFFSET (objfile->section_offsets,
-				     SECT_OFF_DATA (objfile));
 	  goto record_it;
 
 	case N_UNDF | N_EXT:
@@ -2259,7 +2241,7 @@ end_psymtab (struct objfile *objfile, struct partial_symtab *pst,
     {
       char *p;
       int n;
-      struct minimal_symbol *minsym;
+      struct bound_minimal_symbol minsym;
 
       p = strchr (last_function_name, ':');
       if (p == NULL)
@@ -2270,7 +2252,7 @@ end_psymtab (struct objfile *objfile, struct partial_symtab *pst,
       p[n] = 0;
 
       minsym = lookup_minimal_symbol (p, pst->filename, objfile);
-      if (minsym == NULL)
+      if (minsym.minsym == NULL)
 	{
 	  /* Sun Fortran appends an underscore to the minimal symbol name,
 	     try again with an appended underscore if the minimal symbol
@@ -2280,8 +2262,9 @@ end_psymtab (struct objfile *objfile, struct partial_symtab *pst,
 	  minsym = lookup_minimal_symbol (p, pst->filename, objfile);
 	}
 
-      if (minsym)
-	pst->texthigh = SYMBOL_VALUE_ADDRESS (minsym) + MSYMBOL_SIZE (minsym);
+      if (minsym.minsym)
+	pst->texthigh = (BMSYMBOL_VALUE_ADDRESS (minsym)
+			 + MSYMBOL_SIZE (minsym.minsym));
 
       last_function_name = NULL;
     }
@@ -3251,7 +3234,7 @@ process_one_symbol (int type, int desc, CORE_ADDR valu, char *name,
 	 N_MAIN within a given objfile, complain() and choose
 	 arbitrarily.  (kingdon) */
       if (name != NULL)
-	set_main_name (name);
+	set_objfile_main_name (objfile, name, language_unknown);
       break;
 
       /* The following symbol types can be ignored.  */

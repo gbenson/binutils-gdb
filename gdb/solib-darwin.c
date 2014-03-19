@@ -1,6 +1,6 @@
 /* Handle Darwin shared libraries for GDB, the GNU Debugger.
 
-   Copyright (C) 2009-2013 Free Software Foundation, Inc.
+   Copyright (C) 2009-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -70,7 +70,7 @@ struct gdb_dyld_all_image_infos
 
 /* Current all_image_infos version.  */
 #define DYLD_VERSION_MIN 1
-#define DYLD_VERSION_MAX 12
+#define DYLD_VERSION_MAX 14
 
 /* Per PSPACE specific data.  */
 struct darwin_info
@@ -103,7 +103,7 @@ get_darwin_info (void)
   if (info != NULL)
     return info;
 
-  info = XZALLOC (struct darwin_info);
+  info = XCNEW (struct darwin_info);
   set_program_space_data (current_program_space,
 			  solib_darwin_pspace_data, info);
   return info;
@@ -304,7 +304,7 @@ darwin_current_sos (void)
 	break;
 
       /* Create and fill the new so_list element.  */
-      dnew = XZALLOC (struct darwin_so_list);
+      dnew = XCNEW (struct darwin_so_list);
       new = &dnew->sl;
       old_chain = make_cleanup (xfree, dnew);
 
@@ -513,7 +513,10 @@ darwin_solib_create_inferior_hook (int from_tty)
   darwin_load_image_infos (info);
 
   if (!darwin_dyld_version_ok (info))
-    return;
+    {
+      warning (_("unhandled dyld version (%d)"), info->all_image.version);
+      return;
+    }
 
   create_solib_event_breakpoint (target_gdbarch (), info->all_image.notifier);
 
@@ -621,12 +624,8 @@ darwin_bfd_open (char *pathname)
   /* The current filename for fat-binary BFDs is a name generated
      by BFD, usually a string containing the name of the architecture.
      Reset its value to the actual filename.  */
-    {
-      char *data = bfd_alloc (res, strlen (pathname) + 1);
-
-      strcpy (data, pathname);
-      res->filename = data;
-    }
+  xfree (bfd_get_filename (res));
+  res->filename = xstrdup (pathname);
 
   gdb_bfd_unref (abfd);
   return res;

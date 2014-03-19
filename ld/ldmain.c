@@ -1,5 +1,5 @@
 /* Main program of GNU linker.
-   Copyright 1991-2013 Free Software Foundation, Inc.
+   Copyright (C) 1991-2014 Free Software Foundation, Inc.
    Written by Steve Chamberlain steve@cygnus.com
 
    This file is part of the GNU Binutils.
@@ -841,7 +841,8 @@ add_archive_element (struct bfd_link_info *info,
 	{
 	  char buf[100];
 
-	  sprintf (buf, _("Archive member included because of file (symbol)\n\n"));
+	  sprintf (buf, _("Archive member included "
+			  "to satisfy reference by file (symbol)\n\n"));
 	  minfo ("%s", buf);
 	  header_printed = TRUE;
 	}

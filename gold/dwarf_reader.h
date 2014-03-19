@@ -1,7 +1,6 @@
 // dwarf_reader.h -- parse dwarf2/3 debug information for gold  -*- C++ -*-
 
-// Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2013
-// Free Software Foundation, Inc.
+// Copyright (C) 2007-2014 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of gold.
@@ -400,7 +399,8 @@ class Dwarf_pubnames_table
  public:
   Dwarf_pubnames_table(Dwarf_info_reader* dwinfo, bool is_pubtypes)
     : dwinfo_(dwinfo), buffer_(NULL), buffer_end_(NULL), owns_buffer_(false),
-      offset_size_(0), pinfo_(NULL), is_pubtypes_(is_pubtypes),
+      offset_size_(0), pinfo_(NULL), end_of_table_(NULL),
+      is_pubtypes_(is_pubtypes), is_gnu_style_(false),
       output_section_offset_(0), unit_length_(0), cu_offset_(0)
   { }
 
@@ -431,9 +431,10 @@ class Dwarf_pubnames_table
   subsection_size()
   { return this->unit_length_; }
 
-  // Read the next name from the set.
+  // Read the next name from the set.  If the pubname table is gnu-style,
+  // FLAG_BYTE is set to the high-byte of a gdb_index version 7 cu_index.
   const char*
-  next_name();
+  next_name(uint8_t* flag_byte);
 
  private:
   // The Dwarf_info_reader, for reading data.
@@ -447,8 +448,13 @@ class Dwarf_pubnames_table
   unsigned int offset_size_;
   // The current position within the buffer.
   const unsigned char* pinfo_;
+  // The end of the current pubnames table.
+  const unsigned char* end_of_table_;
   // TRUE if this is a .debug_pubtypes section.
   bool is_pubtypes_;
+  // Gnu-style pubnames table. This style has an extra flag byte between the
+  // offset and the name, and is used for generating version 7 of gdb-index.
+  bool is_gnu_style_;
   // For incremental update links, this will hold the offset of the
   // input section within the output section.  Offsets read from
   // relocated data will be relative to the output section, and need

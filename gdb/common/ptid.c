@@ -1,6 +1,6 @@
 /* The ptid_t type and common functions operating on it.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
    
    This file is part of GDB.
 
@@ -113,4 +113,18 @@ ptid_tid_p (ptid_t ptid)
     return 0;
 
   return (ptid_get_tid (ptid) != 0);
+}
+
+int
+ptid_match (ptid_t ptid, ptid_t filter)
+{
+  if (ptid_equal (filter, minus_one_ptid))
+    return 1;
+  if (ptid_is_pid (filter)
+      && ptid_get_pid (ptid) == ptid_get_pid (filter))
+    return 1;
+  else if (ptid_equal (ptid, filter))
+    return 1;
+
+  return 0;
 }

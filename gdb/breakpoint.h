@@ -1,5 +1,5 @@
 /* Data structures associated with breakpoints in GDB.
-   Copyright (C) 1992-2013 Free Software Foundation, Inc.
+   Copyright (C) 1992-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -25,10 +25,12 @@
 #include "ax.h"
 #include "command.h"
 #include "break-common.h"
+#include "probe.h"
 
 struct value;
 struct block;
 struct gdbpy_breakpoint_object;
+struct gdbscm_breakpoint_object;
 struct get_number_or_range_state;
 struct thread_info;
 struct bpstats;
@@ -436,7 +438,7 @@ struct bp_location
 
   /* If the location comes from a probe point, this is the probe associated
      with it.  */
-  struct probe *probe;
+  struct bound_probe probe;
 
   char *function_name;
 
@@ -739,6 +741,9 @@ struct breakpoint
        can sometimes be NULL for enabled GDBs as not all breakpoint
        types are tracked by the scripting language API.  */
     struct gdbpy_breakpoint_object *py_bp_object;
+
+    /* Same as py_bp_object, but for Scheme.  */
+    struct gdbscm_breakpoint_object *scm_bp_object;
   };
 
 /* An instance of this type is used to represent a watchpoint.  It
@@ -1486,8 +1491,7 @@ extern struct tracepoint *get_tracepoint_by_number_on_target (int num);
 /* Find a tracepoint by parsing a number in the supplied string.  */
 extern struct tracepoint *
      get_tracepoint_by_number (char **arg, 
-			       struct get_number_or_range_state *state,
-			       int optional_p);
+			       struct get_number_or_range_state *state);
 
 /* Return a vector of all tracepoints currently defined.  The vector
    is newly allocated; the caller should free when done with it.  */

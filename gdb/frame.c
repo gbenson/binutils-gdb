@@ -1,6 +1,6 @@
 /* Cache and manage frames for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -525,6 +525,22 @@ frame_id_build_unavailable_stack (CORE_ADDR code_addr)
   id.stack_status = FID_STACK_UNAVAILABLE;
   id.code_addr = code_addr;
   id.code_addr_p = 1;
+  return id;
+}
+
+/* See frame.h.  */
+
+struct frame_id
+frame_id_build_unavailable_stack_special (CORE_ADDR code_addr,
+					  CORE_ADDR special_addr)
+{
+  struct frame_id id = null_frame_id;
+
+  id.stack_status = FID_STACK_UNAVAILABLE;
+  id.code_addr = code_addr;
+  id.code_addr_p = 1;
+  id.special_addr = special_addr;
+  id.special_addr_p = 1;
   return id;
 }
 
@@ -1845,7 +1861,7 @@ get_prev_frame_1 (struct frame_info *this_frame)
       this_pc_in_block = get_frame_address_in_block (this_frame);
       morestack_msym = lookup_minimal_symbol_by_pc (this_pc_in_block).minsym;
       if (morestack_msym)
-	morestack_name = SYMBOL_LINKAGE_NAME (morestack_msym);
+	morestack_name = MSYMBOL_LINKAGE_NAME (morestack_msym);
       if (!morestack_name || strcmp (morestack_name, "__morestack") != 0)
 	{
 	  if (frame_debug)
@@ -1991,18 +2007,18 @@ frame_debug_got_null_frame (struct frame_info *this_frame,
 static int
 inside_main_func (struct frame_info *this_frame)
 {
-  struct minimal_symbol *msymbol;
+  struct bound_minimal_symbol msymbol;
   CORE_ADDR maddr;
 
   if (symfile_objfile == 0)
     return 0;
   msymbol = lookup_minimal_symbol (main_name (), NULL, symfile_objfile);
-  if (msymbol == NULL)
+  if (msymbol.minsym == NULL)
     return 0;
   /* Make certain that the code, and not descriptor, address is
      returned.  */
   maddr = gdbarch_convert_from_func_ptr_addr (get_frame_arch (this_frame),
-					      SYMBOL_VALUE_ADDRESS (msymbol),
+					      BMSYMBOL_VALUE_ADDRESS (msymbol),
 					      &current_target);
   return maddr == get_frame_func (this_frame);
 }
@@ -2506,13 +2522,10 @@ get_frame_sp (struct frame_info *this_frame)
 enum unwind_stop_reason
 get_frame_unwind_stop_reason (struct frame_info *frame)
 {
-  /* If we haven't tried to unwind past this point yet, then assume
-     that unwinding would succeed.  */
-  if (frame->prev_p == 0)
-    return UNWIND_NO_REASON;
+  /* Fill-in STOP_REASON.  */
+  get_prev_frame_1 (frame);
+  gdb_assert (frame->prev_p);
 
-  /* Otherwise, we set a reason when we succeeded (or failed) to
-     unwind.  */
   return frame->stop_reason;
 }
 

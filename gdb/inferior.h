@@ -1,7 +1,7 @@
 /* Variables that describe the inferior process running under GDB:
    Where it is, why it stopped, and how to step it.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -65,16 +65,6 @@ extern void discard_infcall_control_state (struct infcall_control_state *);
 extern struct regcache *
   get_infcall_suspend_state_regcache (struct infcall_suspend_state *);
 
-/* Returns true if PTID matches filter FILTER.  FILTER can be the wild
-   card MINUS_ONE_PTID (all ptid match it); can be a ptid representing
-   a process (ptid_is_pid returns true), in which case, all lwps and
-   threads of that given process match, lwps and threads of other
-   processes do not; or, it can represent a specific thread, in which
-   case, only that thread will match true.  PTID must represent a
-   specific LWP or THREAD, it can never be a wild card.  */
-
-extern int ptid_match (ptid_t ptid, ptid_t filter);
-
 /* Save value of inferior_ptid so that it may be restored by
    a later call to do_cleanups().  Returns the struct cleanup
    pointer needed for later doing the cleanup.  */
@@ -125,10 +115,6 @@ extern int disable_randomization;
 
 extern void generic_mourn_inferior (void);
 
-extern void terminal_save_ours (void);
-
-extern void terminal_ours (void);
-
 extern CORE_ADDR unsigned_pointer_to_address (struct gdbarch *gdbarch,
 					      struct type *type,
 					      const gdb_byte *buf);
@@ -170,17 +156,21 @@ extern void default_print_registers_info (struct gdbarch *gdbarch,
 					  struct frame_info *frame,
 					  int regnum, int all);
 
-extern void child_terminal_info (const char *, int);
+extern void child_terminal_info (struct target_ops *self, const char *, int);
 
 extern void term_info (char *, int);
 
-extern void terminal_ours_for_output (void);
+extern void child_terminal_save_ours (struct target_ops *self);
 
-extern void terminal_inferior (void);
+extern void child_terminal_ours (struct target_ops *self);
 
-extern void terminal_init_inferior (void);
+extern void child_terminal_ours_for_output (struct target_ops *self);
 
-extern void terminal_init_inferior_with_pgrp (int pgrp);
+extern void child_terminal_inferior (struct target_ops *self);
+
+extern void child_terminal_init (struct target_ops *self);
+
+extern void child_terminal_init_with_pgrp (int pgrp);
 
 /* From fork-child.c */
 
@@ -204,6 +194,8 @@ extern int stop_on_solib_events;
 extern void start_remote (int from_tty);
 
 extern void normal_stop (void);
+
+extern void print_stop_event (struct target_waitstatus *ws);
 
 extern int signal_stop_state (int);
 

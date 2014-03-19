@@ -1,5 +1,5 @@
 /* NDS32-specific support for 32-bit ELF.
-   Copyright (C) 2012-2013 Free Software Foundation, Inc.
+   Copyright (C) 2012-2014 Free Software Foundation, Inc.
    Contributed by Andes Technology Corporation.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -1370,7 +1370,7 @@ parse_operand (nds32_asm_desc_t *pdesc, nds32_asm_insn_t *pinsn,
   hashval_t hash;
   const field_t *fld = &LEX_GET_FIELD (syn);
   keyword_t *k;
-  int64_t value = 0x100000000;	/* Big enough to overflow.  */
+  int64_t value;
   int r;
   uint64_t modifier = 0;
 

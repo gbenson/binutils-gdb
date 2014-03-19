@@ -1,6 +1,6 @@
 /* Everything about breakpoints, for GDB.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -66,7 +66,6 @@
 #include "continuations.h"
 #include "stack.h"
 #include "skip.h"
-#include "gdb_regex.h"
 #include "ax-gdb.h"
 #include "dummy-frame.h"
 
@@ -80,7 +79,7 @@
 #undef savestring
 
 #include "mi/mi-common.h"
-#include "python/python.h"
+#include "extension.h"
 
 /* Enums for exception-handling support.  */
 enum exception_event_kind
@@ -1048,14 +1047,18 @@ condition_command (char *arg, int from_tty)
   ALL_BREAKPOINTS (b)
     if (b->number == bnum)
       {
-	/* Check if this breakpoint has a Python object assigned to
-	   it, and if it has a definition of the "stop"
-	   method.  This method and conditions entered into GDB from
-	   the CLI are mutually exclusive.  */
-	if (b->py_bp_object
-	    && gdbpy_breakpoint_has_py_cond (b->py_bp_object))
-	  error (_("Cannot set a condition where a Python 'stop' "
-		   "method has been defined in the breakpoint."));
+	/* Check if this breakpoint has a "stop" method implemented in an
+	   extension language.  This method and conditions entered into GDB
+	   from the CLI are mutually exclusive.  */
+	const struct extension_language_defn *extlang
+	  = get_breakpoint_cond_ext_lang (b, EXT_LANG_NONE);
+
+	if (extlang != NULL)
+	  {
+	    error (_("Only one stop condition allowed.  There is currently"
+		     " a %s stop condition defined for this breakpoint."),
+		   ext_lang_capitalized_name (extlang));
+	  }
 	set_breakpoint_condition (b, p, from_tty);
 
 	if (is_breakpoint (b))
@@ -2395,9 +2398,9 @@ insert_bp_location (struct bp_location *bl,
 		    int *hw_breakpoint_error,
 		    int *hw_bp_error_explained_already)
 {
-  int val = 0;
-  const char *hw_bp_err_string = NULL;
-  struct gdb_exception e;
+  enum errors bp_err = GDB_NO_ERROR;
+  const char *bp_err_message = NULL;
+  volatile struct gdb_exception e;
 
   if (!should_be_inserted (bl) || (bl->inserted && !bl->needs_update))
     return 0;
@@ -2496,12 +2499,16 @@ insert_bp_location (struct bp_location *bl,
 	  /* No overlay handling: just set the breakpoint.  */
 	  TRY_CATCH (e, RETURN_MASK_ALL)
 	    {
+	      int val;
+
 	      val = bl->owner->ops->insert_location (bl);
+	      if (val)
+		bp_err = GENERIC_ERROR;
 	    }
 	  if (e.reason < 0)
 	    {
-	      val = 1;
-	      hw_bp_err_string = e.message;
+	      bp_err = e.error;
+	      bp_err_message = e.message;
 	    }
 	}
       else
@@ -2523,9 +2530,24 @@ insert_bp_location (struct bp_location *bl,
 		  /* Set a software (trap) breakpoint at the LMA.  */
 		  bl->overlay_target_info = bl->target_info;
 		  bl->overlay_target_info.placed_address = addr;
-		  val = target_insert_breakpoint (bl->gdbarch,
-						  &bl->overlay_target_info);
-		  if (val != 0)
+
+		  /* No overlay handling: just set the breakpoint.  */
+		  TRY_CATCH (e, RETURN_MASK_ALL)
+		    {
+		      int val;
+
+		      val = target_insert_breakpoint (bl->gdbarch,
+						      &bl->overlay_target_info);
+		      if (val)
+			bp_err = GENERIC_ERROR;
+		    }
+		  if (e.reason < 0)
+		    {
+		      bp_err = e.error;
+		      bp_err_message = e.message;
+		    }
+
+		  if (bp_err != GDB_NO_ERROR)
 		    fprintf_unfiltered (tmp_error_stream,
 					"Overlay breakpoint %d "
 					"failed: in ROM?\n",
@@ -2538,12 +2560,16 @@ insert_bp_location (struct bp_location *bl,
 	      /* Yes.  This overlay section is mapped into memory.  */
 	      TRY_CATCH (e, RETURN_MASK_ALL)
 	        {
+		  int val;
+
 	          val = bl->owner->ops->insert_location (bl);
+		  if (val)
+		    bp_err = GENERIC_ERROR;
 	        }
 	      if (e.reason < 0)
 	        {
-	          val = 1;
-	          hw_bp_err_string = e.message;
+		  bp_err = e.error;
+		  bp_err_message = e.message;
 	        }
 	    }
 	  else
@@ -2554,13 +2580,23 @@ insert_bp_location (struct bp_location *bl,
 	    }
 	}
 
-      if (val)
+      if (bp_err != GDB_NO_ERROR)
 	{
 	  /* Can't set the breakpoint.  */
-	  if (solib_name_from_address (bl->pspace, bl->address))
+
+	  /* In some cases, we might not be able to insert a
+	     breakpoint in a shared library that has already been
+	     removed, but we have not yet processed the shlib unload
+	     event.  Unfortunately, some targets that implement
+	     breakpoint insertion themselves (necessary if this is a
+	     HW breakpoint, but SW breakpoints likewise) can't tell
+	     why the breakpoint insertion failed (e.g., the remote
+	     target doesn't define error codes), so we must treat
+	     generic errors as memory errors.  */
+	  if ((bp_err == GENERIC_ERROR || bp_err == MEMORY_ERROR)
+	      && solib_name_from_address (bl->pspace, bl->address))
 	    {
 	      /* See also: disable_breakpoints_in_shlibs.  */
-	      val = 0;
 	      bl->shlib_disabled = 1;
 	      observer_notify_breakpoint_modified (bl->owner);
 	      if (!*disabled_breaks)
@@ -2575,39 +2611,51 @@ insert_bp_location (struct bp_location *bl,
 	      *disabled_breaks = 1;
 	      fprintf_unfiltered (tmp_error_stream,
 				  "breakpoint #%d\n", bl->owner->number);
+	      return 0;
 	    }
 	  else
 	    {
 	      if (bl->loc_type == bp_loc_hardware_breakpoint)
 		{
-                  *hw_breakpoint_error = 1;
-                  *hw_bp_error_explained_already = hw_bp_err_string != NULL;
+		  *hw_breakpoint_error = 1;
+		  *hw_bp_error_explained_already = bp_err_message != NULL;
                   fprintf_unfiltered (tmp_error_stream,
                                       "Cannot insert hardware breakpoint %d%s",
-                                      bl->owner->number, hw_bp_err_string ? ":" : ".\n");
-                  if (hw_bp_err_string)
-                    fprintf_unfiltered (tmp_error_stream, "%s.\n", hw_bp_err_string);
+                                      bl->owner->number, bp_err_message ? ":" : ".\n");
+                  if (bp_err_message != NULL)
+                    fprintf_unfiltered (tmp_error_stream, "%s.\n", bp_err_message);
 		}
 	      else
 		{
-		  char *message = memory_error_message (TARGET_XFER_E_IO,
-							bl->gdbarch, bl->address);
-		  struct cleanup *old_chain = make_cleanup (xfree, message);
+		  if (bp_err_message == NULL)
+		    {
+		      char *message
+			= memory_error_message (TARGET_XFER_E_IO,
+						bl->gdbarch, bl->address);
+		      struct cleanup *old_chain = make_cleanup (xfree, message);
 
-		  fprintf_unfiltered (tmp_error_stream, 
-				      "Cannot insert breakpoint %d.\n"
-				      "%s\n",
-				      bl->owner->number, message);
-
-		  do_cleanups (old_chain);
+		      fprintf_unfiltered (tmp_error_stream,
+					  "Cannot insert breakpoint %d.\n"
+					  "%s\n",
+					  bl->owner->number, message);
+		      do_cleanups (old_chain);
+		    }
+		  else
+		    {
+		      fprintf_unfiltered (tmp_error_stream,
+					  "Cannot insert breakpoint %d: %s\n",
+					  bl->owner->number,
+					  bp_err_message);
+		    }
 		}
+	      return 1;
 
 	    }
 	}
       else
 	bl->inserted = 1;
 
-      return val;
+      return 0;
     }
 
   else if (bl->loc_type == bp_loc_hardware_watchpoint
@@ -2615,6 +2663,8 @@ insert_bp_location (struct bp_location *bl,
 	      watchpoints.  It's not clear that it's necessary...  */
 	   && bl->owner->disposition != disp_del_at_next_stop)
     {
+      int val;
+
       gdb_assert (bl->owner->ops != NULL
 		  && bl->owner->ops->insert_location != NULL);
 
@@ -2658,6 +2708,8 @@ insert_bp_location (struct bp_location *bl,
 
   else if (bl->owner->type == bp_catchpoint)
     {
+      int val;
+
       gdb_assert (bl->owner->ops != NULL
 		  && bl->owner->ops->insert_location != NULL);
 
@@ -3094,10 +3146,10 @@ static const char *const longjmp_names[] =
 struct breakpoint_objfile_data
 {
   /* Minimal symbol for "_ovly_debug_event" (if any).  */
-  struct minimal_symbol *overlay_msym;
+  struct bound_minimal_symbol overlay_msym;
 
   /* Minimal symbol(s) for "longjmp", "siglongjmp", etc. (if any).  */
-  struct minimal_symbol *longjmp_msym[NUM_LONGJMP_NAMES];
+  struct bound_minimal_symbol longjmp_msym[NUM_LONGJMP_NAMES];
 
   /* True if we have looked for longjmp probes.  */
   int longjmp_searched;
@@ -3106,10 +3158,10 @@ struct breakpoint_objfile_data
   VEC (probe_p) *longjmp_probes;
 
   /* Minimal symbol for "std::terminate()" (if any).  */
-  struct minimal_symbol *terminate_msym;
+  struct bound_minimal_symbol terminate_msym;
 
   /* Minimal symbol for "_Unwind_DebugHook" (if any).  */
-  struct minimal_symbol *exception_msym;
+  struct bound_minimal_symbol exception_msym;
 
   /* True if we have looked for exception probes.  */
   int exception_searched;
@@ -3174,24 +3226,24 @@ create_overlay_event_breakpoint (void)
 
       bp_objfile_data = get_breakpoint_objfile_data (objfile);
 
-      if (msym_not_found_p (bp_objfile_data->overlay_msym))
+      if (msym_not_found_p (bp_objfile_data->overlay_msym.minsym))
 	continue;
 
-      if (bp_objfile_data->overlay_msym == NULL)
+      if (bp_objfile_data->overlay_msym.minsym == NULL)
 	{
-	  struct minimal_symbol *m;
+	  struct bound_minimal_symbol m;
 
 	  m = lookup_minimal_symbol_text (func_name, objfile);
-	  if (m == NULL)
+	  if (m.minsym == NULL)
 	    {
 	      /* Avoid future lookups in this objfile.  */
-	      bp_objfile_data->overlay_msym = &msym_not_found;
+	      bp_objfile_data->overlay_msym.minsym = &msym_not_found;
 	      continue;
 	    }
 	  bp_objfile_data->overlay_msym = m;
 	}
 
-      addr = SYMBOL_VALUE_ADDRESS (bp_objfile_data->overlay_msym);
+      addr = BMSYMBOL_VALUE_ADDRESS (bp_objfile_data->overlay_msym);
       b = create_internal_breakpoint (get_objfile_arch (objfile), addr,
                                       bp_overlay_event,
 				      &internal_breakpoint_ops);
@@ -3271,7 +3323,9 @@ create_longjmp_master_breakpoint (void)
 	    {
 	      struct breakpoint *b;
 
-	      b = create_internal_breakpoint (gdbarch, probe->address,
+	      b = create_internal_breakpoint (gdbarch,
+					      get_probe_address (probe,
+								 objfile),
 					      bp_longjmp_master,
 					      &internal_breakpoint_ops);
 	      b->addr_string = xstrdup ("-probe-stap libc:longjmp");
@@ -3290,25 +3344,25 @@ create_longjmp_master_breakpoint (void)
 	  const char *func_name;
 	  CORE_ADDR addr;
 
-	  if (msym_not_found_p (bp_objfile_data->longjmp_msym[i]))
+	  if (msym_not_found_p (bp_objfile_data->longjmp_msym[i].minsym))
 	    continue;
 
 	  func_name = longjmp_names[i];
-	  if (bp_objfile_data->longjmp_msym[i] == NULL)
+	  if (bp_objfile_data->longjmp_msym[i].minsym == NULL)
 	    {
-	      struct minimal_symbol *m;
+	      struct bound_minimal_symbol m;
 
 	      m = lookup_minimal_symbol_text (func_name, objfile);
-	      if (m == NULL)
+	      if (m.minsym == NULL)
 		{
 		  /* Prevent future lookups in this objfile.  */
-		  bp_objfile_data->longjmp_msym[i] = &msym_not_found;
+		  bp_objfile_data->longjmp_msym[i].minsym = &msym_not_found;
 		  continue;
 		}
 	      bp_objfile_data->longjmp_msym[i] = m;
 	    }
 
-	  addr = SYMBOL_VALUE_ADDRESS (bp_objfile_data->longjmp_msym[i]);
+	  addr = BMSYMBOL_VALUE_ADDRESS (bp_objfile_data->longjmp_msym[i]);
 	  b = create_internal_breakpoint (gdbarch, addr, bp_longjmp_master,
 					  &internal_breakpoint_ops);
 	  b->addr_string = xstrdup (func_name);
@@ -3345,25 +3399,25 @@ create_std_terminate_master_breakpoint (void)
 
       bp_objfile_data = get_breakpoint_objfile_data (objfile);
 
-      if (msym_not_found_p (bp_objfile_data->terminate_msym))
+      if (msym_not_found_p (bp_objfile_data->terminate_msym.minsym))
 	continue;
 
-      if (bp_objfile_data->terminate_msym == NULL)
+      if (bp_objfile_data->terminate_msym.minsym == NULL)
 	{
-	  struct minimal_symbol *m;
+	  struct bound_minimal_symbol m;
 
 	  m = lookup_minimal_symbol (func_name, NULL, objfile);
-	  if (m == NULL || (MSYMBOL_TYPE (m) != mst_text
-			    && MSYMBOL_TYPE (m) != mst_file_text))
+	  if (m.minsym == NULL || (MSYMBOL_TYPE (m.minsym) != mst_text
+				   && MSYMBOL_TYPE (m.minsym) != mst_file_text))
 	    {
 	      /* Prevent future lookups in this objfile.  */
-	      bp_objfile_data->terminate_msym = &msym_not_found;
+	      bp_objfile_data->terminate_msym.minsym = &msym_not_found;
 	      continue;
 	    }
 	  bp_objfile_data->terminate_msym = m;
 	}
 
-      addr = SYMBOL_VALUE_ADDRESS (bp_objfile_data->terminate_msym);
+      addr = BMSYMBOL_VALUE_ADDRESS (bp_objfile_data->terminate_msym);
       b = create_internal_breakpoint (get_objfile_arch (objfile), addr,
                                       bp_std_terminate_master,
 				      &internal_breakpoint_ops);
@@ -3432,7 +3486,9 @@ create_exception_master_breakpoint (void)
 	    {
 	      struct breakpoint *b;
 
-	      b = create_internal_breakpoint (gdbarch, probe->address,
+	      b = create_internal_breakpoint (gdbarch,
+					      get_probe_address (probe,
+								 objfile),
 					      bp_exception_master,
 					      &internal_breakpoint_ops);
 	      b->addr_string = xstrdup ("-probe-stap libgcc:unwind");
@@ -3444,26 +3500,26 @@ create_exception_master_breakpoint (void)
 
       /* Otherwise, try the hook function.  */
 
-      if (msym_not_found_p (bp_objfile_data->exception_msym))
+      if (msym_not_found_p (bp_objfile_data->exception_msym.minsym))
 	continue;
 
       gdbarch = get_objfile_arch (objfile);
 
-      if (bp_objfile_data->exception_msym == NULL)
+      if (bp_objfile_data->exception_msym.minsym == NULL)
 	{
-	  struct minimal_symbol *debug_hook;
+	  struct bound_minimal_symbol debug_hook;
 
 	  debug_hook = lookup_minimal_symbol (func_name, NULL, objfile);
-	  if (debug_hook == NULL)
+	  if (debug_hook.minsym == NULL)
 	    {
-	      bp_objfile_data->exception_msym = &msym_not_found;
+	      bp_objfile_data->exception_msym.minsym = &msym_not_found;
 	      continue;
 	    }
 
 	  bp_objfile_data->exception_msym = debug_hook;
 	}
 
-      addr = SYMBOL_VALUE_ADDRESS (bp_objfile_data->exception_msym);
+      addr = BMSYMBOL_VALUE_ADDRESS (bp_objfile_data->exception_msym);
       addr = gdbarch_convert_from_func_ptr_addr (gdbarch, addr,
 						 &current_target);
       b = create_internal_breakpoint (gdbarch, addr, bp_exception_master,
@@ -5107,7 +5163,6 @@ bpstat_check_watchpoint (bpstat bs)
 static void
 bpstat_check_breakpoint_conditions (bpstat bs, ptid_t ptid)
 {
-  int thread_id = pid_to_thread_id (ptid);
   const struct bp_location *bl;
   struct breakpoint *b;
   int value_is_zero = 0;
@@ -5132,17 +5187,20 @@ bpstat_check_breakpoint_conditions (bpstat bs, ptid_t ptid)
       return;
     }
 
-  /* If this is a thread-specific breakpoint, don't waste cpu evaluating the
-     condition if this isn't the specified thread.  */
-  if (b->thread != -1 && b->thread != thread_id)
+  /* If this is a thread/task-specific breakpoint, don't waste cpu
+     evaluating the condition if this isn't the specified
+     thread/task.  */
+  if ((b->thread != -1 && b->thread != pid_to_thread_id (ptid))
+      || (b->task != 0 && b->task != ada_get_task_number (ptid)))
+
     {
       bs->stop = 0;
       return;
     }
 
-  /* Evaluate Python breakpoints that have a "stop" method implemented.  */
-  if (b->py_bp_object)
-    bs->stop = gdbpy_should_stop (b->py_bp_object);
+  /* Evaluate extension language breakpoints that have a "stop" method
+     implemented.  */
+  bs->stop = breakpoint_ext_lang_cond_says_stop (b);
 
   if (is_watchpoint (b))
     {
@@ -8190,7 +8248,7 @@ get_catch_syscall_inferior_data (struct inferior *inf)
   inf_data = inferior_data (inf, catch_syscall_inferior_data);
   if (inf_data == NULL)
     {
-      inf_data = XZALLOC (struct catch_syscall_inferior_data);
+      inf_data = XCNEW (struct catch_syscall_inferior_data);
       set_inferior_data (inf, catch_syscall_inferior_data, inf_data);
     }
 
@@ -8969,7 +9027,8 @@ add_location_to_breakpoint (struct breakpoint *b,
   loc->requested_address = sal->pc;
   loc->address = adjusted_address;
   loc->pspace = sal->pspace;
-  loc->probe = sal->probe;
+  loc->probe.probe = sal->probe;
+  loc->probe.objfile = sal->objfile;
   gdb_assert (loc->pspace != NULL);
   loc->section = sal->section;
   loc->gdbarch = loc_gdbarch;
@@ -9938,7 +9997,7 @@ resolve_sal_pc (struct symtab_and_line *sal)
 
 	      msym = lookup_minimal_symbol_by_pc (sal->pc);
 	      if (msym.minsym)
-		sal->section = SYMBOL_OBJ_SECTION (msym.objfile, msym.minsym);
+		sal->section = MSYMBOL_OBJ_SECTION (msym.objfile, msym.minsym);
 
 	      do_cleanups (old_chain);
 	    }
@@ -13286,7 +13345,9 @@ bkpt_probe_insert_location (struct bp_location *bl)
     {
       /* The insertion was successful, now let's set the probe's semaphore
 	 if needed.  */
-      bl->probe->pops->set_semaphore (bl->probe, bl->gdbarch);
+      bl->probe.probe->pops->set_semaphore (bl->probe.probe,
+					    bl->probe.objfile,
+					    bl->gdbarch);
     }
 
   return v;
@@ -13296,7 +13357,9 @@ static int
 bkpt_probe_remove_location (struct bp_location *bl)
 {
   /* Let's clear the semaphore before removing the location.  */
-  bl->probe->pops->clear_semaphore (bl->probe, bl->gdbarch);
+  bl->probe.probe->pops->clear_semaphore (bl->probe.probe,
+					  bl->probe.objfile,
+					  bl->gdbarch);
 
   return bkpt_remove_location (bl);
 }
@@ -14946,7 +15009,7 @@ deprecated_insert_raw_breakpoint (struct gdbarch *gdbarch,
 {
   struct bp_target_info *bp_tgt;
 
-  bp_tgt = XZALLOC (struct bp_target_info);
+  bp_tgt = XCNEW (struct bp_target_info);
 
   bp_tgt->placed_address_space = aspace;
   bp_tgt->placed_address = pc;
@@ -15469,7 +15532,7 @@ trace_pass_command (char *args, int from_tty)
     }
   else if (*args == '\0')
     {
-      t1 = get_tracepoint_by_number (&args, NULL, 1);
+      t1 = get_tracepoint_by_number (&args, NULL);
       if (t1)
 	trace_pass_set_count (t1, count, from_tty);
     }
@@ -15480,7 +15543,7 @@ trace_pass_command (char *args, int from_tty)
       init_number_or_range (&state, args);
       while (!state.finished)
 	{
-	  t1 = get_tracepoint_by_number (&args, &state, 1);
+	  t1 = get_tracepoint_by_number (&args, &state);
 	  if (t1)
 	    trace_pass_set_count (t1, count, from_tty);
 	}
@@ -15521,12 +15584,12 @@ get_tracepoint_by_number_on_target (int num)
 
 /* Utility: parse a tracepoint number and look it up in the list.
    If STATE is not NULL, use, get_number_or_range_state and ignore ARG.
-   If OPTIONAL_P is true, then if the argument is missing, the most
-   recent tracepoint (tracepoint_count) is returned.  */
+   If the argument is missing, the most recent tracepoint
+   (tracepoint_count) is returned.  */
+
 struct tracepoint *
 get_tracepoint_by_number (char **arg,
-			  struct get_number_or_range_state *state,
-			  int optional_p)
+			  struct get_number_or_range_state *state)
 {
   struct breakpoint *t;
   int tpnum;
@@ -15538,12 +15601,7 @@ get_tracepoint_by_number (char **arg,
       tpnum = get_number_or_range (state);
     }
   else if (arg == NULL || *arg == NULL || ! **arg)
-    {
-      if (optional_p)
-	tpnum = tracepoint_count;
-      else
-	error_no_arg (_("tracepoint number"));
-    }
+    tpnum = tracepoint_count;
   else
     tpnum = get_number (arg);
 
@@ -15553,8 +15611,7 @@ get_tracepoint_by_number (char **arg,
 	printf_filtered (_("bad tracepoint number at or near '%s'\n"), 
 			 instring);
       else
-	printf_filtered (_("Tracepoint argument missing "
-			   "and no previous tracepoint\n"));
+	printf_filtered (_("No previous tracepoint\n"));
       return NULL;
     }
 

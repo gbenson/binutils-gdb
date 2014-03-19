@@ -1,5 +1,5 @@
 /* Generic BFD library interface and support routines.
-   Copyright 1990-2013 Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
    Written by Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -310,6 +310,14 @@ CODE_FRAGMENT
 .     this object.  Used by VMS linkers.  *}
 .  unsigned int selective_search : 1;
 .};
+.
+.{* See note beside bfd_set_section_userdata.  *}
+.static inline bfd_boolean
+.bfd_set_cacheable (bfd * abfd, bfd_boolean val)
+.{
+.  abfd->cacheable = val;
+.  return TRUE;
+.}
 .
 */
 

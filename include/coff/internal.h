@@ -1,8 +1,7 @@
 /* Internal format of COFF object file data structures, for GNU BFD.
    This file is part of BFD, the Binary File Descriptor library.
    
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004. 2005, 2006, 2007, 2009,
-   2010  Free Software Foundation, Inc.
+   Copyright (C) 1999-2014 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -74,7 +73,7 @@ struct internal_filehdr
 
   /* Standard coff internal info.  */
   unsigned short f_magic;	/* magic number			*/
-  unsigned short f_nscns;	/* number of sections		*/
+  unsigned int   f_nscns;	/* number of sections		*/
   long f_timdat;		/* time & date stamp		*/
   bfd_vma f_symptr;		/* file pointer to symtab	*/
   long f_nsyms;			/* number of symtab entries	*/

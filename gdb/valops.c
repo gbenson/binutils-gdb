@@ -1,6 +1,6 @@
 /* Perform non-arithmetic operations on values, for GDB.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -39,10 +39,8 @@
 #include <errno.h>
 #include <string.h>
 #include "gdb_assert.h"
-#include "cp-support.h"
 #include "observer.h"
 #include "objfiles.h"
-#include "symtab.h"
 #include "exceptions.h"
 
 extern unsigned int overload_debug;
@@ -71,7 +69,7 @@ int find_oload_champ_namespace_loop (struct value **, int,
 				     struct badness_vector **, int *,
 				     const int no_adl);
 
-static int find_oload_champ (struct value **, int, int, int,
+static int find_oload_champ (struct value **, int, int,
 			     struct fn_field *, struct symbol **,
 			     struct badness_vector **);
 
@@ -162,7 +160,7 @@ find_function_in_inferior (const char *name, struct objfile **objf_p)
 	  type = lookup_pointer_type (builtin_type (gdbarch)->builtin_char);
 	  type = lookup_function_type (type);
 	  type = lookup_pointer_type (type);
-	  maddr = SYMBOL_VALUE_ADDRESS (msymbol.minsym);
+	  maddr = BMSYMBOL_VALUE_ADDRESS (msymbol);
 
 	  if (objf_p)
 	    *objf_p = objfile;
@@ -951,81 +949,31 @@ read_value_memory (struct value *val, int embedded_offset,
 		   int stack, CORE_ADDR memaddr,
 		   gdb_byte *buffer, size_t length)
 {
-  if (length)
+  ULONGEST xfered = 0;
+
+  while (xfered < length)
     {
-      VEC(mem_range_s) *available_memory;
+      enum target_xfer_status status;
+      ULONGEST xfered_len;
 
-      if (!traceframe_available_memory (&available_memory, memaddr, length))
-	{
-	  if (stack)
-	    read_stack (memaddr, buffer, length);
-	  else
-	    read_memory (memaddr, buffer, length);
-	}
+      status = target_xfer_partial (current_target.beneath,
+				    TARGET_OBJECT_MEMORY, NULL,
+				    buffer + xfered, NULL,
+				    memaddr + xfered, length - xfered,
+				    &xfered_len);
+
+      if (status == TARGET_XFER_OK)
+	/* nothing */;
+      else if (status == TARGET_XFER_UNAVAILABLE)
+	mark_value_bytes_unavailable (val, embedded_offset + xfered,
+				      xfered_len);
+      else if (status == TARGET_XFER_EOF)
+	memory_error (TARGET_XFER_E_IO, memaddr + xfered);
       else
-	{
-	  struct target_section_table *table;
-	  struct cleanup *old_chain;
-	  CORE_ADDR unavail;
-	  mem_range_s *r;
-	  int i;
+	memory_error (status, memaddr + xfered);
 
-	  /* Fallback to reading from read-only sections.  */
-	  table = target_get_section_table (&exec_ops);
-	  available_memory =
-	    section_table_available_memory (available_memory,
-					    memaddr, length,
-					    table->sections,
-					    table->sections_end);
-
-	  old_chain = make_cleanup (VEC_cleanup(mem_range_s),
-				    &available_memory);
-
-	  normalize_mem_ranges (available_memory);
-
-	  /* Mark which bytes are unavailable, and read those which
-	     are available.  */
-
-	  unavail = memaddr;
-
-	  for (i = 0;
-	       VEC_iterate (mem_range_s, available_memory, i, r);
-	       i++)
-	    {
-	      if (mem_ranges_overlap (r->start, r->length,
-				      memaddr, length))
-		{
-		  CORE_ADDR lo1, hi1, lo2, hi2;
-		  CORE_ADDR start, end;
-
-		  /* Get the intersection window.  */
-		  lo1 = memaddr;
-		  hi1 = memaddr + length;
-		  lo2 = r->start;
-		  hi2 = r->start + r->length;
-		  start = max (lo1, lo2);
-		  end = min (hi1, hi2);
-
-		  gdb_assert (end - memaddr <= length);
-
-		  if (start > unavail)
-		    mark_value_bytes_unavailable (val,
-						  (embedded_offset
-						   + unavail - memaddr),
-						  start - unavail);
-		  unavail = end;
-
-		  read_memory (start, buffer + start - memaddr, end - start);
-		}
-	    }
-
-	  if (unavail != memaddr + length)
-	    mark_value_bytes_unavailable (val,
-					  embedded_offset + unavail - memaddr,
-					  (memaddr + length) - unavail);
-
-	  do_cleanups (old_chain);
-	}
+      xfered += xfered_len;
+      QUIT;
     }
 }
 
@@ -2248,6 +2196,51 @@ value_struct_elt (struct value **argp, struct value **args,
   return v;
 }
 
+/* Given *ARGP, a value of type structure or union, or a pointer/reference
+   to a structure or union, extract and return its component (field) of
+   type FTYPE at the specified BITPOS.
+   Throw an exception on error.  */
+
+struct value *
+value_struct_elt_bitpos (struct value **argp, int bitpos, struct type *ftype,
+			 const char *err)
+{
+  struct type *t;
+  struct value *v;
+  int i;
+  int nbases;
+
+  *argp = coerce_array (*argp);
+
+  t = check_typedef (value_type (*argp));
+
+  while (TYPE_CODE (t) == TYPE_CODE_PTR || TYPE_CODE (t) == TYPE_CODE_REF)
+    {
+      *argp = value_ind (*argp);
+      if (TYPE_CODE (check_typedef (value_type (*argp))) != TYPE_CODE_FUNC)
+	*argp = coerce_array (*argp);
+      t = check_typedef (value_type (*argp));
+    }
+
+  if (TYPE_CODE (t) != TYPE_CODE_STRUCT
+      && TYPE_CODE (t) != TYPE_CODE_UNION)
+    error (_("Attempt to extract a component of a value that is not a %s."),
+	   err);
+
+  for (i = TYPE_N_BASECLASSES (t); i < TYPE_NFIELDS (t); i++)
+    {
+      if (!field_is_static (&TYPE_FIELD (t, i))
+	  && bitpos == TYPE_FIELD_BITPOS (t, i)
+	  && types_equal (ftype, TYPE_FIELD_TYPE (t, i)))
+	return value_primitive_field (*argp, 0, i, t);
+    }
+
+  error (_("No field with matching bitpos and type."));
+
+  /* Never hit.  */
+  return NULL;
+}
+
 /* Search through the methods of an object (and its bases) to find a
    specified method.  Return the pointer to the fn_field list of
    overloaded instances.
@@ -2476,9 +2469,9 @@ find_overload_match (struct value **args, int nargs,
       if (fns_ptr)
 	{
 	  gdb_assert (TYPE_DOMAIN_TYPE (fns_ptr[0].type) != NULL);
-	  method_oload_champ = find_oload_champ (args, nargs, method,
+	  method_oload_champ = find_oload_champ (args, nargs,
 	                                         num_fns, fns_ptr,
-	                                         oload_syms, &method_badness);
+	                                         NULL, &method_badness);
 
 	  method_match_quality =
 	      classify_oload_match (method_badness, nargs,
@@ -2791,7 +2784,7 @@ find_oload_champ_namespace_loop (struct value **args, int nargs,
   while (new_oload_syms[num_fns])
     ++num_fns;
 
-  new_oload_champ = find_oload_champ (args, nargs, 0, num_fns,
+  new_oload_champ = find_oload_champ (args, nargs, num_fns,
 				      NULL, new_oload_syms,
 				      &new_oload_champ_bv);
 
@@ -2830,15 +2823,16 @@ find_oload_champ_namespace_loop (struct value **args, int nargs,
 
 /* Look for a function to take NARGS args of ARGS.  Find
    the best match from among the overloaded methods or functions
-   (depending on METHOD) given by FNS_PTR or OLOAD_SYMS, respectively.
-   The number of methods/functions in the list is given by NUM_FNS.
+   given by FNS_PTR or OLOAD_SYMS, respectively.  One, and only one of
+   FNS_PTR and OLOAD_SYMS can be non-NULL.  The number of
+   methods/functions in the non-NULL list is given by NUM_FNS.
    Return the index of the best match; store an indication of the
    quality of the match in OLOAD_CHAMP_BV.
 
    It is the caller's responsibility to free *OLOAD_CHAMP_BV.  */
 
 static int
-find_oload_champ (struct value **args, int nargs, int method,
+find_oload_champ (struct value **args, int nargs,
 		  int num_fns, struct fn_field *fns_ptr,
 		  struct symbol **oload_syms,
 		  struct badness_vector **oload_champ_bv)
@@ -2852,31 +2846,37 @@ find_oload_champ (struct value **args, int nargs, int method,
   int oload_ambiguous = 0;
   /* 0 => no ambiguity, 1 => two good funcs, 2 => incomparable funcs.  */
 
+  /* A champion can be found among methods alone, or among functions
+     alone, but not both.  */
+  gdb_assert ((fns_ptr != NULL) + (oload_syms != NULL) == 1);
+
   *oload_champ_bv = NULL;
 
   /* Consider each candidate in turn.  */
   for (ix = 0; ix < num_fns; ix++)
     {
       int jj;
-      int static_offset = oload_method_static (method, fns_ptr, ix);
+      int static_offset;
       int nparms;
       struct type **parm_types;
 
-      if (method)
+      if (fns_ptr != NULL)
 	{
 	  nparms = TYPE_NFIELDS (TYPE_FN_FIELD_TYPE (fns_ptr, ix));
+	  static_offset = oload_method_static (1, fns_ptr, ix);
 	}
       else
 	{
 	  /* If it's not a method, this is the proper place.  */
 	  nparms = TYPE_NFIELDS (SYMBOL_TYPE (oload_syms[ix]));
+	  static_offset = 0;
 	}
 
       /* Prepare array of parameter types.  */
       parm_types = (struct type **) 
 	xmalloc (nparms * (sizeof (struct type *)));
       for (jj = 0; jj < nparms; jj++)
-	parm_types[jj] = (method
+	parm_types[jj] = (fns_ptr != NULL
 			  ? (TYPE_FN_FIELD_ARGS (fns_ptr, ix)[jj].type)
 			  : TYPE_FIELD_TYPE (SYMBOL_TYPE (oload_syms[ix]), 
 					     jj));
@@ -2914,7 +2914,7 @@ find_oload_champ (struct value **args, int nargs, int method,
       xfree (parm_types);
       if (overload_debug)
 	{
-	  if (method)
+	  if (fns_ptr)
 	    fprintf_filtered (gdb_stderr,
 			      "Overloaded method instance %s, # of parms %d\n",
 			      fns_ptr[ix].physname, nparms);
@@ -3571,32 +3571,33 @@ value_slice (struct value *array, int lowbound, int length)
      done with it.  */
   slice_range_type = create_range_type ((struct type *) NULL,
 					TYPE_TARGET_TYPE (range_type),
-					lowbound, 
+					lowbound,
 					lowbound + length - 1);
 
-    {
-      struct type *element_type = TYPE_TARGET_TYPE (array_type);
-      LONGEST offset =
-	(lowbound - lowerbound) * TYPE_LENGTH (check_typedef (element_type));
+  {
+    struct type *element_type = TYPE_TARGET_TYPE (array_type);
+    LONGEST offset
+      = (lowbound - lowerbound) * TYPE_LENGTH (check_typedef (element_type));
 
-      slice_type = create_array_type ((struct type *) NULL, 
-				      element_type,
-				      slice_range_type);
-      TYPE_CODE (slice_type) = TYPE_CODE (array_type);
+    slice_type = create_array_type ((struct type *) NULL,
+				    element_type,
+				    slice_range_type);
+    TYPE_CODE (slice_type) = TYPE_CODE (array_type);
 
-      if (VALUE_LVAL (array) == lval_memory && value_lazy (array))
-	slice = allocate_value_lazy (slice_type);
-      else
-	{
-	  slice = allocate_value (slice_type);
-	  value_contents_copy (slice, 0, array, offset,
-			       TYPE_LENGTH (slice_type));
-	}
+    if (VALUE_LVAL (array) == lval_memory && value_lazy (array))
+      slice = allocate_value_lazy (slice_type);
+    else
+      {
+	slice = allocate_value (slice_type);
+	value_contents_copy (slice, 0, array, offset,
+			     TYPE_LENGTH (slice_type));
+      }
 
-      set_value_component_location (slice, array);
-      VALUE_FRAME_ID (slice) = VALUE_FRAME_ID (array);
-      set_value_offset (slice, value_offset (array) + offset);
-    }
+    set_value_component_location (slice, array);
+    VALUE_FRAME_ID (slice) = VALUE_FRAME_ID (array);
+    set_value_offset (slice, value_offset (array) + offset);
+  }
+
   return slice;
 }
 

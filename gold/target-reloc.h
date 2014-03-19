@@ -1,7 +1,6 @@
 // target-reloc.h -- target specific relocation support  -*- C++ -*-
 
-// Copyright 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013
-// Free Software Foundation, Inc.
+// Copyright (C) 2006-2014 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of gold.
@@ -143,6 +142,12 @@ class Default_comdat_behavior
     return CB_WARNING;
   }
 };
+
+inline bool
+is_strong_undefined(const Symbol* sym)
+{
+  return sym->is_undefined() && sym->binding() != elfcpp::STB_WEAK;
+}
 
 // Give an error for a symbol with non-default visibility which is not
 // defined locally.
@@ -411,16 +416,10 @@ relocate_section(
 	}
 
       if (issue_undefined_symbol_error(sym))
-	{
-	  gold_undefined_symbol_at_location(sym, relinfo, i, offset);
-	  if (sym->is_cxx_vtable())
-	    gold_info(_("%s: the vtable symbol may be undefined because "
-			"the class is missing its key function"),
-		      program_name);
-	}
+	gold_undefined_symbol_at_location(sym, relinfo, i, offset);
       else if (sym != NULL
 	       && sym->visibility() != elfcpp::STV_DEFAULT
-	       && (sym->is_undefined() || sym->is_from_dynobj()))
+	       && (is_strong_undefined(sym) || sym->is_from_dynobj()))
 	visibility_error(sym);
 
       if (sym != NULL && sym->has_warning())

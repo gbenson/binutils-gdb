@@ -1,6 +1,5 @@
 /* SuperH SH64-specific support for 32-bit ELF
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2000-2014 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -199,7 +198,8 @@ sh64_elf_copy_private_data (bfd * ibfd, bfd * obfd)
 		  == elf_elfheader (ibfd)->e_flags));
 
   elf_elfheader (obfd)->e_flags = elf_elfheader (ibfd)->e_flags;
-  return TRUE;
+
+  return _bfd_elf_copy_private_bfd_data (ibfd, obfd);
 }
 
 static bfd_boolean

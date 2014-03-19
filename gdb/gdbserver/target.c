@@ -1,5 +1,5 @@
 /* Target operations for the remote server for GDB.
-   Copyright (C) 2002-2013 Free Software Foundation, Inc.
+   Copyright (C) 2002-2014 Free Software Foundation, Inc.
 
    Contributed by MontaVista Software.
 
@@ -34,7 +34,7 @@ set_desired_inferior (int use_general)
     found = find_thread_ptid (cont_thread);
 
   if (found == NULL)
-    current_inferior = (struct thread_info *) all_threads.head;
+    current_inferior = get_first_thread ();
   else
     current_inferior = found;
 }

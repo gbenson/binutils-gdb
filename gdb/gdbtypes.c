@@ -1,6 +1,6 @@
 /* Support routines for manipulating internal types for GDB.
 
-   Copyright (C) 1992-2013 Free Software Foundation, Inc.
+   Copyright (C) 1992-2014 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support, using pieces from other GDB modules.
 
@@ -201,8 +201,8 @@ alloc_type_arch (struct gdbarch *gdbarch)
 
   /* Alloc the structure and start off with all fields zeroed.  */
 
-  type = XZALLOC (struct type);
-  TYPE_MAIN_TYPE (type) = XZALLOC (struct main_type);
+  type = XCNEW (struct type);
+  TYPE_MAIN_TYPE (type) = XCNEW (struct main_type);
 
   TYPE_OBJFILE_OWNED (type) = 0;
   TYPE_OWNER (type).gdbarch = gdbarch;
@@ -268,7 +268,7 @@ alloc_type_instance (struct type *oldtype)
   /* Allocate the structure.  */
 
   if (! TYPE_OBJFILE_OWNED (oldtype))
-    type = XZALLOC (struct type);
+    type = XCNEW (struct type);
   else
     type = OBSTACK_ZALLOC (&TYPE_OBJFILE (oldtype)->objfile_obstack,
 			   struct type);
@@ -951,14 +951,18 @@ get_array_bounds (struct type *type, LONGEST *low_bound, LONGEST *high_bound)
    Elements will be of type ELEMENT_TYPE, the indices will be of type
    RANGE_TYPE.
 
+   If BIT_STRIDE is not zero, build a packed array type whose element
+   size is BIT_STRIDE.  Otherwise, ignore this parameter.
+
    FIXME: Maybe we should check the TYPE_CODE of RESULT_TYPE to make
    sure it is TYPE_CODE_UNDEF before we bash it into an array
    type?  */
 
 struct type *
-create_array_type (struct type *result_type, 
-		   struct type *element_type,
-		   struct type *range_type)
+create_array_type_with_stride (struct type *result_type,
+			       struct type *element_type,
+			       struct type *range_type,
+			       unsigned int bit_stride)
 {
   LONGEST low_bound, high_bound;
 
@@ -975,6 +979,9 @@ create_array_type (struct type *result_type,
      In such cases, the array length should be zero.  */
   if (high_bound < low_bound)
     TYPE_LENGTH (result_type) = 0;
+  else if (bit_stride > 0)
+    TYPE_LENGTH (result_type) =
+      (bit_stride * (high_bound - low_bound + 1) + 7) / 8;
   else
     TYPE_LENGTH (result_type) =
       TYPE_LENGTH (element_type) * (high_bound - low_bound + 1);
@@ -983,12 +990,26 @@ create_array_type (struct type *result_type,
     (struct field *) TYPE_ZALLOC (result_type, sizeof (struct field));
   TYPE_INDEX_TYPE (result_type) = range_type;
   TYPE_VPTR_FIELDNO (result_type) = -1;
+  if (bit_stride > 0)
+    TYPE_FIELD_BITSIZE (result_type, 0) = bit_stride;
 
   /* TYPE_FLAG_TARGET_STUB will take care of zero length arrays.  */
   if (TYPE_LENGTH (result_type) == 0)
     TYPE_TARGET_STUB (result_type) = 1;
 
   return result_type;
+}
+
+/* Same as create_array_type_with_stride but with no bit_stride
+   (BIT_STRIDE = 0), thus building an unpacked array.  */
+
+struct type *
+create_array_type (struct type *result_type,
+		   struct type *element_type,
+		   struct type *range_type)
+{
+  return create_array_type_with_stride (result_type, element_type,
+					range_type, 0);
 }
 
 struct type *
@@ -1444,6 +1465,40 @@ lookup_struct_elt_type (struct type *type, const char *name, int noerr)
   typename = type_to_string (type);
   make_cleanup (xfree, typename);
   error (_("Type %s has no component named %s."), typename, name);
+}
+
+/* Store in *MAX the largest number representable by unsigned integer type
+   TYPE.  */
+
+void
+get_unsigned_type_max (struct type *type, ULONGEST *max)
+{
+  unsigned int n;
+
+  CHECK_TYPEDEF (type);
+  gdb_assert (TYPE_CODE (type) == TYPE_CODE_INT && TYPE_UNSIGNED (type));
+  gdb_assert (TYPE_LENGTH (type) <= sizeof (ULONGEST));
+
+  /* Written this way to avoid overflow.  */
+  n = TYPE_LENGTH (type) * TARGET_CHAR_BIT;
+  *max = ((((ULONGEST) 1 << (n - 1)) - 1) << 1) | 1;
+}
+
+/* Store in *MIN, *MAX the smallest and largest numbers representable by
+   signed integer type TYPE.  */
+
+void
+get_signed_type_minmax (struct type *type, LONGEST *min, LONGEST *max)
+{
+  unsigned int n;
+
+  CHECK_TYPEDEF (type);
+  gdb_assert (TYPE_CODE (type) == TYPE_CODE_INT && !TYPE_UNSIGNED (type));
+  gdb_assert (TYPE_LENGTH (type) <= sizeof (LONGEST));
+
+  n = TYPE_LENGTH (type) * TARGET_CHAR_BIT;
+  *min = -((ULONGEST) 1 << (n - 1));
+  *max = ((ULONGEST) 1 << (n - 1)) - 1;
 }
 
 /* Lookup the vptr basetype/fieldno values for TYPE.
@@ -3700,7 +3755,7 @@ copy_type_recursive (struct objfile *objfile,
       int i, nfields;
 
       nfields = TYPE_NFIELDS (type);
-      TYPE_FIELDS (new_type) = XCALLOC (nfields, struct field);
+      TYPE_FIELDS (new_type) = XCNEWVEC (struct field, nfields);
       for (i = 0; i < nfields; i++)
 	{
 	  TYPE_FIELD_ARTIFICIAL (new_type, i) = 

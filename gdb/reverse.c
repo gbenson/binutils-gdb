@@ -1,6 +1,6 @@
 /* Reverse execution and reverse debugging.
 
-   Copyright (C) 2006-2013 Free Software Foundation, Inc.
+   Copyright (C) 2006-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -250,6 +250,7 @@ goto_bookmark_command (char *args, int from_tty)
 {
   struct bookmark *b;
   unsigned long num;
+  char *p = args;
 
   if (args == NULL || args[0] == '\0')
     error (_("Command requires an argument."));
@@ -274,6 +275,10 @@ goto_bookmark_command (char *args, int from_tty)
 
   /* General case.  Bookmark identified by bookmark number.  */
   num = get_number (&args);
+
+  if (num == 0)
+    error (_("goto-bookmark: invalid bookmark number '%s'."), p);
+
   ALL_BOOKMARKS (b)
     if (b->number == num)
       break;
@@ -285,7 +290,7 @@ goto_bookmark_command (char *args, int from_tty)
       return;
     }
   /* Not found.  */
-  error (_("goto-bookmark: no bookmark found for '%s'."), args);
+  error (_("goto-bookmark: no bookmark found for '%s'."), p);
 }
 
 static int

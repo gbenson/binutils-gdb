@@ -1,6 +1,6 @@
 /* Print values for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2013 Free Software Foundation, Inc.
+   Copyright (C) 1986-2014 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -32,7 +32,7 @@
 #include "doublest.h"
 #include "exceptions.h"
 #include "dfp.h"
-#include "python/python.h"
+#include "extension.h"
 #include "ada-lang.h"
 #include "gdb_obstack.h"
 #include "charset.h"
@@ -770,9 +770,9 @@ val_print (struct type *type, const gdb_byte *valaddr, int embedded_offset,
 
   if (!options->raw)
     {
-      ret = apply_val_pretty_printer (type, valaddr, embedded_offset,
-				      address, stream, recurse,
-				      val, options, language);
+      ret = apply_ext_lang_val_pretty_printer (type, valaddr, embedded_offset,
+					       address, stream, recurse,
+					       val, options, language);
       if (ret)
 	return;
     }
@@ -876,12 +876,13 @@ value_print (struct value *val, struct ui_file *stream,
 
   if (!options->raw)
     {
-      int r = apply_val_pretty_printer (value_type (val),
-					value_contents_for_printing (val),
-					value_embedded_offset (val),
-					value_address (val),
-					stream, 0,
-					val, options, current_language);
+      int r
+	= apply_ext_lang_val_pretty_printer (value_type (val),
+					     value_contents_for_printing (val),
+					     value_embedded_offset (val),
+					     value_address (val),
+					     stream, 0,
+					     val, options, current_language);
 
       if (r)
 	return;
@@ -1726,7 +1727,7 @@ val_print_array_elements (struct type *type,
 
 /* Read LEN bytes of target memory at address MEMADDR, placing the
    results in GDB's memory at MYADDR.  Returns a count of the bytes
-   actually read, and optionally a target_xfer_error value in the
+   actually read, and optionally a target_xfer_status value in the
    location pointed to by ERRPTR if ERRPTR is non-null.  */
 
 /* FIXME: cagney/1999-10-14: Only used by val_print_string.  Can this
@@ -1770,7 +1771,7 @@ partial_memory_read (CORE_ADDR memaddr, gdb_byte *myaddr,
    each.  Fetch at most FETCHLIMIT characters.  BUFFER will be set to a newly
    allocated buffer containing the string, which the caller is responsible to
    free, and BYTES_READ will be set to the number of bytes read.  Returns 0 on
-   success, or a target_xfer_error on failure.
+   success, or a target_xfer_status on failure.
 
    If LEN > 0, reads the lesser of LEN or FETCHLIMIT characters
    (including eventual NULs in the middle or end of the string).
