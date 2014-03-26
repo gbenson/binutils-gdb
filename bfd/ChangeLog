@@ -1,8 +1,23 @@
+2014-03-25  Will Newton  <will.newton@linaro.org>
+
+	 * elfnn-aarch64.c (elfNN_aarch64_finish_dynamic_sections):
+	 Set value of DT_PLTRELSZ and DT_RELASZ based on the size
+	 of input sections rather than output sections.
+
+2014-03-20  Will Newton  <will.newton@linaro.org>
+
+	PR ld/16715
+	* elf32-arm.c (elf32_arm_check_relocs): Set
+	pointer_equality_needed for absolute references within
+	executable links.
+	(elf32_arm_finish_dynamic_symbol): Set st_value to zero
+	unless pointer_equality_needed is set.
+
 2014-03-19  Nick Clifton  <nickc@redhat.com>
 
-	* peXXigen.c (rsrc_align): New function.  Attempts to cope with
-	alignment variances when .rsrc sections are merged.
-	(rsrc_process_section): Use rsrc_align.
+	* peXXigen.c (rsrc_process_section): Add code to scan input
+	sections and record their lengths.  Use these lengths to find the
+	start of each merged .rsrc section.
 
 2014-03-17  Tristan Gingold  <gingold@adacore.com>
 
