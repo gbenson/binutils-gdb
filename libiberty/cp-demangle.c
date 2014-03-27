@@ -4703,7 +4703,7 @@ d_print_comp_XXX (struct d_print_info *dpi, int options,
 		      }
 		  }
 
-		//if (!found_self)
+		if (!found_self)
 		  {
 		    saved_templates = dpi->templates;
 		    dpi->templates = scope->templates;
