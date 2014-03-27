@@ -4686,6 +4686,30 @@ d_print_comp_XXX (struct d_print_info *dpi, int options,
 		if (d_print_saw_error (dpi))
 		  return;
 	      }
+	    else
+	      {
+		const struct d_component_stack *xxx;
+		int found_self = 0;
+
+		/* This traversal is reentering SUB as a substition.
+		   If we are not beneath SUB in the tree then we need
+		   to restore SUB's template stack temporarily.  */
+		for (xxx = dpi->component_stack; xxx != NULL; xxx = xxx->next)
+		  {
+		    if (xxx->dc == sub)
+		      {
+			found_self = 1;
+			break;
+		      }
+		  }
+
+		//if (!found_self)
+		  {
+		    saved_templates = dpi->templates;
+		    dpi->templates = scope->templates;
+		    need_template_restore = 1;
+		  }
+	      }
 
 	    a = d_lookup_template_argument (dpi, sub);
 	    if (a && a->type == DEMANGLE_COMPONENT_TEMPLATE_ARGLIST)
