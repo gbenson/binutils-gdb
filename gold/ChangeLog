@@ -1,3 +1,72 @@
+2014-05-05  Cary Coutant  <ccoutant@google.com>
+        
+	* gdb-index.cc (Gdb_index_info_reader): Don't complain about language
+	if we have pubnames/pubtypes.
+
+2014-05-02  Cary Coutant  <ccoutant@google.com>
+
+    	* defstd.cc (in_segment): Define __ehdr_start here...
+    	* layout.cc (Layout::finalize): ...Instead of here.  Set the
+    	output segment when known.
+    	* resolve.cc (Symbol::override_base_with_special): Remember
+    	the original binding.
+    	* symtab.cc (Symbol::set_output_segment): New function.
+    	(Symbol::set_undefined): New function.
+    	* symtab.h (Symbol::is_weak_undefined): Check original undef
+    	binding.
+    	(Symbol::is_strong_undefined): New function.
+    	(Symbol::set_output_segment): New function.
+    	(Symbol::set_undefined): New function.
+    	* target-reloc.h (is_strong_undefined): Remove.
+    	(issue_undefined_symbol_error): Call Symbol::is_weak_undefined.
+    	Check for hidden undefs.
+    	(relocate_section): Call Symbol::is_strong_undefined.
+    
+    	* testsuite/Makefile.am (ehdr_start_test_1)
+    	(ehdr_start_test_2, ehdr_start_test_3)
+    	(ehdr_start_test_4, ehdr_start_test_5): New test cases.
+    	* testsuite/Makefile.in: Regenerate.
+    	* testsuite/ehdr_start_def.cc: New source file.
+    	* testsuite/ehdr_start_test.cc: New source file.
+    	* testsuite/ehdr_start_test.t: New linker script.
+    	* testsuite/ehdr_start_test_4.sh: New shell script.
+
+2014-04-23  Cary Coutant  <ccoutant@google.com>
+
+	PR gold/16870
+	* x86_64.cc (Target_x86_64::Relocate::relocate): Add missing break.
+
+2014-04-15  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* layout.cc (Layout::include_section): Allow a target to decide
+	whether to include a section.
+	* target.h (Target::should_include_section): New function.
+	(Target::do_should_include_section): New function.
+
+2014-04-15  Sasa Stankovic  <Sasa.Stankovic@imgtec.com>
+
+	* copy-relocs.cc (Copy_relocs::Copy_reloc_entry::emit): Remove and
+	inline into ...
+	(Copy_relocs::emit): ... here.
+	* copy-relocs.h (Copy_reloc_entry): Change from class to struct.
+	(Copy_reloc_entry::make_copy_reloc): Change from private to protected.
+	(Copy_reloc_entry::entries_): Change from private to protected.
+
+2014-04-02  Sriraman Tallam  <tmsriram@google.com>
+
+	* icf.cc (get_section_contents): Replace copies of reloc
+	vectors with const references.
+
+2014-04-02  Cary Coutant  <ccoutant@google.com>
+
+	* configure.ac (HAVE_PUBNAMES): Use C instead of C++.
+	(HAVE_NO_USE_LINKER_PLUGIN): Check for -fno-use-linker-plugin.
+	* configure: Regenerate.
+	* testsuite/Makefile.am (OPT_NO_PLUGINS): New macro for
+	-fno-use-linker-plugin.
+	(LINK1, CXXLINK1): Add it to the link command.
+	* testsuite/Makefile.in: Regenerate.
+
 2014-03-12  Alan Modra  <amodra@gmail.com>
 
 	* Makefile.in: Regenerate.

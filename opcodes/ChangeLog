@@ -1,3 +1,122 @@
+2014-05-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16893
+	* i386-dis.c (twobyte_has_mandatory_prefix): New variable.
+	(end_codep): Likewise.
+	(mandatory_prefix): Likewise.
+	(active_seg_prefix): Likewise.
+	(ckprefix): Set active_seg_prefix to the active segment register
+	prefix.
+	(seg_prefix): Removed.
+	(get_valid_dis386): Use the last of PREFIX_REPNZ and PREFIX_REPZ
+	for prefix index.  Ignore the index if it is invalid and the
+	mandatory prefix isn't required.
+	(print_insn): Set mandatory_prefix if the PREFIX_XXX prefix is
+	mandatory.  Don't set PREFIX_REPZ/PREFIX_REPNZ/PREFIX_LOCK bits
+	in used_prefixes here.  Don't print unused prefixes.  Check
+	active_seg_prefix for the active segment register prefix.
+	Restore the DFLAG bit in sizeflag if the data size prefix is
+	unused.  Check the unused mandatory PREFIX_XXX prefixes
+	(append_seg): Only print the segment register which gets used.
+	(OP_E_memory): Check active_seg_prefix for the segment register
+	prefix.
+	(OP_OFF): Likewise.
+	(OP_OFF64): Likewise.
+	(OP_DSreg): Set active_seg_prefix to PREFIX_DS if it is unset.
+
+2014-05-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16886
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* configure.in: Check if sigsetjmp is available.
+	* h8500-dis.c (private): Replace jmp_buf with OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn_h8500): Replace setjmp with OPCODES_SIGSETJMP.
+	* i386-dis.c (dis_private): Replace jmp_buf with OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn): Replace setjmp with OPCODES_SIGSETJMP.
+	* ns32k-dis.c (private): Replace jmp_buf with OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn_ns32k): Replace setjmp with OPCODES_SIGSETJMP.
+	* sysdep.h (OPCODES_SIGJMP_BUF): New macro.
+	(OPCODES_SIGSETJMP): Likewise.
+	(OPCODES_SIGLONGJMP): Likewise.
+	* vax-dis.c (private): Replace jmp_buf with OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn_vax): Replace setjmp with OPCODES_SIGSETJMP.
+	* xtensa-dis.c (dis_private): Replace jmp_buf with
+	OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn_xtensa): Replace setjmp with OPCODES_SIGSETJMP.
+	* z8k-dis.c(instr_data_s): Replace jmp_buf with OPCODES_SIGJMP_BUF.
+	(fetch_data): Replace longjmp with OPCODES_SIGLONGJMP.
+	(print_insn_z8k): Replace setjmp with OPCODES_SIGSETJMP.
+
+2014-05-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/16891
+	* i386-dis.c (print_insn): Handle prefixes before fwait.
+
+2014-04-26  Alan Modra  <amodra@gmail.com>
+
+	* po/POTFILES.in: Regenerate.
+
+2014-04-23  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* mips-dis.c (mips_arch_choices): Update mips32r2 and mips64r2
+	to allow the MIPS XPA ASE.
+	(parse_mips_dis_option): Process the -Mxpa option.
+	* mips-opc.c (XPA): New define.
+	(mips_builtin_opcodes): Add MIPS XPA instructions and move the
+	locations of the ctc0 and cfc0 instructions.
+
+2014-04-22  Christian Svensson  <blue@cmd.nu>
+
+	* Makefile.am: Remove openrisc and or32 support.  Add support for or1k.
+	* configure.in: Likewise.
+	* disassemble.c: Likewise.
+	* or1k-asm.c: New file.
+	* or1k-desc.c: New file.
+	* or1k-desc.h: New file.
+	* or1k-dis.c: New file.
+	* or1k-ibld.c: New file.
+	* or1k-opc.c: New file.
+	* or1k-opc.h: New file.
+	* or1k-opinst.c: New file.
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* openrisc-asm.c: Delete.
+	* openrisc-desc.c: Delete.
+	* openrisc-desc.h: Delete.
+	* openrisc-dis.c: Delete.
+	* openrisc-ibld.c: Delete.
+	* openrisc-opc.c: Delete.
+	* openrisc-opc.h: Delete.
+	* or32-dis.c: Delete.
+	* or32-opc.c: Delete.
+
+2014-04-04  Ilya Tocar  <ilya.tocar@intel.com>
+
+	* i386-dis.c (rm_table): Add encls, enclu.
+	* i386-gen.c (cpu_flag_init): Add CPU_SE1_FLAGS,
+	(cpu_flags): Add CpuSE1.
+	* i386-opc.h (enum): Add CpuSE1.
+	(i386_cpu_flags): Add cpuse1.
+	* i386-opc.tbl: Add encls, enclu.
+	* i386-init.h: Regenerated.
+	* i386-tbl.h: Likewise.
+
+2014-04-02  Anthony Green  <green@moxielogic.com>
+
+	* moxie-opc.c (moxie_form1_opc_info): Add sign-extension
+	instructions, sex.b and sex.s.
+
+2014-03-26  Jiong Wang  <jiong.wang@arm.com>
+
+	* aarch64-dis.c (aarch64_ext_ldst_elemlist): Check H/S undefined
+	instructions.
+
 2014-03-20  Ilya Tocar  <ilya.tocar@intel.com>
 
 	* i386-opc.tbl: Change memory size for vgatherpf0qps, vgatherpf1qps,

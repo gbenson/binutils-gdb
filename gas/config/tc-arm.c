@@ -3328,8 +3328,6 @@ s_ltorg (int ignored ATTRIBUTE_UNUSED)
       || pool->next_free_entry == 0)
     return;
 
-  mapping_state (MAP_DATA);
-
   /* Align pool as you have word accesses.
      Only make a frag if we have to.  */
   if (!need_pass_2)
@@ -3337,6 +3335,10 @@ s_ltorg (int ignored ATTRIBUTE_UNUSED)
 
   record_alignment (now_seg, 2);
 
+#ifdef OBJ_ELF
+  seg_info (now_seg)->tc_segment_info_data.mapstate = MAP_DATA;
+  make_mapping_symbol (MAP_DATA, (valueT) frag_now_fix (), frag_now);
+#endif
   sprintf (sym_name, "$$lit_\002%x", pool->id);
 
   symbol_locate (pool->symbol, sym_name, now_seg,
@@ -20992,7 +20994,7 @@ start_unwind_section (const segT text_seg, int idx)
 
 /* Start an unwind table entry.	 HAVE_DATA is nonzero if we have additional
    personality routine data.  Returns zero, or the index table value for
-   and inline entry.  */
+   an inline entry.  */
 
 static valueT
 create_unwind_entry (int have_data)
@@ -21063,7 +21065,12 @@ create_unwind_entry (int have_data)
     }
   else
     {
-      gas_assert (unwind.personality_index == -1);
+      /* PR 16765: Missing or misplaced unwind directives can trigger this.  */
+      if (unwind.personality_index != -1)
+	{
+	  as_bad (_("attempt to recreate an unwind entry"));
+	  return 1;
+	}
 
       /* An extra byte is required for the opcode count.	*/
       size = unwind.opcode_count + 1;
@@ -23154,9 +23161,9 @@ void
 cons_fix_new_arm (fragS *	frag,
 		  int		where,
 		  int		size,
-		  expressionS * exp)
+		  expressionS * exp,
+		  bfd_reloc_code_real_type reloc)
 {
-  bfd_reloc_code_real_type type;
   int pcrel = 0;
 
   /* Pick a reloc.
@@ -23164,17 +23171,17 @@ cons_fix_new_arm (fragS *	frag,
   switch (size)
     {
     case 1:
-      type = BFD_RELOC_8;
+      reloc = BFD_RELOC_8;
       break;
     case 2:
-      type = BFD_RELOC_16;
+      reloc = BFD_RELOC_16;
       break;
     case 4:
     default:
-      type = BFD_RELOC_32;
+      reloc = BFD_RELOC_32;
       break;
     case 8:
-      type = BFD_RELOC_64;
+      reloc = BFD_RELOC_64;
       break;
     }
 
@@ -23182,11 +23189,11 @@ cons_fix_new_arm (fragS *	frag,
   if (exp->X_op == O_secrel)
   {
     exp->X_op = O_symbol;
-    type = BFD_RELOC_32_SECREL;
+    reloc = BFD_RELOC_32_SECREL;
   }
 #endif
 
-  fix_new_exp (frag, where, (int) size, exp, pcrel, type);
+  fix_new_exp (frag, where, size, exp, pcrel, reloc);
 }
 
 #if defined (OBJ_COFF)

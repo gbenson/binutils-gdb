@@ -60,6 +60,10 @@ static unsigned int stap_expression_debug = 0;
    The relationship is:
 
    - STAP_ARG_BITNESS_UNDEFINED:  The user hasn't specified the bitness.
+   - STAP_ARG_BITNESS_8BIT_UNSIGNED:  argument string starts with `1@'.
+   - STAP_ARG_BITNESS_8BIT_SIGNED:  argument string starts with `-1@'.
+   - STAP_ARG_BITNESS_16BIT_UNSIGNED:  argument string starts with `2@'.
+   - STAP_ARG_BITNESS_16BIT_SIGNED:  argument string starts with `-2@'.
    - STAP_ARG_BITNESS_32BIT_UNSIGNED:  argument string starts with `4@'.
    - STAP_ARG_BITNESS_32BIT_SIGNED:  argument string starts with `-4@'.
    - STAP_ARG_BITNESS_64BIT_UNSIGNED:  argument string starts with `8@'.
@@ -68,6 +72,10 @@ static unsigned int stap_expression_debug = 0;
 enum stap_arg_bitness
 {
   STAP_ARG_BITNESS_UNDEFINED,
+  STAP_ARG_BITNESS_8BIT_UNSIGNED,
+  STAP_ARG_BITNESS_8BIT_SIGNED,
+  STAP_ARG_BITNESS_16BIT_UNSIGNED,
+  STAP_ARG_BITNESS_16BIT_SIGNED,
   STAP_ARG_BITNESS_32BIT_UNSIGNED,
   STAP_ARG_BITNESS_32BIT_SIGNED,
   STAP_ARG_BITNESS_64BIT_UNSIGNED,
@@ -328,6 +336,18 @@ stap_get_expected_argument_type (struct gdbarch *gdbarch,
 	return builtin_type (gdbarch)->builtin_uint32;
       else
 	return builtin_type (gdbarch)->builtin_uint64;
+
+    case STAP_ARG_BITNESS_8BIT_UNSIGNED:
+      return builtin_type (gdbarch)->builtin_uint8;
+
+    case STAP_ARG_BITNESS_8BIT_SIGNED:
+      return builtin_type (gdbarch)->builtin_int8;
+
+    case STAP_ARG_BITNESS_16BIT_UNSIGNED:
+      return builtin_type (gdbarch)->builtin_uint16;
+
+    case STAP_ARG_BITNESS_16BIT_SIGNED:
+      return builtin_type (gdbarch)->builtin_int16;
 
     case STAP_ARG_BITNESS_32BIT_SIGNED:
       return builtin_type (gdbarch)->builtin_int32;
@@ -601,12 +621,12 @@ stap_parse_register_operand (struct stap_parse_info *p)
       p->arg = endp;
 
       /* Generating the expression for the displacement.  */
-      write_exp_elt_opcode (OP_LONG);
-      write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
-      write_exp_elt_longcst (displacement);
-      write_exp_elt_opcode (OP_LONG);
+      write_exp_elt_opcode (&p->pstate, OP_LONG);
+      write_exp_elt_type (&p->pstate, builtin_type (gdbarch)->builtin_long);
+      write_exp_elt_longcst (&p->pstate, displacement);
+      write_exp_elt_opcode (&p->pstate, OP_LONG);
       if (got_minus)
-	write_exp_elt_opcode (UNOP_NEG);
+	write_exp_elt_opcode (&p->pstate, UNOP_NEG);
     }
 
   /* Getting rid of register indirection prefix.  */
@@ -660,23 +680,23 @@ stap_parse_register_operand (struct stap_parse_info *p)
     error (_("Invalid register name `%s' on expression `%s'."),
 	   regname, p->saved_arg);
 
-  write_exp_elt_opcode (OP_REGISTER);
+  write_exp_elt_opcode (&p->pstate, OP_REGISTER);
   str.ptr = regname;
   str.length = len;
-  write_exp_string (str);
-  write_exp_elt_opcode (OP_REGISTER);
+  write_exp_string (&p->pstate, str);
+  write_exp_elt_opcode (&p->pstate, OP_REGISTER);
 
   if (indirect_p)
     {
       if (disp_p)
-	write_exp_elt_opcode (BINOP_ADD);
+	write_exp_elt_opcode (&p->pstate, BINOP_ADD);
 
       /* Casting to the expected type.  */
-      write_exp_elt_opcode (UNOP_CAST);
-      write_exp_elt_type (lookup_pointer_type (p->arg_type));
-      write_exp_elt_opcode (UNOP_CAST);
+      write_exp_elt_opcode (&p->pstate, UNOP_CAST);
+      write_exp_elt_type (&p->pstate, lookup_pointer_type (p->arg_type));
+      write_exp_elt_opcode (&p->pstate, UNOP_CAST);
 
-      write_exp_elt_opcode (UNOP_IND);
+      write_exp_elt_opcode (&p->pstate, UNOP_IND);
     }
 
   /* Getting rid of the register name suffix.  */
@@ -767,9 +787,9 @@ stap_parse_single_operand (struct stap_parse_info *p)
 	  ++p->arg;
 	  stap_parse_argument_conditionally (p);
 	  if (c == '-')
-	    write_exp_elt_opcode (UNOP_NEG);
+	    write_exp_elt_opcode (&p->pstate, UNOP_NEG);
 	  else if (c == '~')
-	    write_exp_elt_opcode (UNOP_COMPLEMENT);
+	    write_exp_elt_opcode (&p->pstate, UNOP_COMPLEMENT);
 	}
       else
 	{
@@ -807,10 +827,11 @@ stap_parse_single_operand (struct stap_parse_info *p)
 	  const char *int_suffix;
 
 	  /* We are dealing with a numeric constant.  */
-	  write_exp_elt_opcode (OP_LONG);
-	  write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
-	  write_exp_elt_longcst (number);
-	  write_exp_elt_opcode (OP_LONG);
+	  write_exp_elt_opcode (&p->pstate, OP_LONG);
+	  write_exp_elt_type (&p->pstate,
+			      builtin_type (gdbarch)->builtin_long);
+	  write_exp_elt_longcst (&p->pstate, number);
+	  write_exp_elt_opcode (&p->pstate, OP_LONG);
 
 	  p->arg = tmp;
 
@@ -837,10 +858,10 @@ stap_parse_single_operand (struct stap_parse_info *p)
       number = strtol (p->arg, &endp, 10);
       p->arg = endp;
 
-      write_exp_elt_opcode (OP_LONG);
-      write_exp_elt_type (builtin_type (gdbarch)->builtin_long);
-      write_exp_elt_longcst (number);
-      write_exp_elt_opcode (OP_LONG);
+      write_exp_elt_opcode (&p->pstate, OP_LONG);
+      write_exp_elt_type (&p->pstate, builtin_type (gdbarch)->builtin_long);
+      write_exp_elt_longcst (&p->pstate, number);
+      write_exp_elt_opcode (&p->pstate, OP_LONG);
 
       if (stap_check_integer_suffix (gdbarch, p->arg, &int_suffix))
 	p->arg += strlen (int_suffix);
@@ -987,7 +1008,7 @@ stap_parse_argument_1 (struct stap_parse_info *p, int has_lhs,
 	  stap_parse_argument_1 (p, 1, lookahead_prec);
 	}
 
-      write_exp_elt_opcode (opcode);
+      write_exp_elt_opcode (&p->pstate, opcode);
     }
 }
 
@@ -1028,8 +1049,8 @@ stap_parse_argument (const char **arg, struct type *atype,
   /* We need to initialize the expression buffer, in order to begin
      our parsing efforts.  The language here does not matter, since we
      are using our own parser.  */
-  initialize_expout (10, current_language, gdbarch);
-  back_to = make_cleanup (free_current_contents, &expout);
+  initialize_expout (&p.pstate, 10, current_language, gdbarch);
+  back_to = make_cleanup (free_current_contents, &p.pstate.expout);
 
   p.saved_arg = *arg;
   p.arg = *arg;
@@ -1044,16 +1065,17 @@ stap_parse_argument (const char **arg, struct type *atype,
   gdb_assert (p.inside_paren_p == 0);
 
   /* Casting the final expression to the appropriate type.  */
-  write_exp_elt_opcode (UNOP_CAST);
-  write_exp_elt_type (atype);
-  write_exp_elt_opcode (UNOP_CAST);
+  write_exp_elt_opcode (&p.pstate, UNOP_CAST);
+  write_exp_elt_type (&p.pstate, atype);
+  write_exp_elt_opcode (&p.pstate, UNOP_CAST);
 
-  reallocate_expout ();
+  reallocate_expout (&p.pstate);
 
   p.arg = skip_spaces_const (p.arg);
   *arg = p.arg;
 
-  return expout;
+  /* We can safely return EXPOUT here.  */
+  return p.pstate.expout;
 }
 
 /* Function which parses an argument string from PROBE, correctly splitting
@@ -1093,13 +1115,11 @@ stap_parse_probe_arguments (struct stap_probe *probe, struct gdbarch *gdbarch)
 
 	 N@OP
 
-	 Where `N' can be [+,-][4,8].  This is not mandatory, so
+	 Where `N' can be [+,-][1,2,4,8].  This is not mandatory, so
 	 we check it here.  If we don't find it, go to the next
 	 state.  */
-      if ((*cur == '-' && cur[1] != '\0' && cur[2] != '@')
-	  && cur[1] != '@')
-	arg.bitness = STAP_ARG_BITNESS_UNDEFINED;
-      else
+      if ((cur[0] == '-' && isdigit (cur[1]) && cur[2] == '@')
+	  || (isdigit (cur[0]) && cur[1] == '@'))
 	{
 	  if (*cur == '-')
 	    {
@@ -1108,28 +1128,48 @@ stap_parse_probe_arguments (struct stap_probe *probe, struct gdbarch *gdbarch)
 	      got_minus = 1;
 	    }
 
-	  if (*cur == '4')
-	    b = (got_minus ? STAP_ARG_BITNESS_32BIT_SIGNED
-		 : STAP_ARG_BITNESS_32BIT_UNSIGNED);
-	  else if (*cur == '8')
-	    b = (got_minus ? STAP_ARG_BITNESS_64BIT_SIGNED
-		 : STAP_ARG_BITNESS_64BIT_UNSIGNED);
-	  else
+	  /* Defining the bitness.  */
+	  switch (*cur)
 	    {
-	      /* We have an error, because we don't expect anything
-		 except 4 and 8.  */
-	      complaint (&symfile_complaints,
-			 _("unrecognized bitness `%c' for probe `%s'"),
-			 *cur, probe->p.name);
-	      return;
+	    case '1':
+	      b = (got_minus ? STAP_ARG_BITNESS_8BIT_SIGNED
+		   : STAP_ARG_BITNESS_8BIT_UNSIGNED);
+	      break;
+
+	    case '2':
+	      b = (got_minus ? STAP_ARG_BITNESS_16BIT_SIGNED
+		   : STAP_ARG_BITNESS_16BIT_UNSIGNED);
+	      break;
+
+	    case '4':
+	      b = (got_minus ? STAP_ARG_BITNESS_32BIT_SIGNED
+		   : STAP_ARG_BITNESS_32BIT_UNSIGNED);
+	      break;
+
+	    case '8':
+	      b = (got_minus ? STAP_ARG_BITNESS_64BIT_SIGNED
+		   : STAP_ARG_BITNESS_64BIT_UNSIGNED);
+	      break;
+
+	    default:
+	      {
+		/* We have an error, because we don't expect anything
+		   except 1, 2, 4 and 8.  */
+		warning (_("unrecognized bitness %s%c' for probe `%s'"),
+			 got_minus ? "`-" : "`", *cur, probe->p.name);
+		return;
+	      }
 	    }
 
 	  arg.bitness = b;
-	  arg.atype = stap_get_expected_argument_type (gdbarch, b);
 
 	  /* Discard the number and the `@' sign.  */
 	  cur += 2;
 	}
+      else
+	arg.bitness = STAP_ARG_BITNESS_UNDEFINED;
+
+      arg.atype = stap_get_expected_argument_type (gdbarch, arg.bitness);
 
       expr = stap_parse_argument (&cur, arg.atype, gdbarch);
 
