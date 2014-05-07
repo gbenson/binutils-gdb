@@ -275,15 +275,14 @@ struct d_growable_string
   int allocation_failure;
 };
 
-/* XXX.  */
+/* Stack of components, innermost first, used to avoid loops.  */
 
 struct d_component_stack
 {
-  /* XXX.  */
-  const struct d_component_stack *parent;
-
-  /* XXX.  */
+  /* This component.  */
   const struct demangle_component *dc;
+  /* This component's parent.  */
+  const struct d_component_stack *parent;
 };
 
 /* A demangle component and some scope captured when it was first
@@ -338,7 +337,7 @@ struct d_print_info
   int pack_index;
   /* Number of d_print_flush calls so far.  */
   unsigned long int flush_count;
-  /* XXX.  */
+  /* Stack of components, innermost first, used to avoid loops.  */
   const struct d_component_stack *component_stack;
   /* Array of saved scopes for evaluating substitutions.  */
   struct d_saved_scope *saved_scopes;
