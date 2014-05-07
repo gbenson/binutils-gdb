@@ -280,7 +280,7 @@ struct d_growable_string
 struct d_component_stack
 {
   /* XXX.  */
-  const struct d_component_stack *next;
+  const struct d_component_stack *parent;
 
   /* XXX.  */
   const struct demangle_component *dc;
@@ -4694,10 +4694,10 @@ d_print_comp_XXX (struct d_print_info *dpi, int options,
 		/* This traversal is reentering SUB as a substition.
 		   If we are not beneath SUB or DC in the tree then we
 		   need to restore SUB's template stack temporarily.  */
-		for (xxx = dpi->component_stack; xxx != NULL; xxx = xxx->next)
+		for (xxx = dpi->component_stack; xxx != NULL; xxx = xxx->parent)
 		  {
 		    if (xxx->dc == sub
-			|| xxx->dc == dc && xxx != dpi->component_stack)
+			|| (xxx->dc == dc && xxx != dpi->component_stack))
 		      {
 			found_self_or_parent = 1;
 			break;
@@ -5352,15 +5352,15 @@ static void
 d_print_comp (struct d_print_info *dpi, int options,
 	      const struct demangle_component *dc)
 {
-  struct d_component_stack save;
+  struct d_component_stack self;
 
-  save.dc = dc;
-  save.next = dpi->component_stack;
-  dpi->component_stack = &save;
+  self.dc = dc;
+  self.parent = dpi->component_stack;
+  dpi->component_stack = &self;
 
   d_print_comp_XXX (dpi, options, dc);
 
-  dpi->component_stack = save.next;
+  dpi->component_stack = self.parent;
 }
 
 /* Print a Java dentifier.  For Java we try to handle encoded extended
