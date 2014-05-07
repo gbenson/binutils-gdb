@@ -4687,16 +4687,18 @@ d_print_comp_inner (struct d_print_info *dpi, int options,
 	      }
 	    else
 	      {
-		const struct d_component_stack *xxx;
+		const struct d_component_stack *dcse;
 		int found_self_or_parent = 0;
 
 		/* This traversal is reentering SUB as a substition.
 		   If we are not beneath SUB or DC in the tree then we
 		   need to restore SUB's template stack temporarily.  */
-		for (xxx = dpi->component_stack; xxx != NULL; xxx = xxx->parent)
+		for (dcse = dpi->component_stack; dcse != NULL;
+		     dcse = dcse->parent)
 		  {
-		    if (xxx->dc == sub
-			|| (xxx->dc == dc && xxx != dpi->component_stack))
+		    if (dcse->dc == sub
+			|| (dcse->dc == dc
+			    && dcse != dpi->component_stack))
 		      {
 			found_self_or_parent = 1;
 			break;
