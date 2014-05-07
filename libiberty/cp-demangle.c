@@ -4284,7 +4284,7 @@ d_get_saved_scope (struct d_print_info *dpi,
 /* Subroutine to handle components.  */
 
 static void
-d_print_comp_XXX (struct d_print_info *dpi, int options,
+d_print_comp_inner (struct d_print_info *dpi, int options,
 		  const struct demangle_component *dc)
 {
   /* Magic variable to let reference smashing skip over the next modifier
@@ -5358,7 +5358,7 @@ d_print_comp (struct d_print_info *dpi, int options,
   self.parent = dpi->component_stack;
   dpi->component_stack = &self;
 
-  d_print_comp_XXX (dpi, options, dc);
+  d_print_comp_inner (dpi, options, dc);
 
   dpi->component_stack = self.parent;
 }
