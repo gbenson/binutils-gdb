@@ -1,3 +1,19 @@
+2014-05-07  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* aoutx.h (NAME (aout, machine_type)): Add mips32r3, mips64r3,
+	mips32r5 and mips64r5.
+	* archures.c (bfd_architecture): Likewise.
+	* bfd-in2.h (bfd_architecture): Likewise.
+	* cpu-mips.c (arch_info_struct): Likewise.
+	* elfxx-mips.c (mips_set_isa_flags): Likewise.
+
+2014-05-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* elfxx-mips.h (elfxx-mips.h): Declare.
+	* elfxx-mips.c (mips_elf_merge_obj_attributes): Use it to report
+	Tag_GNU_MIPS_ABI_FP mismatches.
+	(_bfd_mips_fp_abi_string): New function.
+
 2014-05-02  Alan Modra  <amodra@gmail.com>
 
 	* targets.c: Sort bfd_target vectors somewhat alphabetically.
