@@ -1,3 +1,13 @@
+2014-05-07  Gary Benson  <gbenson@redhat.com>
+
+	* cp-demangle.c (struct d_component_stack): New structure.
+	(struct d_print_info): New field component_stack.
+	(d_print_init): Initialize the above.
+	(d_print_comp_inner): Renamed from d_print_comp.
+	Do not restore template stack if it would cause a loop.
+	(d_print_comp): New function.
+	* testsuite/demangle-expected: New test cases.
+
 diff --git a/libiberty/cp-demangle.c b/libiberty/cp-demangle.c
 index bf2ffa9..41c86c7 100644
 --- a/libiberty/cp-demangle.c
