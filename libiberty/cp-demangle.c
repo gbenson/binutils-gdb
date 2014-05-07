@@ -4690,6 +4690,7 @@ d_print_comp_XXX (struct d_print_info *dpi, int options,
 	      {
 		const struct d_component_stack *xxx;
 		int found_self = 0;
+		int found_parent = 0;
 
 		/* This traversal is reentering SUB as a substition.
 		   If we are not beneath SUB in the tree then we need
@@ -4699,11 +4700,14 @@ d_print_comp_XXX (struct d_print_info *dpi, int options,
 		    if (xxx->dc == sub)
 		      {
 			found_self = 1;
-			break;
+		      }
+		    else if (xxx != dpi->component_stack && xxx->dc == dc)
+		      {
+			found_parent = 1;
 		      }
 		  }
 
-		if (!found_self)
+		if (!found_self && !found_parent)
 		  {
 		    saved_templates = dpi->templates;
 		    dpi->templates = scope->templates;
