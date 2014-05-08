@@ -1509,7 +1509,7 @@ cp_lookup_rtti_type (const char *name, struct block *block)
 /* Signal handler for gdb_demangle.  */
 
 static void
-demangle_signal_handler (int signo)
+gdb_demangle_signal_handler (int signo)
 {
   throw_error (GENERIC_ERROR, _("demangler failed with signal %d"),
 	       signo);
@@ -1528,14 +1528,14 @@ gdb_demangle (const char *name, int options)
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
   struct sigaction sa, old_sa;
 
-  sa.sa_handler = demangle_signal_handler;
+  sa.sa_handler = gdb_demangle_signal_handler;
   sigemptyset (&sa.sa_mask);
   sa.sa_flags = 0;
   sigaction (SIGSEGV, &sa, &old_sa);
 #else
   void (*ofunc) ();
 
-  ofunc = (void (*)()) signal (SIGSEGV, demangle_signal_handler);
+  ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
 #endif
 #endif
 
