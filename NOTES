@@ -1,0 +1,29 @@
+1. grep -r cplus_demangle gdb:
+
+   gdb/stabsread.c:             we use cplus_demangle_opname (which is actu
+   gdb/stabsread.c:              ret = cplus_demangle_opname (new_fnlist->f
+   gdb/stabsread.c:                ret = cplus_demangle_opname (new_fnlist-
+   gdb/valops.c:     if (cplus_demangle_opname (t_field_name, dem_opname, D
+   gdb/valops.c:     else if (cplus_demangle_opname (t_field_name, dem_opna
+   gdb/valops.c:     if (cplus_demangle_opname (t_field_name,
+   gdb/valops.c:     else if (cplus_demangle_opname (t_field_name,
+   gdb/linespec.c:       if (cplus_demangle_opname (method_name, dem_opname
+   gdb/linespec.c:       else if (cplus_demangle_opname (method_name, dem_o
+   gdb/cp-support.c:      ret = cplus_demangle_v3_components (mangled_name,
+   gdb/gdbtypes.c:      ret = cplus_demangle_opname (TYPE_FN_FIELDLIST_NAME
+   gdb/gdbtypes.c: ret = cplus_demangle_opname (TYPE_FN_FIELDLIST_NAME (typ
+   gdb/cp-name-parser.y:  i = cplus_demangle_fill_component (ret, d_type, l
+   gdb/cp-name-parser.y:  i = cplus_demangle_fill_operator (ret, name, args
+   gdb/cp-name-parser.y:  i = cplus_demangle_fill_dtor (ret, kind, name);
+   gdb/cp-name-parser.y:  i = cplus_demangle_fill_builtin_type (ret, name);
+   gdb/cp-name-parser.y:  i = cplus_demangle_fill_name (ret, name, len);
+   gdb/cp-name-parser.y:                     /* Match the whitespacing of c
+   gdb/cp-name-parser.y:                     /* Match the whitespacing of c
+   gdb/cp-name-parser.y:                     /* Match the whitespacing of c
+   gdb/cp-name-parser.y:                     /* Match the whitespacing of c
+   gdb/cp-name-parser.y:             /* Match the whitespacing of cplus_dem
+   gdb/cp-name-parser.y:   cplus_demangle_print does not, specifically the
+   gdb/cp-name-parser.y:  return cplus_demangle_print (DMGL_PARAMS | DMGL_A
+   gdb/cp-name-parser.y:  str = cplus_demangle_print (DMGL_PARAMS | DMGL_AN
+   gdb/cp-name-parser.y:   str2 = cplus_demangle (buf, DMGL_PARAMS | DMGL_A
+   gdb/gnu-v2-abi.c:  demangled_name=cplus_demangle(linkage_name,DMGL_PARAM
