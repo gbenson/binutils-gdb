@@ -1,0 +1,104 @@
+diff --git a/gdb/cp-support.c b/gdb/cp-support.c
+index 91533e8..bc74bf1 100644
+--- a/gdb/cp-support.c
++++ b/gdb/cp-support.c
+@@ -36,6 +36,7 @@
+ #include "value.h"
+ #include "cp-abi.h"
+ #include "language.h"
++#include <signal.h>
+ 
+ #include "safe-ctype.h"
+ 
+@@ -1505,12 +1506,59 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+   return rtti_type;
+ }
+ 
++/* Signal handler for gdb_demangle.  */
++
++static void
++gdb_demangle_signal_handler (int signo)
++{
++  throw_error (GENERIC_ERROR, _("demangler failed with signal %d"),
++	       signo);
++}
++
+ /* A wrapper for bfd_demangle.  */
+ 
+ char *
+ gdb_demangle (const char *name, int options)
+ {
+-  return bfd_demangle (NULL, name, options);
++  char *result = NULL;
++
++#ifdef SIGSEGV
++  volatile struct gdb_exception except;
++
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  struct sigaction sa, old_sa;
++
++  sa.sa_handler = gdb_demangle_signal_handler;
++  sigemptyset (&sa.sa_mask);
++  sa.sa_flags = 0;
++  sigaction (SIGSEGV, &sa, &old_sa);
++#else
++  void (*ofunc) ();
++
++  ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
++#endif
++#endif
++
++  TRY_CATCH (except, RETURN_MASK_ALL)
++    {
++      result = bfd_demangle (NULL, name, options);
++    }
++
++#ifdef SIGSEGV
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  sigaction (SIGSEGV, &old_sa, NULL);
++#else
++  signal (SIGSEGV, ofunc);
++#endif
++#endif
++
++  if (except.reason < 0)
++    {
++      warning ("internal error: %s", except.message);
++      result = NULL;
++    }
++
++  return result;
+ }
+ 
+ /* Don't allow just "maintenance cplus".  */
+diff --git a/gdb/testsuite/gdb.base/pr16817.exp b/gdb/testsuite/gdb.base/pr16817.exp
+new file mode 100644
+index 0000000..fff022c
+--- /dev/null
++++ b/gdb/testsuite/gdb.base/pr16817.exp
+@@ -0,0 +1,25 @@
++# Copyright 2014 Free Software Foundation, Inc.
++
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++# Test that a segmentation fault in the demangler does not cause GDB
++# to crash.  If the demangler becomes able to demangle the below
++# symbol then another symbol will need to be found for this test.
++
++set symbol "_QueueNotification_QueueController__\$4PPPPPPPM_A_INotice___Z"
++
++gdb_exit
++gdb_start
++gdb_test_no_output "set lang c++"
++gdb_test "maint demangle $symbol" ".*demangler failed.*"
