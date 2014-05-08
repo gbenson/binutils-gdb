@@ -36,6 +36,7 @@
 #include "value.h"
 #include "cp-abi.h"
 #include "language.h"
+#include <signal.h>
 
 #include "safe-ctype.h"
 
@@ -1505,12 +1506,40 @@ cp_lookup_rtti_type (const char *name, struct block *block)
   return rtti_type;
 }
 
+/* Signal handler for gdb_demangle.  */
+
+static void
+demangle_signal_handler (int signo)
+{
+  throw_error (GENERIC_ERROR, _("demangler failed with signal %d"),
+	       signo);
+}
+
 /* A wrapper for bfd_demangle.  */
 
 char *
 gdb_demangle (const char *name, int options)
 {
-  return bfd_demangle (NULL, name, options);
+  volatile struct gdb_exception except;
+  void (*ofunc) ();
+  char *result = NULL;
+
+  ofunc = (void (*)()) signal (SIGSEGV, demangle_signal_handler);
+
+  TRY_CATCH (except, RETURN_MASK_ALL)
+    {
+      result = bfd_demangle (NULL, name, options);
+    }
+
+  signal (SIGSEGV, ofunc);
+
+  if (except.reason < 0)
+    {
+      warning ("internal error: %s", except.message);
+      result = NULL;
+    }
+
+  return result;
 }
 
 /* Don't allow just "maintenance cplus".  */
