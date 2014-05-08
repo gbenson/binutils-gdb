@@ -1520,18 +1520,37 @@ demangle_signal_handler (int signo)
 char *
 gdb_demangle (const char *name, int options)
 {
-  volatile struct gdb_exception except;
-  void (*ofunc) ();
   char *result = NULL;
 
+#ifdef SIGSEGV
+  volatile struct gdb_exception except;
+
+#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
+  struct sigaction sa, old_sa;
+
+  sa.sa_handler = demangle_signal_handler;
+  sigemptyset (&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction (SIGSEGV, &sa, &old_sa);
+#else
+  void (*ofunc) ();
+
   ofunc = (void (*)()) signal (SIGSEGV, demangle_signal_handler);
+#endif
+#endif
 
   TRY_CATCH (except, RETURN_MASK_ALL)
     {
       result = bfd_demangle (NULL, name, options);
     }
 
+#ifdef SIGSEGV
+#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
+  sigaction (SIGSEGV, &old_sa, NULL);
+#else
   signal (SIGSEGV, ofunc);
+#endif
+#endif
 
   if (except.reason < 0)
     {
