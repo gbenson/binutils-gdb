@@ -1,5 +1,6 @@
 This patch wraps calls to the demangler with a segmentation fault
-handler.  If a segmentation fault occurs then a warning is printed.
+handler.  A warning is printed the first time a segmentation fault
+is caught.
 
 gdb/
 2014-05-09  Gary Benson  <gbenson@redhat.com>
@@ -17,7 +18,7 @@ gdb/testsuite/
 	* gdb.base/pr16817.exp: New file.
 
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
-index 91533e8..bc74bf1 100644
+index 91533e8..f1a0d49 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
 @@ -36,6 +36,7 @@
@@ -28,7 +29,7 @@ index 91533e8..bc74bf1 100644
  
  #include "safe-ctype.h"
  
-@@ -1505,12 +1506,59 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+@@ -1505,12 +1506,71 @@ cp_lookup_rtti_type (const char *name, struct block *block)
    return rtti_type;
  }
  
@@ -81,7 +82,19 @@ index 91533e8..bc74bf1 100644
 +
 +  if (except.reason < 0)
 +    {
-+      warning ("internal error: %s", except.message);
++      static int warning_printed = 0;
++
++      if (!warning_printed)
++	{
++	  warning ("internal error: %s\n"
++		   "Unable to demangle '%s'\n"
++		   "This is a bug, "
++		   "please report it to the GDB maintainers.",
++		   except.message, name);
++
++	  warning_printed = 1;
++	}
++
 +      result = NULL;
 +    }
 +
