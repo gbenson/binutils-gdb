@@ -1,3 +1,13 @@
+This patch replaces a call to cplus_demangle with a call to
+gdb_demangle.  This change was included in an RFC from last
+March [1] but omitted from the eventual commit.
+
+[1] https://sourceware.org/ml/gdb-patches/2013-03/msg00235.html
+
+2014-05-09  Gary Benson  <gbenson@redhat.com>
+
+	* gnu-v2-abi.c (gnuv2_value_rtti_type): Use gdb_demangle.
+
 diff --git a/gdb/gnu-v2-abi.c b/gdb/gnu-v2-abi.c
 index 4a488be..3ca01c3 100644
 --- a/gdb/gnu-v2-abi.c

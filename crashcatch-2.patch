@@ -1,3 +1,21 @@
+This patch wraps calls to the demangler with a segmentation fault
+handler.  If a segmentation fault occurs then a warning is printed.
+
+gdb/
+2014-05-09  Gary Benson  <gbenson@redhat.com>
+
+	PR backtrace/16817
+	* cp-support.c (signal.h): New include.
+	(gdb_demangle_signal_handler): New function.
+	(gdb_demangle): Install the above signal handler before calling
+	bfd_demangle, and restore the original signal handler afterwards.
+
+gdb/testsuite/
+2014-05-09  Gary Benson  <gbenson@redhat.com>
+
+	PR backtrace/16817
+	* gdb.base/pr16817.exp: New file.
+
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
 index 91533e8..bc74bf1 100644
 --- a/gdb/cp-support.c
