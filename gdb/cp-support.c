@@ -1506,14 +1506,33 @@ cp_lookup_rtti_type (const char *name, struct block *block)
   return rtti_type;
 }
 
+#ifdef SIGSEGV
+
+/* PortabiWrap set/long jmp so that it's more portable.  */
+
+#if defined(HAVE_SIGSETJMP)
+#define SIGJMP_BUF		sigjmp_buf
+#define SIGSETJMP(buf)		sigsetjmp((buf), 1)
+#define SIGLONGJMP(buf,val)	siglongjmp((buf), (val))
+#else
+#define SIGJMP_BUF		jmp_buf
+#define SIGSETJMP(buf)		setjmp(buf)
+#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
+#endif
+
+/* Stack context and environment for demangler crash recovery.  */
+
+static SIGJMP_BUF gdb_demangle_jmp_buf;
+
 /* Signal handler for gdb_demangle.  */
 
 static void
 gdb_demangle_signal_handler (int signo)
 {
-  throw_error (GENERIC_ERROR, _("demangler failed with signal %d"),
-	       signo);
+  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
 }
+
+#endif
 
 /* A wrapper for bfd_demangle.  */
 
@@ -1521,10 +1540,9 @@ char *
 gdb_demangle (const char *name, int options)
 {
   char *result = NULL;
+  int crash_signal = 0;
 
 #ifdef SIGSEGV
-  volatile struct gdb_exception except;
-
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
   struct sigaction sa, old_sa;
 
@@ -1537,12 +1555,12 @@ gdb_demangle (const char *name, int options)
 
   ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
 #endif
+
+  crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
 #endif
 
-  TRY_CATCH (except, RETURN_MASK_ALL)
-    {
-      result = bfd_demangle (NULL, name, options);
-    }
+  if (crash_signal == 0)
+    result = bfd_demangle (NULL, name, options);
 
 #ifdef SIGSEGV
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
@@ -1552,17 +1570,17 @@ gdb_demangle (const char *name, int options)
 #endif
 #endif
 
-  if (except.reason < 0)
+  if (crash_signal != 0)
     {
       static int warning_printed = 0;
 
       if (!warning_printed)
 	{
-	  warning ("internal error: %s\n"
+	  warning ("internal error: demangler failed with signal %d\n"
 		   "Unable to demangle '%s'\n"
 		   "This is a bug, "
 		   "please report it to the GDB maintainers.",
-		   except.message, name);
+		   crash_signal, name);
 
 	  warning_printed = 1;
 	}
