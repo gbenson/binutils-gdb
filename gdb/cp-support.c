@@ -1558,7 +1558,11 @@ gdb_demangle (const char *name, int options)
 
       if (!warning_printed)
 	{
-	  warning ("internal error: %s", except.message);
+	  warning ("internal error: %s\n"
+		   "Unable to demangle '%s'\n"
+		   "This is a bug, "
+		   "please report it to the GDB maintainers.",
+		   except.message, name);
 
 	  warning_printed = 1;
 	}
