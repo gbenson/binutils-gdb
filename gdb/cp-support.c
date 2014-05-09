@@ -1554,7 +1554,15 @@ gdb_demangle (const char *name, int options)
 
   if (except.reason < 0)
     {
-      warning ("internal error: %s", except.message);
+      static int warning_printed = 0;
+
+      if (!warning_printed)
+	{
+	  warning ("internal error: %s", except.message);
+
+	  warning_printed = 1;
+	}
+
       result = NULL;
     }
 
