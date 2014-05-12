@@ -1572,17 +1572,16 @@ gdb_demangle (const char *name, int options)
 
   if (crash_signal != 0)
     {
-      static int warning_printed = 0;
+      static int error_reported = 0;
 
-      if (!warning_printed)
+      if (!error_reported)
 	{
-	  warning ("internal error: demangler failed with signal %d\n"
-		   "Unable to demangle '%s'\n"
-		   "This is a bug, "
-		   "please report it to the GDB maintainers.",
-		   crash_signal, name);
+	  internal_warning (__FILE__, __LINE__,
+			    _("unable to demangle '%s' "
+			      "(demangler failed with signal %d)"),
+			    name, crash_signal);
 
-	  warning_printed = 1;
+	  error_reported = 1;
 	}
 
       result = NULL;
