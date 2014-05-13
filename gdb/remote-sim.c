@@ -72,11 +72,11 @@ static void gdb_os_error (host_callback *, const char *, ...)
 
 static void gdbsim_kill (struct target_ops *);
 
-static void gdbsim_load (char *prog, int fromtty);
+static void gdbsim_load (struct target_ops *self, char *prog, int fromtty);
 
 static void gdbsim_open (char *args, int from_tty);
 
-static void gdbsim_close (void);
+static void gdbsim_close (struct target_ops *self);
 
 static void gdbsim_detach (struct target_ops *ops, const char *args,
 			   int from_tty);
@@ -88,7 +88,7 @@ static void gdbsim_files_info (struct target_ops *target);
 
 static void gdbsim_mourn_inferior (struct target_ops *target);
 
-static void gdbsim_stop (ptid_t ptid);
+static void gdbsim_stop (struct target_ops *self, ptid_t ptid);
 
 void simulator_command (char *args, int from_tty);
 
@@ -561,10 +561,10 @@ gdbsim_kill (struct target_ops *ops)
    GDB's symbol tables to match.  */
 
 static void
-gdbsim_load (char *args, int fromtty)
+gdbsim_load (struct target_ops *self, char *args, int fromtty)
 {
   char **argv;
-  char *prog;
+  const char *prog;
   struct sim_inferior_data *sim_data
     = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
 
@@ -788,7 +788,7 @@ gdbsim_close_inferior (struct inferior *inf, void *arg)
 /* Close out all files and local state before this target loses control.  */
 
 static void
-gdbsim_close (void)
+gdbsim_close (struct target_ops *self)
 {
   struct sim_inferior_data *sim_data
     = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NOT_NEEDED);
@@ -919,7 +919,7 @@ gdbsim_stop_inferior (struct inferior *inf, void *arg)
 }
 
 static void
-gdbsim_stop (ptid_t ptid)
+gdbsim_stop (struct target_ops *self, ptid_t ptid)
 {
   struct sim_inferior_data *sim_data;
 
@@ -963,7 +963,7 @@ gdb_os_poll_quit (host_callback *p)
 static void
 gdbsim_cntrl_c (int signo)
 {
-  gdbsim_stop (minus_one_ptid);
+  gdbsim_stop (NULL, minus_one_ptid);
 }
 
 static ptid_t

@@ -1,6 +1,5 @@
 /* i370-specific support for 32-bit ELF
-   Copyright 1994, 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2010, 2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 1994-2014 Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support.
    Hacked by Linas Vepstas for i370 linas@linas.org
 
@@ -1357,7 +1356,7 @@ i370_elf_relocate_section (bfd *output_bfd,
   return ret;
 }
 
-#define TARGET_BIG_SYM		bfd_elf32_i370_vec
+#define TARGET_BIG_SYM		i370_elf32_vec
 #define TARGET_BIG_NAME		"elf32-i370"
 #define ELF_ARCH		bfd_arch_i370
 #define ELF_MACHINE_CODE	EM_S370

@@ -1,7 +1,6 @@
 // layout.cc -- lay out output file sections for gold
 
-// Copyright 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013
-// Free Software Foundation, Inc.
+// Copyright (C) 2006-2014 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of gold.
@@ -645,7 +644,13 @@ Layout::include_section(Sized_relobj_file<size, big_endian>*, const char* name,
       && (shdr.get_sh_flags() & elfcpp::SHF_EXCLUDE))
     return false;
 
-  switch (shdr.get_sh_type())
+  elfcpp::Elf_Word sh_type = shdr.get_sh_type();
+
+  if ((sh_type >= elfcpp::SHT_LOOS && sh_type <= elfcpp::SHT_HIOS)
+      || (sh_type >= elfcpp::SHT_LOPROC && sh_type <= elfcpp::SHT_HIPROC))
+    return parameters->target().should_include_section(sh_type);
+
+  switch (sh_type)
     {
     case elfcpp::SHT_NULL:
     case elfcpp::SHT_SYMTAB:
@@ -2744,12 +2749,14 @@ Layout::finalize(const Input_objects* input_objects, Symbol_table* symtab,
   // If there is a load segment that contains the file and program headers,
   // provide a symbol __ehdr_start pointing there.
   // A program can use this to examine itself robustly.
-  if (load_seg != NULL)
-    symtab->define_in_output_segment("__ehdr_start", NULL,
-				     Symbol_table::PREDEFINED, load_seg, 0, 0,
-				     elfcpp::STT_NOTYPE, elfcpp::STB_GLOBAL,
-				     elfcpp::STV_HIDDEN, 0,
-				     Symbol::SEGMENT_START, true);
+  Symbol *ehdr_start = symtab->lookup("__ehdr_start");
+  if (ehdr_start != NULL && ehdr_start->is_predefined())
+    {
+      if (load_seg != NULL)
+	ehdr_start->set_output_segment(load_seg, Symbol::SEGMENT_START);
+      else
+        ehdr_start->set_undefined();
+    }
 
   // Set the file offsets of all the non-data sections we've seen so
   // far which don't have to wait for the input sections.  We need

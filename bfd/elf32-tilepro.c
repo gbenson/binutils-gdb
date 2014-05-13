@@ -1,5 +1,5 @@
 /* TILEPro-specific support for 32-bit ELF.
-   Copyright 2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2011-2014 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -4021,7 +4021,7 @@ tilepro_additional_program_headers (bfd *abfd,
 #define ELF_MAXPAGESIZE		0x10000
 #define ELF_COMMONPAGESIZE	0x10000
 
-#define TARGET_LITTLE_SYM	bfd_elf32_tilepro_vec
+#define TARGET_LITTLE_SYM	tilepro_elf32_vec
 #define TARGET_LITTLE_NAME	"elf32-tilepro"
 
 #define elf_backend_reloc_type_class	     tilepro_reloc_type_class

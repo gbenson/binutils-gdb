@@ -314,7 +314,8 @@ inf_ttrace_disable_page_protections (pid_t pid)
    type TYPE.  */
 
 static int
-inf_ttrace_insert_watchpoint (CORE_ADDR addr, int len, int type,
+inf_ttrace_insert_watchpoint (struct target_ops *self,
+			      CORE_ADDR addr, int len, int type,
 			      struct expression *cond)
 {
   const int pagesize = inf_ttrace_page_dict.pagesize;
@@ -338,7 +339,8 @@ inf_ttrace_insert_watchpoint (CORE_ADDR addr, int len, int type,
    type TYPE.  */
 
 static int
-inf_ttrace_remove_watchpoint (CORE_ADDR addr, int len, int type,
+inf_ttrace_remove_watchpoint (struct target_ops *self,
+			      CORE_ADDR addr, int len, int type,
 			      struct expression *cond)
 {
   const int pagesize = inf_ttrace_page_dict.pagesize;
@@ -359,13 +361,15 @@ inf_ttrace_remove_watchpoint (CORE_ADDR addr, int len, int type,
 }
 
 static int
-inf_ttrace_can_use_hw_breakpoint (int type, int len, int ot)
+inf_ttrace_can_use_hw_breakpoint (struct target_ops *self,
+				  int type, int len, int ot)
 {
   return (type == bp_hardware_watchpoint);
 }
 
 static int
-inf_ttrace_region_ok_for_hw_watchpoint (CORE_ADDR addr, int len)
+inf_ttrace_region_ok_for_hw_watchpoint (struct target_ops *self,
+					CORE_ADDR addr, int len)
 {
   return 1;
 }
@@ -374,7 +378,7 @@ inf_ttrace_region_ok_for_hw_watchpoint (CORE_ADDR addr, int len)
    by hitting a "hardware" watchpoint.  */
 
 static int
-inf_ttrace_stopped_by_watchpoint (void)
+inf_ttrace_stopped_by_watchpoint (struct target_ops *ops)
 {
   pid_t pid = ptid_get_pid (inferior_ptid);
   lwpid_t lwpid = ptid_get_lwp (inferior_ptid);
@@ -1278,7 +1282,8 @@ inf_ttrace_thread_alive (struct target_ops *ops, ptid_t ptid)
    INFO.  */
 
 static char *
-inf_ttrace_extra_thread_info (struct thread_info *info)
+inf_ttrace_extra_thread_info (struct target_ops *self,
+			      struct thread_info *info)
 {
   struct inf_ttrace_private_thread_info* private =
     (struct inf_ttrace_private_thread_info *) info->private;
@@ -1309,7 +1314,7 @@ inf_ttrace_pid_to_str (struct target_ops *ops, ptid_t ptid)
 /* Implement the get_ada_task_ptid target_ops method.  */
 
 static ptid_t
-inf_ttrace_get_ada_task_ptid (long lwp, long thread)
+inf_ttrace_get_ada_task_ptid (struct target_ops *self, long lwp, long thread)
 {
   return ptid_build (ptid_get_pid (inferior_ptid), lwp, 0);
 }

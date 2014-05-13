@@ -585,7 +585,10 @@ gdbscm_value_dynamic_type (SCM self)
 	  struct value *target;
 	  int was_pointer = TYPE_CODE (type) == TYPE_CODE_PTR;
 
-	  target = value_ind (value);
+	  if (was_pointer)
+	    target = value_ind (value);
+	  else
+	    target = coerce_ref (value);
 	  type = value_rtti_type (target, NULL, NULL, NULL);
 
 	  if (type)
@@ -1297,6 +1300,27 @@ gdbscm_history_ref (SCM index)
 
   return vlscm_scm_from_value (res_val);
 }
+
+/* (history-append! <gdb:value>) -> index
+   Append VALUE to GDB's value history.  Return its index in the history.  */
+
+static SCM
+gdbscm_history_append_x (SCM value)
+{
+  int res_index = -1;
+  struct value *v;
+  volatile struct gdb_exception except;
+
+  v = vlscm_scm_to_value (value);
+
+  TRY_CATCH (except, RETURN_MASK_ALL)
+    {
+      res_index = record_latest_value (v);
+    }
+  GDBSCM_HANDLE_GDB_EXCEPTION (except);
+
+  return scm_from_int (res_index);
+}
 
 /* Initialize the Scheme value code.  */
 
@@ -1458,6 +1482,10 @@ Evaluates string in gdb and returns the result as a <gdb:value> object." },
   { "history-ref", 1, 0, 0, gdbscm_history_ref,
     "\
 Return the specified value from GDB's value history." },
+
+  { "history-append!", 1, 0, 0, gdbscm_history_append_x,
+    "\
+Append the specified value onto GDB's value history." },
 
   END_FUNCTIONS
 };

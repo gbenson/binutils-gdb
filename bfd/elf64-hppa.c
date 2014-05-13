@@ -1,7 +1,5 @@
 /* Support for HPPA 64-bit ELF
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1999-2014 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -4016,7 +4014,7 @@ const struct elf_size_info hppa64_elf_size_info =
   bfd_elf64_swap_reloca_out
 };
 
-#define TARGET_BIG_SYM			bfd_elf64_hppa_vec
+#define TARGET_BIG_SYM			hppa_elf64_vec
 #define TARGET_BIG_NAME			"elf64-hppa"
 #define ELF_ARCH			bfd_arch_hppa
 #define ELF_TARGET_ID			HPPA64_ELF_DATA
@@ -4098,7 +4096,7 @@ const struct elf_size_info hppa64_elf_size_info =
 #include "elf64-target.h"
 
 #undef TARGET_BIG_SYM
-#define TARGET_BIG_SYM			bfd_elf64_hppa_linux_vec
+#define TARGET_BIG_SYM			hppa_elf64_linux_vec
 #undef TARGET_BIG_NAME
 #define TARGET_BIG_NAME			"elf64-hppa-linux"
 #undef ELF_OSABI

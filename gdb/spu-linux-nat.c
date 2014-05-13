@@ -401,7 +401,7 @@ spu_symbol_file_add_from_memory (int inferior_fd)
 /* Override the post_startup_inferior routine to continue running
    the inferior until the first spu_run system call.  */
 static void
-spu_child_post_startup_inferior (ptid_t ptid)
+spu_child_post_startup_inferior (struct target_ops *self, ptid_t ptid)
 {
   int fd;
   ULONGEST addr;
@@ -420,7 +420,7 @@ spu_child_post_startup_inferior (ptid_t ptid)
 /* Override the post_attach routine to try load the SPE executable
    file image from its copy inside the target process.  */
 static void
-spu_child_post_attach (int pid)
+spu_child_post_attach (struct target_ops *self, int pid)
 {
   int fd;
   ULONGEST addr;
@@ -624,7 +624,8 @@ spu_xfer_partial (struct target_ops *ops,
 
 /* Override the to_can_use_hw_breakpoint routine.  */
 static int
-spu_can_use_hw_breakpoint (int type, int cnt, int othertype)
+spu_can_use_hw_breakpoint (struct target_ops *self,
+			   int type, int cnt, int othertype)
 {
   return 0;
 }

@@ -6,10 +6,7 @@
 /* libbfd.h -- Declarations used by bfd library *implementation*.
    (This include file is not for users of the library.)
 
-   Copyright 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1990-2014 Free Software Foundation, Inc.
 
    Written by Cygnus Support.
 
@@ -568,7 +565,8 @@ extern bfd_boolean _bfd_dwarf2_find_inliner_info
 
 /* Read DWARF 2 debugging information. */
 extern bfd_boolean _bfd_dwarf2_slurp_debug_info
-  (bfd *, bfd *, const struct dwarf_debug_section *, asymbol **, void **);
+  (bfd *, bfd *, const struct dwarf_debug_section *, asymbol **, void **,
+   bfd_boolean);
 
 /* Clean up the data used to handle DWARF 2 debugging information. */
 extern void _bfd_dwarf2_cleanup_debug_info
@@ -1401,6 +1399,7 @@ static const char *const bfd_reloc_code_real_names[] = { "@@uninitialized@@",
   "BFD_RELOC_PPC64_PLTGOT16_LO_DS",
   "BFD_RELOC_PPC64_ADDR16_HIGH",
   "BFD_RELOC_PPC64_ADDR16_HIGHA",
+  "BFD_RELOC_PPC64_ADDR64_LOCAL",
   "BFD_RELOC_PPC_TLS",
   "BFD_RELOC_PPC_TLSGD",
   "BFD_RELOC_PPC_TLSLD",
@@ -2041,6 +2040,9 @@ static const char *const bfd_reloc_code_real_names[] = { "@@uninitialized@@",
   "BFD_RELOC_AVR_8_LO",
   "BFD_RELOC_AVR_8_HI",
   "BFD_RELOC_AVR_8_HLO",
+  "BFD_RELOC_AVR_DIFF8",
+  "BFD_RELOC_AVR_DIFF16",
+  "BFD_RELOC_AVR_DIFF32",
   "BFD_RELOC_RL78_NEG8",
   "BFD_RELOC_RL78_NEG16",
   "BFD_RELOC_RL78_NEG24",
@@ -2449,8 +2451,30 @@ static const char *const bfd_reloc_code_real_names[] = { "@@uninitialized@@",
   "BFD_RELOC_860_HIGH",
   "BFD_RELOC_860_HIGOT",
   "BFD_RELOC_860_HIGOTOFF",
-  "BFD_RELOC_OPENRISC_ABS_26",
-  "BFD_RELOC_OPENRISC_REL_26",
+  "BFD_RELOC_OR1K_REL_26",
+  "BFD_RELOC_OR1K_GOTPC_HI16",
+  "BFD_RELOC_OR1K_GOTPC_LO16",
+  "BFD_RELOC_OR1K_GOT16",
+  "BFD_RELOC_OR1K_PLT26",
+  "BFD_RELOC_OR1K_GOTOFF_HI16",
+  "BFD_RELOC_OR1K_GOTOFF_LO16",
+  "BFD_RELOC_OR1K_COPY",
+  "BFD_RELOC_OR1K_GLOB_DAT",
+  "BFD_RELOC_OR1K_JMP_SLOT",
+  "BFD_RELOC_OR1K_RELATIVE",
+  "BFD_RELOC_OR1K_TLS_GD_HI16",
+  "BFD_RELOC_OR1K_TLS_GD_LO16",
+  "BFD_RELOC_OR1K_TLS_LDM_HI16",
+  "BFD_RELOC_OR1K_TLS_LDM_LO16",
+  "BFD_RELOC_OR1K_TLS_LDO_HI16",
+  "BFD_RELOC_OR1K_TLS_LDO_LO16",
+  "BFD_RELOC_OR1K_TLS_IE_HI16",
+  "BFD_RELOC_OR1K_TLS_IE_LO16",
+  "BFD_RELOC_OR1K_TLS_LE_HI16",
+  "BFD_RELOC_OR1K_TLS_LE_LO16",
+  "BFD_RELOC_OR1K_TLS_TPOFF",
+  "BFD_RELOC_OR1K_TLS_DTPOFF",
+  "BFD_RELOC_OR1K_TLS_DTPMOD",
   "BFD_RELOC_H8_DIR16A8",
   "BFD_RELOC_H8_DIR16R8",
   "BFD_RELOC_H8_DIR24A8",

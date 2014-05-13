@@ -67,6 +67,7 @@
 #include "buffer.h"
 #include "target-descriptions.h"
 #include "filestuff.h"
+#include "objfiles.h"
 
 #ifndef SPUFS_MAGIC
 #define SPUFS_MAGIC 0x23c9b64e
@@ -262,10 +263,6 @@ async_file_mark (void)
      be awakened anyway.  */
 }
 
-static void linux_nat_async (void (*callback)
-			     (enum inferior_event_type event_type,
-			      void *context),
-			     void *context);
 static int kill_lwp (int lwpid, int signo);
 
 static int stop_callback (struct lwp_info *lp, void *data);
@@ -333,13 +330,13 @@ linux_init_ptrace (pid_t pid)
 }
 
 static void
-linux_child_post_attach (int pid)
+linux_child_post_attach (struct target_ops *self, int pid)
 {
   linux_init_ptrace (pid);
 }
 
 static void
-linux_child_post_startup_inferior (ptid_t ptid)
+linux_child_post_startup_inferior (struct target_ops *self, ptid_t ptid)
 {
   linux_init_ptrace (ptid_get_pid (ptid));
 }
@@ -700,43 +697,44 @@ holding the child stopped.  Try \"set detach-on-fork\" or \
 
 
 static int
-linux_child_insert_fork_catchpoint (int pid)
+linux_child_insert_fork_catchpoint (struct target_ops *self, int pid)
 {
   return !linux_supports_tracefork ();
 }
 
 static int
-linux_child_remove_fork_catchpoint (int pid)
+linux_child_remove_fork_catchpoint (struct target_ops *self, int pid)
 {
   return 0;
 }
 
 static int
-linux_child_insert_vfork_catchpoint (int pid)
+linux_child_insert_vfork_catchpoint (struct target_ops *self, int pid)
 {
   return !linux_supports_tracefork ();
 }
 
 static int
-linux_child_remove_vfork_catchpoint (int pid)
+linux_child_remove_vfork_catchpoint (struct target_ops *self, int pid)
 {
   return 0;
 }
 
 static int
-linux_child_insert_exec_catchpoint (int pid)
+linux_child_insert_exec_catchpoint (struct target_ops *self, int pid)
 {
   return !linux_supports_tracefork ();
 }
 
 static int
-linux_child_remove_exec_catchpoint (int pid)
+linux_child_remove_exec_catchpoint (struct target_ops *self, int pid)
 {
   return 0;
 }
 
 static int
-linux_child_set_syscall_catchpoint (int pid, int needed, int any_count,
+linux_child_set_syscall_catchpoint (struct target_ops *self,
+				    int pid, int needed, int any_count,
 				    int table_size, int *table)
 {
   if (!linux_supports_tracesysgood ())
@@ -827,7 +825,8 @@ static sigset_t pass_mask;
 
 /* Update signals to pass to the inferior.  */
 static void
-linux_nat_pass_signals (int numsigs, unsigned char *pass_signals)
+linux_nat_pass_signals (struct target_ops *self,
+			int numsigs, unsigned char *pass_signals)
 {
   int signo;
 
@@ -846,34 +845,9 @@ linux_nat_pass_signals (int numsigs, unsigned char *pass_signals)
 /* Prototypes for local functions.  */
 static int stop_wait_callback (struct lwp_info *lp, void *data);
 static int linux_thread_alive (ptid_t ptid);
-static char *linux_child_pid_to_exec_file (int pid);
+static char *linux_child_pid_to_exec_file (struct target_ops *self, int pid);
 
 
-/* Convert wait status STATUS to a string.  Used for printing debug
-   messages only.  */
-
-static char *
-status_to_str (int status)
-{
-  static char buf[64];
-
-  if (WIFSTOPPED (status))
-    {
-      if (WSTOPSIG (status) == SYSCALL_SIGTRAP)
-	snprintf (buf, sizeof (buf), "%s (stopped at syscall)",
-		  strsignal (SIGTRAP));
-      else
-	snprintf (buf, sizeof (buf), "%s (stopped)",
-		  strsignal (WSTOPSIG (status)));
-    }
-  else if (WIFSIGNALED (status))
-    snprintf (buf, sizeof (buf), "%s (terminated)",
-	      strsignal (WTERMSIG (status)));
-  else
-    snprintf (buf, sizeof (buf), "%d (exited)", WEXITSTATUS (status));
-
-  return buf;
-}
 
 /* Destroy and free LP.  */
 
@@ -1305,7 +1279,7 @@ linux_nat_create_inferior (struct target_ops *ops,
 #endif /* HAVE_PERSONALITY */
 
   /* Make sure we report all signals during startup.  */
-  linux_nat_pass_signals (0, NULL);
+  linux_nat_pass_signals (ops, 0, NULL);
 
   linux_ops->to_create_inferior (ops, exec_file, allargs, env, from_tty);
 
@@ -1330,7 +1304,7 @@ linux_nat_attach (struct target_ops *ops, char *args, int from_tty)
   volatile struct gdb_exception ex;
 
   /* Make sure we report all signals during attach.  */
-  linux_nat_pass_signals (0, NULL);
+  linux_nat_pass_signals (ops, 0, NULL);
 
   TRY_CATCH (ex, RETURN_MASK_ERROR)
     {
@@ -1346,13 +1320,16 @@ linux_nat_attach (struct target_ops *ops, char *args, int from_tty)
       make_cleanup (xfree, message);
 
       buffer_init (&buffer);
-      linux_ptrace_attach_warnings (pid, &buffer);
+      linux_ptrace_attach_fail_reason (pid, &buffer);
 
       buffer_grow_str0 (&buffer, "");
       buffer_s = buffer_finish (&buffer);
       make_cleanup (xfree, buffer_s);
 
-      throw_error (ex.error, "%s%s", buffer_s, message);
+      if (*buffer_s != '\0')
+	throw_error (ex.error, "warning: %s\n%s", buffer_s, message);
+      else
+	throw_error (ex.error, "%s", message);
     }
 
   /* The ptrace base target adds the main thread with (pid,0,0)
@@ -2195,7 +2172,7 @@ linux_handle_extended_wait (struct lwp_info *lp, int status,
 
       ourstatus->kind = TARGET_WAITKIND_EXECD;
       ourstatus->value.execd_pathname
-	= xstrdup (linux_child_pid_to_exec_file (pid));
+	= xstrdup (linux_child_pid_to_exec_file (NULL, pid));
 
       return 0;
     }
@@ -2484,7 +2461,7 @@ save_sigtrap (struct lwp_info *lp)
   old_chain = save_inferior_ptid ();
   inferior_ptid = lp->ptid;
 
-  lp->stopped_by_watchpoint = linux_ops->to_stopped_by_watchpoint ();
+  lp->stopped_by_watchpoint = linux_ops->to_stopped_by_watchpoint (linux_ops);
 
   if (lp->stopped_by_watchpoint)
     {
@@ -2502,7 +2479,7 @@ save_sigtrap (struct lwp_info *lp)
 /* See save_sigtrap.  */
 
 static int
-linux_nat_stopped_by_watchpoint (void)
+linux_nat_stopped_by_watchpoint (struct target_ops *ops)
 {
   struct lwp_info *lp = find_lwp_pid (inferior_ptid);
 
@@ -3995,7 +3972,7 @@ linux_nat_pid_to_str (struct target_ops *ops, ptid_t ptid)
 }
 
 static char *
-linux_nat_thread_name (struct thread_info *thr)
+linux_nat_thread_name (struct target_ops *self, struct thread_info *thr)
 {
   int pid = ptid_get_pid (thr->ptid);
   long lwp = ptid_get_lwp (thr->ptid);
@@ -4035,21 +4012,17 @@ linux_nat_thread_name (struct thread_info *thr)
    can be opened to get the symbols for the child process.  */
 
 static char *
-linux_child_pid_to_exec_file (int pid)
+linux_child_pid_to_exec_file (struct target_ops *self, int pid)
 {
-  char *name1, *name2;
+  static char buf[PATH_MAX];
+  char name[PATH_MAX];
 
-  name1 = xmalloc (PATH_MAX);
-  name2 = xmalloc (PATH_MAX);
-  make_cleanup (xfree, name1);
-  make_cleanup (xfree, name2);
-  memset (name2, 0, PATH_MAX);
+  xsnprintf (name, PATH_MAX, "/proc/%d/exe", pid);
+  memset (buf, 0, PATH_MAX);
+  if (readlink (name, buf, PATH_MAX - 1) <= 0)
+    strcpy (buf, name);
 
-  xsnprintf (name1, PATH_MAX, "/proc/%d/exe", pid);
-  if (readlink (name1, name2, PATH_MAX - 1) > 0)
-    return name2;
-  else
-    return name1;
+  return buf;
 }
 
 /* Records the thread's register state for the corefile note
@@ -4099,7 +4072,8 @@ linux_nat_collect_thread_registers (const struct regcache *regcache,
    section for a corefile, and returns it in a malloc buffer.  */
 
 static char *
-linux_nat_make_corefile_notes (bfd *obfd, int *note_size)
+linux_nat_make_corefile_notes (struct target_ops *self,
+			       bfd *obfd, int *note_size)
 {
   /* FIXME: uweigand/2011-10-06: Once all GNU/Linux architectures have been
      converted to gdbarch_core_regset_sections, this function can go away.  */
@@ -4430,7 +4404,8 @@ cleanup_target_stop (void *arg)
 }
 
 static VEC(static_tracepoint_marker_p) *
-linux_child_static_tracepoint_markers_by_strid (const char *strid)
+linux_child_static_tracepoint_markers_by_strid (struct target_ops *self,
+						const char *strid)
 {
   char s[IPA_CMD_BUF_SIZE];
   struct cleanup *old_chain;
@@ -4536,7 +4511,7 @@ linux_trad_target (CORE_ADDR (*register_u_offset)(struct gdbarch *, int, int))
 /* target_is_async_p implementation.  */
 
 static int
-linux_nat_is_async_p (void)
+linux_nat_is_async_p (struct target_ops *ops)
 {
   /* NOTE: palves 2008-03-21: We're only async when the user requests
      it explicitly with the "set target-async" command.
@@ -4547,7 +4522,7 @@ linux_nat_is_async_p (void)
 /* target_can_async_p implementation.  */
 
 static int
-linux_nat_can_async_p (void)
+linux_nat_can_async_p (struct target_ops *ops)
 {
   /* NOTE: palves 2008-03-21: We're only async when the user requests
      it explicitly with the "set target-async" command.
@@ -4556,7 +4531,7 @@ linux_nat_can_async_p (void)
 }
 
 static int
-linux_nat_supports_non_stop (void)
+linux_nat_supports_non_stop (struct target_ops *self)
 {
   return 1;
 }
@@ -4567,13 +4542,13 @@ linux_nat_supports_non_stop (void)
 int linux_multi_process = 1;
 
 static int
-linux_nat_supports_multi_process (void)
+linux_nat_supports_multi_process (struct target_ops *self)
 {
   return linux_multi_process;
 }
 
 static int
-linux_nat_supports_disable_randomization (void)
+linux_nat_supports_disable_randomization (struct target_ops *self)
 {
 #ifdef HAVE_PERSONALITY
   return 1;
@@ -4587,16 +4562,16 @@ static int async_terminal_is_ours = 1;
 /* target_terminal_inferior implementation.  */
 
 static void
-linux_nat_terminal_inferior (void)
+linux_nat_terminal_inferior (struct target_ops *self)
 {
   if (!target_is_async_p ())
     {
       /* Async mode is disabled.  */
-      terminal_inferior ();
+      child_terminal_inferior (self);
       return;
     }
 
-  terminal_inferior ();
+  child_terminal_inferior (self);
 
   /* Calls to target_terminal_*() are meant to be idempotent.  */
   if (!async_terminal_is_ours)
@@ -4610,19 +4585,19 @@ linux_nat_terminal_inferior (void)
 /* target_terminal_ours implementation.  */
 
 static void
-linux_nat_terminal_ours (void)
+linux_nat_terminal_ours (struct target_ops *self)
 {
   if (!target_is_async_p ())
     {
       /* Async mode is disabled.  */
-      terminal_ours ();
+      child_terminal_ours (self);
       return;
     }
 
   /* GDB should never give the terminal to the inferior if the
      inferior is running in the background (run&, continue&, etc.),
      but claiming it sure should.  */
-  terminal_ours ();
+  child_terminal_ours (self);
 
   if (async_terminal_is_ours)
     return;
@@ -4707,8 +4682,10 @@ linux_async_pipe (int enable)
 /* target_async implementation.  */
 
 static void
-linux_nat_async (void (*callback) (enum inferior_event_type event_type,
-				   void *context), void *context)
+linux_nat_async (struct target_ops *ops,
+		 void (*callback) (enum inferior_event_type event_type,
+				   void *context),
+		 void *context)
 {
   if (callback != NULL)
     {
@@ -4781,23 +4758,23 @@ linux_nat_stop_lwp (struct lwp_info *lwp, void *data)
 }
 
 static void
-linux_nat_stop (ptid_t ptid)
+linux_nat_stop (struct target_ops *self, ptid_t ptid)
 {
   if (non_stop)
     iterate_over_lwps (ptid, linux_nat_stop_lwp, NULL);
   else
-    linux_ops->to_stop (ptid);
+    linux_ops->to_stop (linux_ops, ptid);
 }
 
 static void
-linux_nat_close (void)
+linux_nat_close (struct target_ops *self)
 {
   /* Unregister from the event loop.  */
-  if (linux_nat_is_async_p ())
-    linux_nat_async (NULL, 0);
+  if (linux_nat_is_async_p (NULL))
+    linux_nat_async (NULL, NULL, 0);
 
   if (linux_ops->to_close)
-    linux_ops->to_close ();
+    linux_ops->to_close (linux_ops);
 }
 
 /* When requests are passed down from the linux-nat layer to the
@@ -5029,14 +5006,14 @@ Enables printf debugging output."),
 static int
 get_signo (const char *name)
 {
-  struct minimal_symbol *ms;
+  struct bound_minimal_symbol ms;
   int signo;
 
   ms = lookup_minimal_symbol (name, NULL, NULL);
-  if (ms == NULL)
+  if (ms.minsym == NULL)
     return 0;
 
-  if (target_read_memory (SYMBOL_VALUE_ADDRESS (ms), (gdb_byte *) &signo,
+  if (target_read_memory (BMSYMBOL_VALUE_ADDRESS (ms), (gdb_byte *) &signo,
 			  sizeof (signo)) != 0)
     return 0;
 

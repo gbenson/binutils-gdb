@@ -1649,7 +1649,16 @@ varobj_value_has_mutated (struct varobj *var, struct value *new_value,
     return 0;
 
   if (var->root->lang_ops->value_has_mutated)
-    return var->root->lang_ops->value_has_mutated (var, new_value, new_type);
+    {
+      /* The varobj module, when installing new values, explicitly strips
+	 references, saying that we're not interested in those addresses.
+	 But detection of mutation happens before installing the new
+	 value, so our value may be a reference that we need to strip
+	 in order to remain consistent.  */
+      if (new_value != NULL)
+	new_value = coerce_ref (new_value);
+      return var->root->lang_ops->value_has_mutated (var, new_value, new_type);
+    }
   else
     return 0;
 }
@@ -2790,13 +2799,13 @@ _initialize_varobj (void)
   varobj_table = xmalloc (sizeof_table);
   memset (varobj_table, 0, sizeof_table);
 
-  add_setshow_zuinteger_cmd ("debugvarobj", class_maintenance,
+  add_setshow_zuinteger_cmd ("varobj", class_maintenance,
 			     &varobjdebug,
 			     _("Set varobj debugging."),
 			     _("Show varobj debugging."),
 			     _("When non-zero, varobj debugging is enabled."),
 			     NULL, show_varobjdebug,
-			     &setlist, &showlist);
+			     &setdebuglist, &showdebuglist);
 }
 
 /* Invalidate varobj VAR if it is tied to locals and re-create it if it is

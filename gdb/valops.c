@@ -69,11 +69,11 @@ int find_oload_champ_namespace_loop (struct value **, int,
 				     struct badness_vector **, int *,
 				     const int no_adl);
 
-static int find_oload_champ (struct value **, int, int, int,
+static int find_oload_champ (struct value **, int, int,
 			     struct fn_field *, struct symbol **,
 			     struct badness_vector **);
 
-static int oload_method_static (int, struct fn_field *, int);
+static int oload_method_static_p (struct fn_field *, int);
 
 enum oload_classification { STANDARD, NON_STANDARD, INCOMPATIBLE };
 
@@ -83,15 +83,15 @@ oload_classification classify_oload_match (struct badness_vector *,
 
 static struct value *value_struct_elt_for_reference (struct type *,
 						     int, struct type *,
-						     char *,
+						     const char *,
 						     struct type *,
 						     int, enum noside);
 
 static struct value *value_namespace_elt (const struct type *,
-					  char *, int , enum noside);
+					  const char *, int , enum noside);
 
 static struct value *value_maybe_namespace_elt (const struct type *,
-						char *, int,
+						const char *, int,
 						enum noside);
 
 static CORE_ADDR allocate_space_in_inferior (int);
@@ -160,7 +160,7 @@ find_function_in_inferior (const char *name, struct objfile **objf_p)
 	  type = lookup_pointer_type (builtin_type (gdbarch)->builtin_char);
 	  type = lookup_function_type (type);
 	  type = lookup_pointer_type (type);
-	  maddr = SYMBOL_VALUE_ADDRESS (msymbol.minsym);
+	  maddr = BMSYMBOL_VALUE_ADDRESS (msymbol);
 
 	  if (objf_p)
 	    *objf_p = objfile;
@@ -266,6 +266,7 @@ value_cast_structs (struct type *type, struct value *v2)
 	{
 	  v = value_full_object (v2, real_type, full, top, using_enc);
 	  v = value_at_lazy (real_type, value_address (v));
+	  real_type = value_type (v);
 
 	  /* We might be trying to cast to the outermost enclosing
 	     type, in which case search_struct_field won't work.  */
@@ -413,10 +414,10 @@ value_cast (struct type *type, struct value *arg2)
 		       "divide object size in cast"));
 	  /* FIXME-type-allocation: need a way to free this type when
 	     we are done with it.  */
-	  range_type = create_range_type ((struct type *) NULL,
-					  TYPE_TARGET_TYPE (range_type),
-					  low_bound,
-					  new_length + low_bound - 1);
+	  range_type = create_static_range_type ((struct type *) NULL,
+						 TYPE_TARGET_TYPE (range_type),
+						 low_bound,
+						 new_length + low_bound - 1);
 	  deprecated_set_value_type (arg2, 
 				     create_array_type ((struct type *) NULL,
 							element_type, 
@@ -801,6 +802,7 @@ value_dynamic_cast (struct type *type, struct value *arg)
     return value_at_lazy (type, addr);
 
   tem = value_at (type, addr);
+  type = value_type (tem);
 
   /* The first dynamic check specified in 5.2.7.  */
   if (is_public_ancestor (arg_type, TYPE_TARGET_TYPE (resolved_type)))
@@ -900,7 +902,10 @@ value_one (struct type *type)
   return val;
 }
 
-/* Helper function for value_at, value_at_lazy, and value_at_lazy_stack.  */
+/* Helper function for value_at, value_at_lazy, and value_at_lazy_stack.
+   The type of the created value may differ from the passed type TYPE.
+   Make sure to retrieve the returned values's new type after this call
+   e.g. in case the type is a variable length array.  */
 
 static struct value *
 get_value_at (struct type *type, CORE_ADDR addr, int lazy)
@@ -925,7 +930,10 @@ get_value_at (struct type *type, CORE_ADDR addr, int lazy)
    value_at_lazy instead.  value_at_lazy simply records the address of
    the data and sets the lazy-evaluation-required flag.  The lazy flag
    is tested in the value_contents macro, which is used if and when
-   the contents are actually required.
+   the contents are actually required.  The type of the created value
+   may differ from the passed type TYPE.  Make sure to retrieve the
+   returned values's new type after this call e.g. in case the type
+   is a variable length array.
 
    Note: value_at does *NOT* handle embedded offsets; perform such
    adjustments before or after calling it.  */
@@ -936,7 +944,10 @@ value_at (struct type *type, CORE_ADDR addr)
   return get_value_at (type, addr, 0);
 }
 
-/* Return a lazy value with type TYPE located at ADDR (cf. value_at).  */
+/* Return a lazy value with type TYPE located at ADDR (cf. value_at).
+   The type of the created value may differ from the passed type TYPE.
+   Make sure to retrieve the returned values's new type after this call
+   e.g. in case the type is a variable length array.  */
 
 struct value *
 value_at_lazy (struct type *type, CORE_ADDR addr)
@@ -949,81 +960,31 @@ read_value_memory (struct value *val, int embedded_offset,
 		   int stack, CORE_ADDR memaddr,
 		   gdb_byte *buffer, size_t length)
 {
-  if (length)
+  ULONGEST xfered = 0;
+
+  while (xfered < length)
     {
-      VEC(mem_range_s) *available_memory;
+      enum target_xfer_status status;
+      ULONGEST xfered_len;
 
-      if (!traceframe_available_memory (&available_memory, memaddr, length))
-	{
-	  if (stack)
-	    read_stack (memaddr, buffer, length);
-	  else
-	    read_memory (memaddr, buffer, length);
-	}
+      status = target_xfer_partial (current_target.beneath,
+				    TARGET_OBJECT_MEMORY, NULL,
+				    buffer + xfered, NULL,
+				    memaddr + xfered, length - xfered,
+				    &xfered_len);
+
+      if (status == TARGET_XFER_OK)
+	/* nothing */;
+      else if (status == TARGET_XFER_UNAVAILABLE)
+	mark_value_bytes_unavailable (val, embedded_offset + xfered,
+				      xfered_len);
+      else if (status == TARGET_XFER_EOF)
+	memory_error (TARGET_XFER_E_IO, memaddr + xfered);
       else
-	{
-	  struct target_section_table *table;
-	  struct cleanup *old_chain;
-	  CORE_ADDR unavail;
-	  mem_range_s *r;
-	  int i;
+	memory_error (status, memaddr + xfered);
 
-	  /* Fallback to reading from read-only sections.  */
-	  table = target_get_section_table (&exec_ops);
-	  available_memory =
-	    section_table_available_memory (available_memory,
-					    memaddr, length,
-					    table->sections,
-					    table->sections_end);
-
-	  old_chain = make_cleanup (VEC_cleanup(mem_range_s),
-				    &available_memory);
-
-	  normalize_mem_ranges (available_memory);
-
-	  /* Mark which bytes are unavailable, and read those which
-	     are available.  */
-
-	  unavail = memaddr;
-
-	  for (i = 0;
-	       VEC_iterate (mem_range_s, available_memory, i, r);
-	       i++)
-	    {
-	      if (mem_ranges_overlap (r->start, r->length,
-				      memaddr, length))
-		{
-		  CORE_ADDR lo1, hi1, lo2, hi2;
-		  CORE_ADDR start, end;
-
-		  /* Get the intersection window.  */
-		  lo1 = memaddr;
-		  hi1 = memaddr + length;
-		  lo2 = r->start;
-		  hi2 = r->start + r->length;
-		  start = max (lo1, lo2);
-		  end = min (hi1, hi2);
-
-		  gdb_assert (end - memaddr <= length);
-
-		  if (start > unavail)
-		    mark_value_bytes_unavailable (val,
-						  (embedded_offset
-						   + unavail - memaddr),
-						  start - unavail);
-		  unavail = end;
-
-		  read_memory (start, buffer + start - memaddr, end - start);
-		}
-	    }
-
-	  if (unavail != memaddr + length)
-	    mark_value_bytes_unavailable (val,
-					  embedded_offset + unavail - memaddr,
-					  (memaddr + length) - unavail);
-
-	  do_cleanups (old_chain);
-	}
+      xfered += xfered_len;
+      QUIT;
     }
 }
 
@@ -1361,6 +1322,7 @@ address_of_variable (struct symbol *var, const struct block *b)
      Lazy evaluation pays off here.  */
 
   val = value_of_variable (var, b);
+  type = value_type (val);
 
   if ((VALUE_LVAL (val) == lval_memory && value_lazy (val))
       || TYPE_CODE (type) == TYPE_CODE_FUNC)
@@ -1609,6 +1571,7 @@ value_ind (struct value *arg1)
 			      (value_as_address (arg1)
 			       - value_pointed_to_offset (arg1)));
 
+      enc_type = value_type (arg2);
       return readjust_indirect_value_type (arg2, enc_type, base_type, arg1);
     }
 
@@ -2519,14 +2482,14 @@ find_overload_match (struct value **args, int nargs,
       if (fns_ptr)
 	{
 	  gdb_assert (TYPE_DOMAIN_TYPE (fns_ptr[0].type) != NULL);
-	  method_oload_champ = find_oload_champ (args, nargs, method,
+	  method_oload_champ = find_oload_champ (args, nargs,
 	                                         num_fns, fns_ptr,
-	                                         oload_syms, &method_badness);
+	                                         NULL, &method_badness);
 
 	  method_match_quality =
 	      classify_oload_match (method_badness, nargs,
-	                            oload_method_static (method, fns_ptr,
-	                                                 method_oload_champ));
+	                            oload_method_static_p (fns_ptr,
+							   method_oload_champ));
 
 	  make_cleanup (xfree, method_badness);
 	}
@@ -2674,7 +2637,7 @@ find_overload_match (struct value **args, int nargs,
     }
 
   if (staticp != NULL)
-    *staticp = oload_method_static (method, fns_ptr, method_oload_champ);
+    *staticp = oload_method_static_p (fns_ptr, method_oload_champ);
 
   if (method_oload_champ >= 0)
     {
@@ -2834,7 +2797,7 @@ find_oload_champ_namespace_loop (struct value **args, int nargs,
   while (new_oload_syms[num_fns])
     ++num_fns;
 
-  new_oload_champ = find_oload_champ (args, nargs, 0, num_fns,
+  new_oload_champ = find_oload_champ (args, nargs, num_fns,
 				      NULL, new_oload_syms,
 				      &new_oload_champ_bv);
 
@@ -2873,15 +2836,16 @@ find_oload_champ_namespace_loop (struct value **args, int nargs,
 
 /* Look for a function to take NARGS args of ARGS.  Find
    the best match from among the overloaded methods or functions
-   (depending on METHOD) given by FNS_PTR or OLOAD_SYMS, respectively.
-   The number of methods/functions in the list is given by NUM_FNS.
+   given by FNS_PTR or OLOAD_SYMS, respectively.  One, and only one of
+   FNS_PTR and OLOAD_SYMS can be non-NULL.  The number of
+   methods/functions in the non-NULL list is given by NUM_FNS.
    Return the index of the best match; store an indication of the
    quality of the match in OLOAD_CHAMP_BV.
 
    It is the caller's responsibility to free *OLOAD_CHAMP_BV.  */
 
 static int
-find_oload_champ (struct value **args, int nargs, int method,
+find_oload_champ (struct value **args, int nargs,
 		  int num_fns, struct fn_field *fns_ptr,
 		  struct symbol **oload_syms,
 		  struct badness_vector **oload_champ_bv)
@@ -2895,31 +2859,37 @@ find_oload_champ (struct value **args, int nargs, int method,
   int oload_ambiguous = 0;
   /* 0 => no ambiguity, 1 => two good funcs, 2 => incomparable funcs.  */
 
+  /* A champion can be found among methods alone, or among functions
+     alone, but not both.  */
+  gdb_assert ((fns_ptr != NULL) + (oload_syms != NULL) == 1);
+
   *oload_champ_bv = NULL;
 
   /* Consider each candidate in turn.  */
   for (ix = 0; ix < num_fns; ix++)
     {
       int jj;
-      int static_offset = oload_method_static (method, fns_ptr, ix);
+      int static_offset;
       int nparms;
       struct type **parm_types;
 
-      if (method)
+      if (fns_ptr != NULL)
 	{
 	  nparms = TYPE_NFIELDS (TYPE_FN_FIELD_TYPE (fns_ptr, ix));
+	  static_offset = oload_method_static_p (fns_ptr, ix);
 	}
       else
 	{
 	  /* If it's not a method, this is the proper place.  */
 	  nparms = TYPE_NFIELDS (SYMBOL_TYPE (oload_syms[ix]));
+	  static_offset = 0;
 	}
 
       /* Prepare array of parameter types.  */
       parm_types = (struct type **) 
 	xmalloc (nparms * (sizeof (struct type *)));
       for (jj = 0; jj < nparms; jj++)
-	parm_types[jj] = (method
+	parm_types[jj] = (fns_ptr != NULL
 			  ? (TYPE_FN_FIELD_ARGS (fns_ptr, ix)[jj].type)
 			  : TYPE_FIELD_TYPE (SYMBOL_TYPE (oload_syms[ix]), 
 					     jj));
@@ -2957,7 +2927,7 @@ find_oload_champ (struct value **args, int nargs, int method,
       xfree (parm_types);
       if (overload_debug)
 	{
-	  if (method)
+	  if (fns_ptr)
 	    fprintf_filtered (gdb_stderr,
 			      "Overloaded method instance %s, # of parms %d\n",
 			      fns_ptr[ix].physname, nparms);
@@ -2984,10 +2954,9 @@ find_oload_champ (struct value **args, int nargs, int method,
    a non-static method or a function that isn't a method.  */
 
 static int
-oload_method_static (int method, struct fn_field *fns_ptr, int index)
+oload_method_static_p (struct fn_field *fns_ptr, int index)
 {
-  if (method && fns_ptr && index >= 0
-      && TYPE_FN_FIELD_STATIC_P (fns_ptr, index))
+  if (fns_ptr && index >= 0 && TYPE_FN_FIELD_STATIC_P (fns_ptr, index))
     return 1;
   else
     return 0;
@@ -3050,6 +3019,42 @@ destructor_name_p (const char *name, struct type *type)
   return 0;
 }
 
+/* Find an enum constant named NAME in TYPE.  TYPE must be an "enum
+   class".  If the name is found, return a value representing it;
+   otherwise throw an exception.  */
+
+static struct value *
+enum_constant_from_type (struct type *type, const char *name)
+{
+  int i;
+  int name_len = strlen (name);
+
+  gdb_assert (TYPE_CODE (type) == TYPE_CODE_ENUM
+	      && TYPE_DECLARED_CLASS (type));
+
+  for (i = TYPE_N_BASECLASSES (type); i < TYPE_NFIELDS (type); ++i)
+    {
+      const char *fname = TYPE_FIELD_NAME (type, i);
+      int len;
+
+      if (TYPE_FIELD_LOC_KIND (type, i) != FIELD_LOC_KIND_ENUMVAL
+	  || fname == NULL)
+	continue;
+
+      /* Look for the trailing "::NAME", since enum class constant
+	 names are qualified here.  */
+      len = strlen (fname);
+      if (len + 2 >= name_len
+	  && fname[len - name_len - 2] == ':'
+	  && fname[len - name_len - 1] == ':'
+	  && strcmp (&fname[len - name_len], name) == 0)
+	return value_from_longest (type, TYPE_FIELD_ENUMVAL (type, i));
+    }
+
+  error (_("no constant named \"%s\" in enum \"%s\""),
+	 name, TYPE_TAG_NAME (type));
+}
+
 /* C++: Given an aggregate type CURTYPE, and a member name NAME,
    return the appropriate member (or the address of the member, if
    WANT_ADDRESS).  This function is used to resolve user expressions
@@ -3057,7 +3062,7 @@ destructor_name_p (const char *name, struct type *type)
    the comment before value_struct_elt_for_reference.  */
 
 struct value *
-value_aggregate_elt (struct type *curtype, char *name,
+value_aggregate_elt (struct type *curtype, const char *name,
 		     struct type *expect_type, int want_address,
 		     enum noside noside)
 {
@@ -3071,6 +3076,10 @@ value_aggregate_elt (struct type *curtype, char *name,
     case TYPE_CODE_NAMESPACE:
       return value_namespace_elt (curtype, name, 
 				  want_address, noside);
+
+    case TYPE_CODE_ENUM:
+      return enum_constant_from_type (curtype, name);
+
     default:
       internal_error (__FILE__, __LINE__,
 		      _("non-aggregate type in value_aggregate_elt"));
@@ -3138,7 +3147,7 @@ compare_parameters (struct type *t1, struct type *t2, int skip_artificial)
 
 static struct value *
 value_struct_elt_for_reference (struct type *domain, int offset,
-				struct type *curtype, char *name,
+				struct type *curtype, const char *name,
 				struct type *intype, 
 				int want_address,
 				enum noside noside)
@@ -3367,7 +3376,7 @@ value_struct_elt_for_reference (struct type *domain, int offset,
 
 static struct value *
 value_namespace_elt (const struct type *curtype,
-		     char *name, int want_address,
+		     const char *name, int want_address,
 		     enum noside noside)
 {
   struct value *retval = value_maybe_namespace_elt (curtype, name,
@@ -3389,7 +3398,7 @@ value_namespace_elt (const struct type *curtype,
 
 static struct value *
 value_maybe_namespace_elt (const struct type *curtype,
-			   char *name, int want_address,
+			   const char *name, int want_address,
 			   enum noside noside)
 {
   const char *namespace_name = TYPE_TAG_NAME (curtype);
@@ -3612,10 +3621,10 @@ value_slice (struct value *array, int lowbound, int length)
 
   /* FIXME-type-allocation: need a way to free this type when we are
      done with it.  */
-  slice_range_type = create_range_type ((struct type *) NULL,
-					TYPE_TARGET_TYPE (range_type),
-					lowbound,
-					lowbound + length - 1);
+  slice_range_type = create_static_range_type ((struct type *) NULL,
+					       TYPE_TARGET_TYPE (range_type),
+					       lowbound,
+					       lowbound + length - 1);
 
   {
     struct type *element_type = TYPE_TARGET_TYPE (array_type);

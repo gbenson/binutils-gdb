@@ -61,7 +61,7 @@ static struct target_ops *targ_ops;
 
 static void monitor_interrupt_query (void);
 static void monitor_interrupt_twice (int);
-static void monitor_stop (ptid_t);
+static void monitor_stop (struct target_ops *self, ptid_t);
 static void monitor_dump_regs (struct regcache *regcache);
 
 #if 0
@@ -783,7 +783,7 @@ monitor_open (char *args, struct monitor_ops *mon_ops, int from_tty)
 
   if (current_monitor->stop)
     {
-      monitor_stop (inferior_ptid);
+      monitor_stop (targ_ops, inferior_ptid);
       if ((current_monitor->flags & MO_NO_ECHO_ON_OPEN) == 0)
 	{
 	  monitor_debug ("EXP Open echo\n");
@@ -853,7 +853,7 @@ monitor_open (char *args, struct monitor_ops *mon_ops, int from_tty)
    control.  */
 
 void
-monitor_close (void)
+monitor_close (struct target_ops *self)
 {
   if (monitor_desc)
     serial_close (monitor_desc);
@@ -2199,7 +2199,7 @@ monitor_wait_srec_ack (void)
 /* monitor_load -- download a file.  */
 
 static void
-monitor_load (char *args, int from_tty)
+monitor_load (struct target_ops *self, char *args, int from_tty)
 {
   CORE_ADDR load_offset = 0;
   char **argv;
@@ -2267,7 +2267,7 @@ monitor_load (char *args, int from_tty)
 }
 
 static void
-monitor_stop (ptid_t ptid)
+monitor_stop (struct target_ops *self, ptid_t ptid)
 {
   monitor_debug ("MON stop\n");
   if ((current_monitor->flags & MO_SEND_BREAK_ON_STOP) != 0)
@@ -2281,7 +2281,7 @@ monitor_stop (ptid_t ptid)
    ourseleves here cause of a nasty echo.  */
 
 static void
-monitor_rcmd (char *command,
+monitor_rcmd (struct target_ops *self, char *command,
 	      struct ui_file *outbuf)
 {
   char *p;

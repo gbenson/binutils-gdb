@@ -278,6 +278,15 @@ history contains the result of evaluating an expression from Guile's
 command line.
 @end deffn
 
+@deffn {Scheme Procedure} history-append! value
+Append @var{value}, an instance of @code{<gdb:value>}, to @value{GDBN}'s
+value history.  Return its index in the history.
+
+Putting into history values returned by Guile extensions will allow
+the user convenient access to those values via CLI history
+facilities.
+@end deffn
+
 @deffn {Scheme Procedure} parse-and-eval expression
 Parse @var{expression} as an expression in the current language,
 evaluate it, and return the result as a @code{<gdb:value>}.
@@ -1545,14 +1554,11 @@ And here is an example showing how a lookup function for the printer
 example above might be written.
 
 @smallexample
-(define (string-begins-with str prefix)
-  (= (string-prefix-length str prefix) (string-length prefix)))
-
-(define (str-lookup-function value)
+(define (str-lookup-function pretty-printer value)
   (let ((tag (type-tag (value-type value))))
     (and tag
-         (string-begins-with tag "my::string<")
-         (make-std-string-printer value))))
+         (string-prefix? "std::string<" tag)
+         (make-my-string-printer value))))
 @end smallexample
 
 Then to register this printer in the global printer list:
@@ -1893,8 +1899,8 @@ Return the frame's @code{<gdb:sal>} (symtab and line) object.
 @xref{Symbol Tables In Guile}.
 @end deffn
 
-@deffn {Scheme Procedure} frame-read-var variable @r{[}#:block block@r{]}
-Return the value of @var{variable} in this frame.  If the optional
+@deffn {Scheme Procedure} frame-read-var frame variable @r{[}#:block block@r{]}
+Return the value of @var{variable} in @var{frame}.  If the optional
 argument @var{block} is provided, search for the variable from that
 block; otherwise start at the frame's current block (which is
 determined by the frame's current program counter).  @var{variable}

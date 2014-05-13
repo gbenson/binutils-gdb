@@ -210,7 +210,7 @@ thread_db_create_event (CORE_ADDR where)
      created threads.  */
   lwp = get_thread_lwp (current_inferior);
   if (lwp->thread_known == 0)
-    find_one_thread (lwp->head.id);
+    find_one_thread (current_inferior->entry.id);
 
   /* msg.event == TD_EVENT_CREATE */
 
@@ -323,27 +323,33 @@ find_one_thread (ptid_t ptid)
 static int
 attach_thread (const td_thrhandle_t *th_p, td_thrinfo_t *ti_p)
 {
+  struct process_info *proc = current_process ();
+  int pid = pid_of (proc);
+  ptid_t ptid = ptid_build (pid, ti_p->ti_lid, 0);
   struct lwp_info *lwp;
+  int err;
 
   if (debug_threads)
     debug_printf ("Attaching to thread %ld (LWP %d)\n",
 		  ti_p->ti_tid, ti_p->ti_lid);
-  linux_attach_lwp (ti_p->ti_lid);
-  lwp = find_lwp_pid (pid_to_ptid (ti_p->ti_lid));
-  if (lwp == NULL)
+  err = linux_attach_lwp (ptid);
+  if (err != 0)
     {
-      warning ("Could not attach to thread %ld (LWP %d)\n",
-	       ti_p->ti_tid, ti_p->ti_lid);
+      warning ("Could not attach to thread %ld (LWP %d): %s\n",
+	       ti_p->ti_tid, ti_p->ti_lid,
+	       linux_attach_fail_reason_string (ptid, err));
       return 0;
     }
 
+  lwp = find_lwp_pid (ptid);
+  gdb_assert (lwp != NULL);
   lwp->thread_known = 1;
   lwp->th = *th_p;
 
   if (thread_db_use_events)
     {
       td_err_e err;
-      struct thread_db *thread_db = current_process ()->private->thread_db;
+      struct thread_db *thread_db = proc->private->thread_db;
 
       err = thread_db->td_thr_event_enable_p (th_p, 1);
       if (err != TD_OK)
@@ -502,7 +508,7 @@ thread_db_get_tls_address (struct thread_info *thread, CORE_ADDR offset,
 
   lwp = get_thread_lwp (thread);
   if (!lwp->thread_known)
-    find_one_thread (lwp->head.id);
+    find_one_thread (thread->entry.id);
   if (!lwp->thread_known)
     return TD_NOTHR;
 

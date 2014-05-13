@@ -66,6 +66,9 @@
 #include "observer.h"
 #include <string.h>
 #include "procfs.h"
+#include "symtab.h"
+#include "minsyms.h"
+#include "objfiles.h"
 
 struct target_ops sol_thread_ops;
 
@@ -762,13 +765,13 @@ ps_err_e
 ps_pglobal_lookup (gdb_ps_prochandle_t ph, const char *ld_object_name,
 		   const char *ld_symbol_name, gdb_ps_addr_t *ld_symbol_addr)
 {
-  struct minimal_symbol *ms;
+  struct bound_minimal_symbol ms;
 
   ms = lookup_minimal_symbol (ld_symbol_name, NULL, NULL);
-  if (!ms)
+  if (!ms.minsym)
     return PS_NOSYM;
 
-  *ld_symbol_addr = SYMBOL_VALUE_ADDRESS (ms);
+  *ld_symbol_addr = BMSYMBOL_VALUE_ADDRESS (ms);
   return PS_OK;
 }
 
@@ -1140,7 +1143,7 @@ info_cb (const td_thrhandle_t *th, void *s)
 
 	  printf_filtered ("   startfunc=%s",
 			   msym.minsym
-			   ? SYMBOL_PRINT_NAME (msym.minsym)
+			   ? MSYMBOL_PRINT_NAME (msym.minsym)
 			   : paddress (target_gdbarch (), ti.ti_startfunc));
 	}
 
@@ -1152,7 +1155,7 @@ info_cb (const td_thrhandle_t *th, void *s)
 
 	  printf_filtered ("   sleepfunc=%s",
 			   msym.minsym
-			   ? SYMBOL_PRINT_NAME (msym.minsym)
+			   ? MSYMBOL_PRINT_NAME (msym.minsym)
 			   : paddress (target_gdbarch (), ti.ti_pc));
 	}
 
@@ -1190,7 +1193,7 @@ thread_db_find_thread_from_tid (struct thread_info *thread, void *data)
 }
 
 static ptid_t
-sol_get_ada_task_ptid (long lwp, long thread)
+sol_get_ada_task_ptid (struct target_ops *self, long lwp, long thread)
 {
   struct thread_info *thread_info =
     iterate_over_threads (thread_db_find_thread_from_tid, &thread);

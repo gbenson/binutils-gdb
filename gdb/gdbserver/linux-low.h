@@ -223,19 +223,23 @@ struct linux_target_ops
 
 extern struct linux_target_ops the_low_target;
 
-#define ptid_of(proc) ((proc)->head.id)
-#define pid_of(proc) ptid_get_pid ((proc)->head.id)
-#define lwpid_of(proc) ptid_get_lwp ((proc)->head.id)
+#define get_thread_lwp(thr) ((struct lwp_info *) (inferior_target_data (thr)))
+#define get_lwp_thread(lwp) ((lwp)->thread)
 
-#define get_lwp(inf) ((struct lwp_info *)(inf))
-#define get_thread_lwp(thr) (get_lwp (inferior_target_data (thr)))
-#define get_lwp_thread(proc) ((struct thread_info *)			\
-			      find_inferior_id (&all_threads,		\
-						get_lwp (proc)->head.id))
+/* This struct is recorded in the target_data field of struct thread_info.
+
+   On linux ``all_threads'' is keyed by the LWP ID, which we use as the
+   GDB protocol representation of the thread ID.  Threads also have
+   a "process ID" (poorly named) which is (presently) the same as the
+   LWP ID.
+
+   There is also ``all_processes'' is keyed by the "overall process ID",
+   which GNU/Linux calls tgid, "thread group ID".  */
 
 struct lwp_info
 {
-  struct inferior_list_entry head;
+  /* Backlink to the parent object.  */
+  struct thread_info *thread;
 
   /* If this flag is set, the next SIGSTOP will be ignored (the
      process will be immediately resumed).  This means that either we
@@ -337,11 +341,18 @@ struct lwp_info
   struct arch_lwp_info *arch_private;
 };
 
-extern struct inferior_list all_lwps;
-
 int linux_pid_exe_is_elf_64_file (int pid, unsigned int *machine);
 
-void linux_attach_lwp (unsigned long pid);
+/* Attach to PTID.  Returns 0 on success, non-zero otherwise (an
+   errno).  */
+int linux_attach_lwp (ptid_t ptid);
+
+/* Return the reason an attach failed, in string form.  ERR is the
+   error returned by linux_attach_lwp (an errno).  This string should
+   be copied into a buffer by the client if the string will not be
+   immediately used, or if it must persist.  */
+char *linux_attach_fail_reason_string (ptid_t ptid, int err);
+
 struct lwp_info *find_lwp_pid (ptid_t ptid);
 void linux_stop_lwp (struct lwp_info *lwp);
 

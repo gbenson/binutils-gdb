@@ -994,15 +994,7 @@ symbol_search_name (const struct general_symbol_info *gsymbol)
 void
 init_sal (struct symtab_and_line *sal)
 {
-  sal->pspace = NULL;
-  sal->symtab = 0;
-  sal->section = 0;
-  sal->line = 0;
-  sal->pc = 0;
-  sal->end = 0;
-  sal->explicit_pc = 0;
-  sal->explicit_line = 0;
-  sal->probe = NULL;
+  memset (sal, 0, sizeof (*sal));
 }
 
 
@@ -1075,18 +1067,18 @@ struct symtab *
 find_pc_sect_symtab_via_partial (CORE_ADDR pc, struct obj_section *section)
 {
   struct objfile *objfile;
-  struct minimal_symbol *msymbol;
+  struct bound_minimal_symbol msymbol;
 
   /* If we know that this is not a text address, return failure.  This is
      necessary because we loop based on texthigh and textlow, which do
      not include the data ranges.  */
-  msymbol = lookup_minimal_symbol_by_pc_section (pc, section).minsym;
-  if (msymbol
-      && (MSYMBOL_TYPE (msymbol) == mst_data
-	  || MSYMBOL_TYPE (msymbol) == mst_bss
-	  || MSYMBOL_TYPE (msymbol) == mst_abs
-	  || MSYMBOL_TYPE (msymbol) == mst_file_data
-	  || MSYMBOL_TYPE (msymbol) == mst_file_bss))
+  msymbol = lookup_minimal_symbol_by_pc_section (pc, section);
+  if (msymbol.minsym
+      && (MSYMBOL_TYPE (msymbol.minsym) == mst_data
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_bss
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_abs
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_file_data
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_file_bss))
     return NULL;
 
   ALL_OBJFILES (objfile)
@@ -1119,7 +1111,7 @@ fixup_section (struct general_symbol_info *ginfo,
      point to the actual function code.  */
   msym = lookup_minimal_symbol_by_pc_name (addr, ginfo->name, objfile);
   if (msym)
-    ginfo->section = SYMBOL_SECTION (msym);
+    ginfo->section = MSYMBOL_SECTION (msym);
   else
     {
       /* Static, function-local variables do appear in the linker
@@ -1319,7 +1311,11 @@ demangle_for_lookup (const char *name, enum language lang,
    NAME is a field of the current implied argument `this'.  If so set
    *IS_A_FIELD_OF_THIS to 1, otherwise set it to zero.
    BLOCK_FOUND is set to the block in which NAME is found (in the case of
-   a field of `this', value_of_this sets BLOCK_FOUND to the proper value.)  */
+   a field of `this', value_of_this sets BLOCK_FOUND to the proper value.)
+
+   If DOMAIN is VAR_DOMAIN and the language permits using tag names for
+   elaborated types, such as classes in C++, this function will search
+   STRUCT_DOMAIN if no matching is found.  */
 
 /* This function (or rather its subordinates) have a bunch of loops and
    it would seem to be attractive to put in some QUIT's (though I'm not really
@@ -1342,6 +1338,23 @@ lookup_symbol_in_language (const char *name, const struct block *block,
 
   returnval = lookup_symbol_aux (modified_name, block, domain, lang,
 				 is_a_field_of_this);
+  if (returnval == NULL)
+    {
+      if (is_a_field_of_this != NULL
+	  && is_a_field_of_this->type != NULL)
+	return NULL;
+
+      /* Some languages define typedefs of a type equal to its tag name,
+	 e.g., in C++, "struct foo { ... }" also defines a typedef for
+	 "foo".  */
+      if (domain == VAR_DOMAIN
+	  && (lang == language_cplus || lang == language_java
+	      || lang == language_ada || lang == language_d))
+	{
+	  returnval = lookup_symbol_aux (modified_name, block, STRUCT_DOMAIN,
+					 lang, is_a_field_of_this);
+	}
+    }
   do_cleanups (cleanup);
 
   return returnval;
@@ -1916,27 +1929,6 @@ lookup_symbol_global (const char *name,
   return lookup_data.result;
 }
 
-int
-symbol_matches_domain (enum language symbol_language,
-		       domain_enum symbol_domain,
-		       domain_enum domain)
-{
-  /* For C++ "struct foo { ... }" also defines a typedef for "foo".
-     A Java class declaration also defines a typedef for the class.
-     Similarly, any Ada type declaration implicitly defines a typedef.  */
-  if (symbol_language == language_cplus
-      || symbol_language == language_d
-      || symbol_language == language_java
-      || symbol_language == language_ada)
-    {
-      if ((domain == VAR_DOMAIN || domain == STRUCT_DOMAIN)
-	  && symbol_domain == STRUCT_DOMAIN)
-	return 1;
-    }
-  /* For all other languages, strict match is required.  */
-  return (symbol_domain == domain);
-}
-
 /* Look up a type named NAME in the struct_domain.  The type returned
    must not be opaque -- i.e., must have at least one field
    defined.  */
@@ -2059,7 +2051,12 @@ basic_lookup_transparent_type (const char *name)
    binary search terminates, we drop through and do a straight linear
    search on the symbols.  Each symbol which is marked as being a ObjC/C++
    symbol (language_cplus or language_objc set) has both the encoded and
-   non-encoded names tested for a match.  */
+   non-encoded names tested for a match.
+
+   This function specifically disallows domain mismatches.  If a language
+   defines a typedef for an elaborated type, such as classes in C++,
+   then this function will need to be called twice, once to search
+   VAR_DOMAIN and once to search STRUCT_DOMAIN.  */
 
 struct symbol *
 lookup_block_symbol (const struct block *block, const char *name,
@@ -2074,8 +2071,7 @@ lookup_block_symbol (const struct block *block, const char *name,
 	   sym != NULL;
 	   sym = block_iter_name_next (name, &iter))
 	{
-	  if (symbol_matches_domain (SYMBOL_LANGUAGE (sym),
-				     SYMBOL_DOMAIN (sym), domain))
+	  if (SYMBOL_DOMAIN (sym) == domain)
 	    return sym;
 	}
       return NULL;
@@ -2094,8 +2090,7 @@ lookup_block_symbol (const struct block *block, const char *name,
 	   sym != NULL;
 	   sym = block_iter_name_next (name, &iter))
 	{
-	  if (symbol_matches_domain (SYMBOL_LANGUAGE (sym),
-				     SYMBOL_DOMAIN (sym), domain))
+	  if (SYMBOL_DOMAIN (sym) == domain)
 	    {
 	      sym_found = sym;
 	      if (!SYMBOL_IS_ARGUMENT (sym))
@@ -2129,8 +2124,7 @@ iterate_over_symbols (const struct block *block, const char *name,
        sym != NULL;
        sym = block_iter_name_next (name, &iter))
     {
-      if (symbol_matches_domain (SYMBOL_LANGUAGE (sym),
-				 SYMBOL_DOMAIN (sym), domain))
+      if (SYMBOL_DOMAIN (sym) == domain)
 	{
 	  if (!callback (sym, data))
 	    return;
@@ -2150,20 +2144,20 @@ find_pc_sect_symtab (CORE_ADDR pc, struct obj_section *section)
   struct symtab *best_s = NULL;
   struct objfile *objfile;
   CORE_ADDR distance = 0;
-  struct minimal_symbol *msymbol;
+  struct bound_minimal_symbol msymbol;
 
   /* If we know that this is not a text address, return failure.  This is
      necessary because we loop based on the block's high and low code
      addresses, which do not include the data ranges, and because
      we call find_pc_sect_psymtab which has a similar restriction based
      on the partial_symtab's texthigh and textlow.  */
-  msymbol = lookup_minimal_symbol_by_pc_section (pc, section).minsym;
-  if (msymbol
-      && (MSYMBOL_TYPE (msymbol) == mst_data
-	  || MSYMBOL_TYPE (msymbol) == mst_bss
-	  || MSYMBOL_TYPE (msymbol) == mst_abs
-	  || MSYMBOL_TYPE (msymbol) == mst_file_data
-	  || MSYMBOL_TYPE (msymbol) == mst_file_bss))
+  msymbol = lookup_minimal_symbol_by_pc_section (pc, section);
+  if (msymbol.minsym
+      && (MSYMBOL_TYPE (msymbol.minsym) == mst_data
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_bss
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_abs
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_file_data
+	  || MSYMBOL_TYPE (msymbol.minsym) == mst_file_bss))
     return NULL;
 
   /* Search all symtabs for the one whose file contains our address, and which
@@ -2290,7 +2284,6 @@ find_pc_sect_line (CORE_ADDR pc, struct obj_section *section, int notcurrent)
   struct symtab_and_line val;
   struct blockvector *bv;
   struct bound_minimal_symbol msymbol;
-  struct minimal_symbol *mfunsym;
   struct objfile *objfile;
 
   /* Info on best line seen so far, and where it starts, and its file.  */
@@ -2378,10 +2371,11 @@ find_pc_sect_line (CORE_ADDR pc, struct obj_section *section, int notcurrent)
   if (msymbol.minsym != NULL)
     if (MSYMBOL_TYPE (msymbol.minsym) == mst_solib_trampoline)
       {
-	mfunsym
-	  = lookup_minimal_symbol_text (SYMBOL_LINKAGE_NAME (msymbol.minsym),
+	struct bound_minimal_symbol mfunsym
+	  = lookup_minimal_symbol_text (MSYMBOL_LINKAGE_NAME (msymbol.minsym),
 					NULL);
-	if (mfunsym == NULL)
+
+	if (mfunsym.minsym == NULL)
 	  /* I eliminated this warning since it is coming out
 	   * in the following situation:
 	   * gdb shmain // test program with shared libraries
@@ -2395,8 +2389,8 @@ find_pc_sect_line (CORE_ADDR pc, struct obj_section *section, int notcurrent)
 	     SYMBOL_LINKAGE_NAME (msymbol)); */
 	  ;
 	/* fall through */
-	else if (SYMBOL_VALUE_ADDRESS (mfunsym)
-		 == SYMBOL_VALUE_ADDRESS (msymbol.minsym))
+	else if (BMSYMBOL_VALUE_ADDRESS (mfunsym)
+		 == BMSYMBOL_VALUE_ADDRESS (msymbol))
 	  /* Avoid infinite recursion */
 	  /* See above comment about why warning is commented out.  */
 	  /* warning ("In stub for %s; unable to find real function/line info",
@@ -2404,7 +2398,7 @@ find_pc_sect_line (CORE_ADDR pc, struct obj_section *section, int notcurrent)
 	  ;
 	/* fall through */
 	else
-	  return find_pc_line (SYMBOL_VALUE_ADDRESS (mfunsym), 0);
+	  return find_pc_line (BMSYMBOL_VALUE_ADDRESS (mfunsym), 0);
       }
 
 
@@ -2918,9 +2912,9 @@ skip_prologue_sal (struct symtab_and_line *sal)
 	}
 
       objfile = msymbol.objfile;
-      pc = SYMBOL_VALUE_ADDRESS (msymbol.minsym);
-      section = SYMBOL_OBJ_SECTION (objfile, msymbol.minsym);
-      name = SYMBOL_LINKAGE_NAME (msymbol.minsym);
+      pc = BMSYMBOL_VALUE_ADDRESS (msymbol);
+      section = MSYMBOL_OBJ_SECTION (objfile, msymbol.minsym);
+      name = MSYMBOL_LINKAGE_NAME (msymbol.minsym);
     }
 
   gdbarch = get_objfile_arch (objfile);
@@ -3659,16 +3653,17 @@ search_symbols (char *regexp, enum search_domain kind,
 	    || MSYMBOL_TYPE (msymbol) == ourtype4)
 	  {
 	    if (!datum.preg_p
-		|| regexec (&datum.preg, SYMBOL_NATURAL_NAME (msymbol), 0,
+		|| regexec (&datum.preg, MSYMBOL_NATURAL_NAME (msymbol), 0,
 			    NULL, 0) == 0)
 	      {
 		/* Note: An important side-effect of these lookup functions
 		   is to expand the symbol table if msymbol is found, for the
 		   benefit of the next loop on ALL_PRIMARY_SYMTABS.  */
 		if (kind == FUNCTIONS_DOMAIN
-		    ? find_pc_symtab (SYMBOL_VALUE_ADDRESS (msymbol)) == NULL
+		    ? find_pc_symtab (MSYMBOL_VALUE_ADDRESS (objfile,
+							     msymbol)) == NULL
 		    : (lookup_symbol_in_objfile_from_linkage_name
-		       (objfile, SYMBOL_LINKAGE_NAME (msymbol), VAR_DOMAIN)
+		       (objfile, MSYMBOL_LINKAGE_NAME (msymbol), VAR_DOMAIN)
 		       == NULL))
 		  found_misc = 1;
 	      }
@@ -3762,16 +3757,17 @@ search_symbols (char *regexp, enum search_domain kind,
 	    || MSYMBOL_TYPE (msymbol) == ourtype4)
 	  {
 	    if (!datum.preg_p
-		|| regexec (&datum.preg, SYMBOL_NATURAL_NAME (msymbol), 0,
+		|| regexec (&datum.preg, MSYMBOL_NATURAL_NAME (msymbol), 0,
 			    NULL, 0) == 0)
 	      {
 		/* For functions we can do a quick check of whether the
 		   symbol might be found via find_pc_symtab.  */
 		if (kind != FUNCTIONS_DOMAIN
-		    || find_pc_symtab (SYMBOL_VALUE_ADDRESS (msymbol)) == NULL)
+		    || find_pc_symtab (MSYMBOL_VALUE_ADDRESS (objfile,
+							      msymbol)) == NULL)
 		  {
 		    if (lookup_symbol_in_objfile_from_linkage_name
-			(objfile, SYMBOL_LINKAGE_NAME (msymbol), VAR_DOMAIN)
+			(objfile, MSYMBOL_LINKAGE_NAME (msymbol), VAR_DOMAIN)
 			== NULL)
 		      {
 			/* match */
@@ -3849,14 +3845,14 @@ print_msymbol_info (struct bound_minimal_symbol msymbol)
   char *tmp;
 
   if (gdbarch_addr_bit (gdbarch) <= 32)
-    tmp = hex_string_custom (SYMBOL_VALUE_ADDRESS (msymbol.minsym)
+    tmp = hex_string_custom (BMSYMBOL_VALUE_ADDRESS (msymbol)
 			     & (CORE_ADDR) 0xffffffff,
 			     8);
   else
-    tmp = hex_string_custom (SYMBOL_VALUE_ADDRESS (msymbol.minsym),
+    tmp = hex_string_custom (BMSYMBOL_VALUE_ADDRESS (msymbol),
 			     16);
   printf_filtered ("%s  %s\n",
-		   tmp, SYMBOL_PRINT_NAME (msymbol.minsym));
+		   tmp, MSYMBOL_PRINT_NAME (msymbol.minsym));
 }
 
 /* This is the guts of the commands "info functions", "info types", and
@@ -4014,7 +4010,7 @@ rbreak_command (char *regexp, int from_tty)
 	}
       else
 	{
-	  int newlen = (strlen (SYMBOL_LINKAGE_NAME (p->msymbol.minsym)) + 3);
+	  int newlen = (strlen (MSYMBOL_LINKAGE_NAME (p->msymbol.minsym)) + 3);
 
 	  if (newlen > len)
 	    {
@@ -4022,12 +4018,12 @@ rbreak_command (char *regexp, int from_tty)
 	      len = newlen;
 	    }
 	  strcpy (string, "'");
-	  strcat (string, SYMBOL_LINKAGE_NAME (p->msymbol.minsym));
+	  strcat (string, MSYMBOL_LINKAGE_NAME (p->msymbol.minsym));
 	  strcat (string, "'");
 
 	  break_command (string, from_tty);
 	  printf_filtered ("<function, no debug info> %s;\n",
-			   SYMBOL_PRINT_NAME (p->msymbol.minsym));
+			   MSYMBOL_PRINT_NAME (p->msymbol.minsym));
 	}
     }
 
@@ -4098,6 +4094,10 @@ static VEC (char_ptr) *return_val;
       completion_list_add_name \
 	(SYMBOL_NATURAL_NAME (symbol), (sym_text), (len), (text), (word))
 
+#define MCOMPLETION_LIST_ADD_SYMBOL(symbol, sym_text, len, text, word) \
+      completion_list_add_name \
+	(MSYMBOL_NATURAL_NAME (symbol), (sym_text), (len), (text), (word))
+
 /*  Test to see if the symbol specified by SYMNAME (which is already
    demangled for C++ symbols) matches SYM_TEXT in the first SYM_TEXT_LEN
    characters.  If so, add it to the current completion list.  */
@@ -4155,7 +4155,7 @@ completion_list_objc_symbol (struct minimal_symbol *msymbol,
   const char *method, *category, *selector;
   char *tmp2 = NULL;
 
-  method = SYMBOL_NATURAL_NAME (msymbol);
+  method = MSYMBOL_NATURAL_NAME (msymbol);
 
   /* Is it a method?  */
   if ((method[0] != '-') && (method[0] != '+'))
@@ -4439,8 +4439,8 @@ default_make_symbol_completion_list_break_on (const char *text,
       ALL_MSYMBOLS (objfile, msymbol)
 	{
 	  QUIT;
-	  COMPLETION_LIST_ADD_SYMBOL (msymbol, sym_text, sym_text_len, text,
-				      word);
+	  MCOMPLETION_LIST_ADD_SYMBOL (msymbol, sym_text, sym_text_len, text,
+				       word);
 
 	  completion_list_objc_symbol (msymbol, sym_text, sym_text_len, text,
 				       word);

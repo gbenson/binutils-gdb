@@ -85,7 +85,7 @@ static int gdb_check_format (bfd *);
 
 static void core_open (char *, int);
 
-static void core_close (void);
+static void core_close (struct target_ops *self);
 
 static void core_close_cleanup (void *ignore);
 
@@ -192,7 +192,7 @@ gdb_check_format (bfd *abfd)
    stack spaces as empty.  */
 
 static void
-core_close (void)
+core_close (struct target_ops *self)
 {
   if (core_bfd)
     {
@@ -223,7 +223,7 @@ core_close (void)
 static void
 core_close_cleanup (void *ignore)
 {
-  core_close ();
+  core_close (NULL);
 }
 
 /* Look for sections whose names start with `.reg/' so that we can
@@ -913,10 +913,16 @@ static const struct target_desc *
 core_read_description (struct target_ops *target)
 {
   if (core_gdbarch && gdbarch_core_read_description_p (core_gdbarch))
-    return gdbarch_core_read_description (core_gdbarch, 
-					  target, core_bfd);
+    {
+      const struct target_desc *result;
 
-  return NULL;
+      result = gdbarch_core_read_description (core_gdbarch, 
+					      target, core_bfd);
+      if (result != NULL)
+	return result;
+    }
+
+  return target->beneath->to_read_description (target->beneath);
 }
 
 static char *
@@ -993,14 +999,12 @@ init_core_ops (void)
     "Use a core file as a target.  Specify the filename of the core file.";
   core_ops.to_open = core_open;
   core_ops.to_close = core_close;
-  core_ops.to_attach = find_default_attach;
   core_ops.to_detach = core_detach;
   core_ops.to_fetch_registers = get_core_registers;
   core_ops.to_xfer_partial = core_xfer_partial;
   core_ops.to_files_info = core_files_info;
   core_ops.to_insert_breakpoint = ignore;
   core_ops.to_remove_breakpoint = ignore;
-  core_ops.to_create_inferior = find_default_create_inferior;
   core_ops.to_thread_alive = core_thread_alive;
   core_ops.to_read_description = core_read_description;
   core_ops.to_pid_to_str = core_pid_to_str;

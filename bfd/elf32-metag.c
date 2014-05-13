@@ -1,5 +1,5 @@
 /* Meta support for 32-bit ELF
-   Copyright (C) 2013 Free Software Foundation, Inc.
+   Copyright (C) 2013-2014 Free Software Foundation, Inc.
    Contributed by Imagination Technologies Ltd.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -4284,7 +4284,7 @@ elf_metag_plt_sym_val (bfd_vma i, const asection *plt,
 #define ELF_MAXPAGESIZE	0x4000
 #define ELF_COMMONPAGESIZE	0x1000
 
-#define TARGET_LITTLE_SYM	bfd_elf32_metag_vec
+#define TARGET_LITTLE_SYM	metag_elf32_vec
 #define TARGET_LITTLE_NAME	"elf32-metag"
 
 #define elf_symbol_leading_char '_'

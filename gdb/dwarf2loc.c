@@ -317,13 +317,9 @@ dwarf_expr_read_addr_from_reg (void *baton, int dwarf_regnum)
 {
   struct dwarf_expr_baton *debaton = (struct dwarf_expr_baton *) baton;
   struct gdbarch *gdbarch = get_frame_arch (debaton->frame);
-  CORE_ADDR result;
-  int regnum;
+  int regnum = gdbarch_dwarf2_reg_to_regnum (gdbarch, dwarf_regnum);
 
-  regnum = gdbarch_dwarf2_reg_to_regnum (gdbarch, dwarf_regnum);
-  result = address_from_register (builtin_type (gdbarch)->builtin_data_ptr,
-				  regnum, debaton->frame);
-  return result;
+  return address_from_register (regnum, debaton->frame);
 }
 
 /* Implement struct dwarf_expr_context_funcs' "get_reg_value" callback.  */
@@ -555,7 +551,7 @@ call_site_to_target_addr (struct gdbarch *call_site_gdbarch,
 			   "at %s in %s"),
 			 paddress (call_site_gdbarch, call_site->pc),
 			 (msym.minsym == NULL ? "???"
-			  : SYMBOL_PRINT_NAME (msym.minsym)));
+			  : MSYMBOL_PRINT_NAME (msym.minsym)));
 			
 	  }
 	if (caller_frame == NULL)
@@ -569,7 +565,7 @@ call_site_to_target_addr (struct gdbarch *call_site_gdbarch,
 			   "available at %s in %s"),
 			 paddress (call_site_gdbarch, call_site->pc),
 			 (msym.minsym == NULL ? "???"
-			  : SYMBOL_PRINT_NAME (msym.minsym)));
+			  : MSYMBOL_PRINT_NAME (msym.minsym)));
 			
 	  }
 	caller_arch = get_frame_arch (caller_frame);
@@ -588,23 +584,24 @@ call_site_to_target_addr (struct gdbarch *call_site_gdbarch,
     case FIELD_LOC_KIND_PHYSNAME:
       {
 	const char *physname;
-	struct minimal_symbol *msym;
+	struct bound_minimal_symbol msym;
 
 	physname = FIELD_STATIC_PHYSNAME (call_site->target);
 
 	/* Handle both the mangled and demangled PHYSNAME.  */
 	msym = lookup_minimal_symbol (physname, NULL, NULL);
-	if (msym == NULL)
+	if (msym.minsym == NULL)
 	  {
-	    msym = lookup_minimal_symbol_by_pc (call_site->pc - 1).minsym;
+	    msym = lookup_minimal_symbol_by_pc (call_site->pc - 1);
 	    throw_error (NO_ENTRY_VALUE_ERROR,
 			 _("Cannot find function \"%s\" for a call site target "
 			   "at %s in %s"),
 			 physname, paddress (call_site_gdbarch, call_site->pc),
-			 msym == NULL ? "???" : SYMBOL_PRINT_NAME (msym));
+			 (msym.minsym == NULL ? "???"
+			  : MSYMBOL_PRINT_NAME (msym.minsym)));
 			
 	  }
-	return SYMBOL_VALUE_ADDRESS (msym);
+	return BMSYMBOL_VALUE_ADDRESS (msym);
       }
 
     case FIELD_LOC_KIND_PHYSADDR:
@@ -700,7 +697,7 @@ func_verify_no_selftailcall (struct gdbarch *gdbarch, CORE_ADDR verify_addr)
 			     "function \"%s\" at %s can call itself via tail "
 			     "calls"),
 			   (msym.minsym == NULL ? "???"
-			    : SYMBOL_PRINT_NAME (msym.minsym)),
+			    : MSYMBOL_PRINT_NAME (msym.minsym)),
 			   paddress (gdbarch, verify_addr));
 	    }
 
@@ -728,7 +725,7 @@ tailcall_dump (struct gdbarch *gdbarch, const struct call_site *call_site)
 
   fprintf_unfiltered (gdb_stdlog, " %s(%s)", paddress (gdbarch, addr),
 		      (msym.minsym == NULL ? "???"
-		       : SYMBOL_PRINT_NAME (msym.minsym)));
+		       : MSYMBOL_PRINT_NAME (msym.minsym)));
 
 }
 
@@ -968,10 +965,10 @@ call_site_find_chain_1 (struct gdbarch *gdbarch, CORE_ADDR caller_pc,
 		     "callers or callees between caller function \"%s\" at %s "
 		     "and callee function \"%s\" at %s"),
 		   (msym_caller.minsym == NULL
-		    ? "???" : SYMBOL_PRINT_NAME (msym_caller.minsym)),
+		    ? "???" : MSYMBOL_PRINT_NAME (msym_caller.minsym)),
 		   paddress (gdbarch, caller_pc),
 		   (msym_callee.minsym == NULL
-		    ? "???" : SYMBOL_PRINT_NAME (msym_callee.minsym)),
+		    ? "???" : MSYMBOL_PRINT_NAME (msym_callee.minsym)),
 		   paddress (gdbarch, callee_pc));
     }
 
@@ -1073,7 +1070,7 @@ dwarf_expr_reg_to_entry_parameter (struct frame_info *frame,
 		   gdbarch_bfd_arch_info (gdbarch)->printable_name,
 		   paddress (gdbarch, func_addr),
 		   (msym.minsym == NULL ? "???"
-		    : SYMBOL_PRINT_NAME (msym.minsym)),
+		    : MSYMBOL_PRINT_NAME (msym.minsym)),
 		   gdbarch_bfd_arch_info (caller_gdbarch)->printable_name);
     }
 
@@ -1086,7 +1083,7 @@ dwarf_expr_reg_to_entry_parameter (struct frame_info *frame,
 					   "requires caller of %s (%s)"),
 		   paddress (gdbarch, func_addr),
 		   (msym.minsym == NULL ? "???"
-		    : SYMBOL_PRINT_NAME (msym.minsym)));
+		    : MSYMBOL_PRINT_NAME (msym.minsym)));
     }
   caller_pc = get_frame_pc (caller_frame);
   call_site = call_site_for_pc (gdbarch, caller_pc);
@@ -1102,9 +1099,9 @@ dwarf_expr_reg_to_entry_parameter (struct frame_info *frame,
 		   _("DW_OP_GNU_entry_value resolving expects callee %s at %s "
 		     "but the called frame is for %s at %s"),
 		   (target_msym == NULL ? "???"
-					: SYMBOL_PRINT_NAME (target_msym)),
+					: MSYMBOL_PRINT_NAME (target_msym)),
 		   paddress (gdbarch, target_addr),
-		   func_msym == NULL ? "???" : SYMBOL_PRINT_NAME (func_msym),
+		   func_msym == NULL ? "???" : MSYMBOL_PRINT_NAME (func_msym),
 		   paddress (gdbarch, func_addr));
     }
 
@@ -1128,7 +1125,7 @@ dwarf_expr_reg_to_entry_parameter (struct frame_info *frame,
       throw_error (NO_ENTRY_VALUE_ERROR, _("Cannot find matching parameter "
 					   "at DW_TAG_GNU_call_site %s at %s"),
 		   paddress (gdbarch, caller_pc),
-		   msym == NULL ? "???" : SYMBOL_PRINT_NAME (msym)); 
+		   msym == NULL ? "???" : MSYMBOL_PRINT_NAME (msym)); 
     }
 
   *per_cu_return = call_site->per_cu;
@@ -2429,6 +2426,124 @@ dwarf2_evaluate_loc_desc (struct type *type, struct frame_info *frame,
 			  struct dwarf2_per_cu_data *per_cu)
 {
   return dwarf2_evaluate_loc_desc_full (type, frame, data, size, per_cu, 0);
+}
+
+/* Evaluates a dwarf expression and stores the result in VAL, expecting
+   that the dwarf expression only produces a single CORE_ADDR.  ADDR is a
+   context (location of a variable) and might be needed to evaluate the
+   location expression.
+   Returns 1 on success, 0 otherwise.   */
+
+static int
+dwarf2_locexpr_baton_eval (const struct dwarf2_locexpr_baton *dlbaton,
+			   CORE_ADDR *valp)
+{
+  struct dwarf_expr_context *ctx;
+  struct dwarf_expr_baton baton;
+  struct objfile *objfile;
+  struct cleanup *cleanup;
+
+  if (dlbaton == NULL || dlbaton->size == 0)
+    return 0;
+
+  ctx = new_dwarf_expr_context ();
+  cleanup = make_cleanup_free_dwarf_expr_context (ctx);
+
+  baton.frame = get_selected_frame (NULL);
+  baton.per_cu = dlbaton->per_cu;
+
+  objfile = dwarf2_per_cu_objfile (dlbaton->per_cu);
+
+  ctx->gdbarch = get_objfile_arch (objfile);
+  ctx->addr_size = dwarf2_per_cu_addr_size (dlbaton->per_cu);
+  ctx->ref_addr_size = dwarf2_per_cu_ref_addr_size (dlbaton->per_cu);
+  ctx->offset = dwarf2_per_cu_text_offset (dlbaton->per_cu);
+  ctx->funcs = &dwarf_expr_ctx_funcs;
+  ctx->baton = &baton;
+
+  dwarf_expr_eval (ctx, dlbaton->data, dlbaton->size);
+
+  switch (ctx->location)
+    {
+    case DWARF_VALUE_REGISTER:
+    case DWARF_VALUE_MEMORY:
+    case DWARF_VALUE_STACK:
+      *valp = dwarf_expr_fetch_address (ctx, 0);
+      if (ctx->location == DWARF_VALUE_REGISTER)
+	*valp = dwarf_expr_read_addr_from_reg (&baton, *valp);
+      do_cleanups (cleanup);
+      return 1;
+    case DWARF_VALUE_LITERAL:
+      *valp = extract_signed_integer (ctx->data, ctx->len,
+				      gdbarch_byte_order (ctx->gdbarch));
+      do_cleanups (cleanup);
+      return 1;
+      /* Unsupported dwarf values.  */
+    case DWARF_VALUE_OPTIMIZED_OUT:
+    case DWARF_VALUE_IMPLICIT_POINTER:
+      break;
+    }
+
+  do_cleanups (cleanup);
+  return 0;
+}
+
+/* See dwarf2loc.h.  */
+
+int
+dwarf2_evaluate_property (const struct dynamic_prop *prop, CORE_ADDR *value)
+{
+  if (prop == NULL)
+    return 0;
+
+  switch (prop->kind)
+    {
+    case PROP_LOCEXPR:
+      {
+	const struct dwarf2_property_baton *baton = prop->data.baton;
+
+	if (dwarf2_locexpr_baton_eval (&baton->locexpr, value))
+	  {
+	    if (baton->referenced_type)
+	      {
+		struct value *val = value_at (baton->referenced_type, *value);
+
+		*value = value_as_address (val);
+	      }
+	    return 1;
+	  }
+      }
+      break;
+
+    case PROP_LOCLIST:
+      {
+	struct dwarf2_property_baton *baton = prop->data.baton;
+	struct frame_info *frame = get_selected_frame (NULL);
+	CORE_ADDR pc = get_frame_address_in_block (frame);
+	const gdb_byte *data;
+	struct value *val;
+	size_t size;
+
+	data = dwarf2_find_location_expression (&baton->loclist, &size, pc);
+	if (data != NULL)
+	  {
+	    val = dwarf2_evaluate_loc_desc (baton->referenced_type, frame, data,
+					    size, baton->loclist.per_cu);
+	    if (!value_optimized_out (val))
+	      {
+		*value = value_as_address (val);
+		return 1;
+	      }
+	  }
+      }
+      break;
+
+    case PROP_CONST:
+      *value = prop->data.const_val;
+      return 1;
+    }
+
+  return 0;
 }
 
 

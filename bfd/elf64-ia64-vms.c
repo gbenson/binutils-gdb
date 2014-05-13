@@ -1,6 +1,5 @@
 /* IA-64 support for OpenVMS
-   Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2012  Free Software Foundation, Inc.
+   Copyright (C) 1998-2014 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -5513,7 +5512,7 @@ static const struct elf_size_info elf64_ia64_vms_size_info = {
 /* VMS-specific vectors.  */
 
 #undef  TARGET_LITTLE_SYM
-#define TARGET_LITTLE_SYM		bfd_elf64_ia64_vms_vec
+#define TARGET_LITTLE_SYM		ia64_elf64_vms_vec
 #undef  TARGET_LITTLE_NAME
 #define TARGET_LITTLE_NAME		"elf64-ia64-vms"
 #undef  TARGET_BIG_SYM
