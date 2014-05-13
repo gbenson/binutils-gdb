@@ -1508,7 +1508,7 @@ cp_lookup_rtti_type (const char *name, struct block *block)
 
 #ifdef SIGSEGV
 
-/* PortabiWrap set/long jmp so that it's more portable.  */
+/* Wrap set/long jmp so that it's more portable.  */
 
 #if defined(HAVE_SIGSETJMP)
 #define SIGJMP_BUF		sigjmp_buf

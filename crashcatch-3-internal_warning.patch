@@ -16,7 +16,7 @@ index 91533e8..a99c827 100644
  
 +#ifdef SIGSEGV
 +
-+/* PortabiWrap set/long jmp so that it's more portable.  */
++/* Wrap set/long jmp so that it's more portable.  */
 +
 +#if defined(HAVE_SIGSETJMP)
 +#define SIGJMP_BUF		sigjmp_buf
