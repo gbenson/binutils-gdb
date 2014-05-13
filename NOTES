@@ -39,3 +39,23 @@
    cplus_demangle_v3_components     - should probably be wrapped
 
 3. gdb/cp-name-parser.y's call to cplus_demangle is just in testing code.
+
+4. pthread_cleanup_push(3), pthread_cleanup_pop(3):
+
+   "Calling longjmp(3) (siglongjmp(3)) produces undefined results
+   if any call has been made to pthread_cleanup_push() or
+   pthread_cleanup_pop() without the matching call of the pair
+   since the jump buffer was filled by setjmp(3) (sigsetjmp(3))."
+
+   So we are safe so long as nobody does this.
+
+5. Backtrace of the PR backtrace/16817 crash:
+
+   #0 __strlen_sse42 at ../sysdeps/x86_64/multiarch/strlen-sse4.S:32
+   #1 0x0085739e in work_stuff_copy_to_from at libiberty/cplus-dem.c:1269
+   #2 0x0085a21c in iterate_demangle_function at libiberty/cplus-dem.c:2640
+   #3 0x0085aa9f in demangle_prefix at libiberty/cplus-dem.c:2880
+   #4 0x0085701c in internal_cplus_demangle at libiberty/cplus-dem.c:1181
+   #5 0x008566f9 in cplus_demangle at libiberty/cplus-dem.c:873
+   #6 0x007979c3 in bfd_demangle at bfd/bfd.c:1885
+   #7 0x00732054 in gdb_demangle at gdb/cp-support.c:1513
