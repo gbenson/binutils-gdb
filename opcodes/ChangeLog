@@ -1,3 +1,20 @@
+2014-05-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* i386-dis.c (ADDR16_PREFIX): Removed.
+	(ADDR32_PREFIX): Likewise.
+	(DATA16_PREFIX): Likewise.
+	(DATA32_PREFIX): Likewise.
+	(prefix_name): Updated.
+	(print_insn): Simplify data and address size prefixes processing.
+
+2014-05-08  Stefan Kristiansson  <stefan.kristiansson@saunalahti.fi>
+
+	* or1k-desc.c: Regenerated.
+	* or1k-desc.h: Likewise.
+	* or1k-opc.c: Likewise.
+	* or1k-opc.h: Likewise.
+	* or1k-opinst.c: Likewise.
+
 2014-05-07  Andrew Bennett  <andrew.bennett@imgtec.com>
 
 	* mips-opc.c (mips_builtin_opcodes): Add MIPS32r5 eretnc instruction.

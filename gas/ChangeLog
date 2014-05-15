@@ -1,3 +1,37 @@
+2014-05-13  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c (mips_set_options): Rename gp32 to gp throughout.
+	(HAVE_32BIT_GPRS, HAVE_64BIT_GPRS): Remove. Re-implement via GPR_SIZE.
+	(HAVE_32BIT_FPRS, HAVE_64BIT_FPRS): Remove. Re-implement via FPR_SIZE.
+	(GPR_SIZE, FPR_SIZE): New macros. Use throughout.
+
+2014-05-08  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c (md_parse_option): Update missed file_mips_isa
+	references.
+
+2014-05-08  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c (mips_set_options): Rename fp32 field to fp.
+	Update fp32 == 0 to fp == 64 and fp32 == 1 to fp != 64 throughout.
+	(file_mips_gp32, file_mips_fp32, file_mips_soft_float,
+	file_mips_single_float, file_mips_isa, file_mips_arch): Merge into
+	one struct...
+	(file_mips_opts): Here. New static global. Update throughout.
+	(mips_opts): Update defaults for gp32 and fp.
+
+2014-05-08  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c (streq): Define.
+	(mips_convert_symbolic_attribute): New function.
+	* config/tc-mips.h (CONVERT_SYMBOLIC_ATTRIBUTE): Define.
+	(mips_convert_symbolic_attribute): New prototype.
+
+2014-05-02  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (md_apply_fix): mark BFD_RELOC_XTENSA_DIFF*
+	fixups as signed.
+
 2014-05-07  Andrew Bennett  <andrew.bennett@imgtec.com>
 
 	* tc-mips.c (ISA_SUPPORTS_MIPS16E): Add mips32r3, mips32r5, mips64r3

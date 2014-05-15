@@ -1,3 +1,48 @@
+2014-05-14  Tom Tromey  <tromey@redhat.com>
+
+	* macrocmd.c (print_macro_definition): Reindent.
+
+2014-05-13  Doug Evans  <xdje42@gmail.com>
+
+	* python/py-cmd.c (cmdpy_completer): Add comment.
+	(completers): Make const.
+
+2014-05-13  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* infrun.c (resume): Remove should_resume (unused).  Move up
+	declaration of resume_ptid.
+
+2014-05-13  Tom Tromey  <tromey@redhat.com>
+
+	* language.h (unop_type_check): Remove.
+	(binop_type_check): Don't declare.
+
+2014-05-13  Andreas Arnez  <arnez@vnet.linux.ibm.com>
+
+	* s390-linux-nat.c (fill_gregset): Remove erroneous offset 4 in
+	call to regcache_raw_collect.
+
+2014-05-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* mi/mi-console.c (mi_console_raw_packet): Use the value from
+	mi_console->quote as the quoting character.
+
+2014-05-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* MAINTAINERS (Write After Approval): Add "Simon Marchi".
+
+2014-04-29  Tom Tromey  <tromey@redhat.com>
+
+	* varobj.c (_initialize_varobj): Rename to "set debug varobj" and
+	"show debug varobj".
+
+2014-05-07  Kyle McMartin  <kyle@redhat.com>
+
+	Pushed by Joel Brobecker  <brobecker@adacore.com>.
+	* aarch64-tdep.c (aarch64_software_single_step): New function.
+	(aarch64_gdbarch_init): Handle single stepping of atomic sequences
+	with aarch64_software_single_step.
+
 2014-05-05  Joel Brobecker  <brobecker@adacore.com>
 
 	GDB 7.7.1 released.
