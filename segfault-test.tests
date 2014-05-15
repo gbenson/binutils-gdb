@@ -23,3 +23,6 @@ _ZNSt9_Any_data9_M_accessIPZN6cereal18polymorphic_detail15getInputBindingINS1_16
 
 # https://sourceware.org/bugzilla/show_bug.cgi?id=16845#c2
 _ZNSt9_Any_data9_M_accessIPZ4postISt8functionIFvvEEEvOT_EUlvE_EERS5_v
+
+# Fuzzer
+_Z09rq^EwLi>{DF2l6"
