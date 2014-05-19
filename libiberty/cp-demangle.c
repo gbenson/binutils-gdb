@@ -575,6 +575,9 @@ d_dump (struct demangle_component *dc, int indent)
     case DEMANGLE_COMPONENT_TEMPLATE_PARAM:
       printf ("template parameter %ld\n", dc->u.s_number.number);
       return;
+    case DEMANGLE_COMPONENT_FUNCTION_PARAM:
+      printf ("function parameter %ld\n", dc->u.s_number.number);
+      return;
     case DEMANGLE_COMPONENT_CTOR:
       printf ("constructor %d\n", (int) dc->u.s_ctor.kind);
       d_dump (dc->u.s_ctor.name, indent + 2);
