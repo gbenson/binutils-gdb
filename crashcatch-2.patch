@@ -1,24 +1,26 @@
-This patch wraps calls to the demangler with a segmentation fault
-handler.  A warning is printed the first time a segmentation fault
-is caught.
+This patch adds a new maintainence boolean, catch_demangler_crashes.
+If set, calls to the demangler are wrapped with a segmentation fault
+handler.  If a segmentation fault is caught the offending symbol is
+displayed and internal_error is called.
 
-gdb/
-2014-05-09  Gary Benson  <gbenson@redhat.com>
+2014-05-19  Gary Benson  <gbenson@redhat.com>
 
-	PR backtrace/16817
-	* cp-support.c (signal.h): New include.
-	(gdb_demangle_signal_handler): New function.
-	(gdb_demangle): Install the above signal handler before calling
-	bfd_demangle, and restore the original signal handler afterwards.
-
-gdb/testsuite/
-2014-05-09  Gary Benson  <gbenson@redhat.com>
-
-	PR backtrace/16817
-	* gdb.base/pr16817.exp: New file.
+       PR backtrace/16817
+       * cp-support.c (signal.h): New include.
+       (catch_demangler_crashes): New flag.
+       (SIGJMP_BUF): New define.
+       (SIGSETJMP): Likewise.
+       (SIGLONGJMP): Likewise.
+       (gdb_demangle_jmp_buf): New variable.
+       (gdb_demangle_signal_handler): New function.
+       (gdb_demangle): If catch_demangler_crashes is set, install the
+       above signal handler before calling bfd_demangle, and restore
+       the original signal handler afterwards.  If a SIGSEGV is caught
+       display the offending symbol and call internal_error.
+       (_initialize_cp_support): New maint set/show command.
 
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
-index 91533e8..f1a0d49 100644
+index 91533e8..3ca2687 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
 @@ -36,6 +36,7 @@
@@ -29,18 +31,42 @@ index 91533e8..f1a0d49 100644
  
  #include "safe-ctype.h"
  
-@@ -1505,12 +1506,71 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+@@ -1505,12 +1506,92 @@ cp_lookup_rtti_type (const char *name, struct block *block)
    return rtti_type;
  }
  
++#ifdef SIGSEGV
++
++/* If nonzero, attempt to catch crashes in the demangler and print
++   useful debugging information.  */
++
++static int catch_demangler_crashes = 0;
++
++/* Wrap set/long jmp so that it's more portable.  */
++
++#if defined(HAVE_SIGSETJMP)
++#define SIGJMP_BUF		sigjmp_buf
++#define SIGSETJMP(buf)		sigsetjmp((buf), 1)
++#define SIGLONGJMP(buf,val)	siglongjmp((buf), (val))
++#else
++#define SIGJMP_BUF		jmp_buf
++#define SIGSETJMP(buf)		setjmp(buf)
++#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
++#endif
++
++/* Stack context and environment for demangler crash recovery.  */
++
++static SIGJMP_BUF gdb_demangle_jmp_buf;
++
 +/* Signal handler for gdb_demangle.  */
 +
 +static void
 +gdb_demangle_signal_handler (int signo)
 +{
-+  throw_error (GENERIC_ERROR, _("demangler failed with signal %d"),
-+	       signo);
++  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
 +}
++
++#endif
 +
  /* A wrapper for bfd_demangle.  */
  
@@ -49,87 +75,71 @@ index 91533e8..f1a0d49 100644
  {
 -  return bfd_demangle (NULL, name, options);
 +  char *result = NULL;
++  int crash_signal = 0;
 +
 +#ifdef SIGSEGV
-+  volatile struct gdb_exception except;
-+
 +#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
 +  struct sigaction sa, old_sa;
 +
-+  sa.sa_handler = gdb_demangle_signal_handler;
-+  sigemptyset (&sa.sa_mask);
-+  sa.sa_flags = 0;
-+  sigaction (SIGSEGV, &sa, &old_sa);
++  if (catch_demangler_crashes)
++    {
++      sa.sa_handler = gdb_demangle_signal_handler;
++      sigemptyset (&sa.sa_mask);
++      sa.sa_flags = 0;
++      sigaction (SIGSEGV, &sa, &old_sa);
++    }
 +#else
 +  void (*ofunc) ();
 +
-+  ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
-+#endif
++  if (catch_demangler_crashes)
++    ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
 +#endif
 +
-+  TRY_CATCH (except, RETURN_MASK_ALL)
-+    {
-+      result = bfd_demangle (NULL, name, options);
-+    }
++  if (catch_demangler_crashes)
++    crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
++#endif
++
++  if (crash_signal == 0)
++    result = bfd_demangle (NULL, name, options);
 +
 +#ifdef SIGSEGV
-+#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
-+  sigaction (SIGSEGV, &old_sa, NULL);
-+#else
-+  signal (SIGSEGV, ofunc);
-+#endif
-+#endif
-+
-+  if (except.reason < 0)
++  if (catch_demangler_crashes)
 +    {
-+      static int warning_printed = 0;
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++      sigaction (SIGSEGV, &old_sa, NULL);
++#else
++      signal (SIGSEGV, ofunc);
++#endif
 +
-+      if (!warning_printed)
++      if (crash_signal != 0)
 +	{
-+	  warning ("internal error: %s\n"
-+		   "Unable to demangle '%s'\n"
-+		   "This is a bug, "
-+		   "please report it to the GDB maintainers.",
-+		   except.message, name);
-+
-+	  warning_printed = 1;
++	  internal_error (__FILE__, __LINE__,
++			  _("unable to demangle '%s' "
++			    "(demangler failed with signal %d)"),
++			  name, crash_signal);
 +	}
-+
-+      result = NULL;
 +    }
++#endif
 +
 +  return result;
  }
  
  /* Don't allow just "maintenance cplus".  */
-diff --git a/gdb/testsuite/gdb.base/pr16817.exp b/gdb/testsuite/gdb.base/pr16817.exp
-new file mode 100644
-index 0000000..fff022c
---- /dev/null
-+++ b/gdb/testsuite/gdb.base/pr16817.exp
-@@ -0,0 +1,25 @@
-+# Copyright 2014 Free Software Foundation, Inc.
+@@ -1585,4 +1666,17 @@ _initialize_cp_support (void)
+ Usage: info vtbl EXPRESSION\n\
+ Evaluate EXPRESSION and display the virtual function table for the\n\
+ resulting object."));
 +
-+# This program is free software; you can redistribute it and/or modify
-+# it under the terms of the GNU General Public License as published by
-+# the Free Software Foundation; either version 3 of the License, or
-+# (at your option) any later version.
-+#
-+# This program is distributed in the hope that it will be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU General Public License
-+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+
-+# Test that a segmentation fault in the demangler does not cause GDB
-+# to crash.  If the demangler becomes able to demangle the below
-+# symbol then another symbol will need to be found for this test.
-+
-+set symbol "_QueueNotification_QueueController__\$4PPPPPPPM_A_INotice___Z"
-+
-+gdb_exit
-+gdb_start
-+gdb_test_no_output "set lang c++"
-+gdb_test "maint demangle $symbol" ".*demangler failed.*"
++#ifdef SIGSEGV
++  add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
++			   &catch_demangler_crashes, _("\
++Set whether to attempt to catch demangler crashes."), _("\
++Show whether GDB will attempt to catch demangler crashes."), _("\
++If enabled GDB will attempt to catch demangler crashes and\n\
++display the offending symbol."),
++			   NULL,
++			   NULL,
++			   &maintenance_set_cmdlist,
++			   &maintenance_show_cmdlist);
++#endif
+ }
