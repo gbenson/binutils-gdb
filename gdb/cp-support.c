@@ -1525,7 +1525,7 @@ static int catch_demangler_crashes = 0;
 #define SIGLONGJMP(buf,val)	longjmp((buf), (val))
 #endif
 
-/* Stack context and environment for demangler crash interception.  */
+/* Stack context and environment for demangler crash recovery.  */
 
 static SIGJMP_BUF gdb_demangle_jmp_buf;
 
@@ -1583,10 +1583,19 @@ gdb_demangle (const char *name, int options)
 
       if (crash_signal != 0)
 	{
-	  internal_error (__FILE__, __LINE__,
-			  _("unable to demangle '%s' "
-			    "(demangler failed with signal %d)"),
-			  name, crash_signal);
+	  static int error_reported = 0;
+
+	  if (!error_reported)
+	    {
+	      internal_warning (__FILE__, __LINE__,
+				_("unable to demangle '%s' "
+				  "(demangler failed with signal %d)"),
+				name, crash_signal);
+
+	      error_reported = 1;
+	    }
+
+	  result = NULL;
 	}
     }
 #endif

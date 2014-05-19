@@ -33,7 +33,7 @@ maint show catch-demangler-crashes
        (_initialize_cp_support): New maint set/show command.
 
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
-index 91533e8..3ca2687 100644
+index 91533e8..d065d1f 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
 @@ -36,6 +36,7 @@
@@ -44,7 +44,7 @@ index 91533e8..3ca2687 100644
  
  #include "safe-ctype.h"
  
-@@ -1505,12 +1506,92 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+@@ -1505,12 +1506,101 @@ cp_lookup_rtti_type (const char *name, struct block *block)
    return rtti_type;
  }
  
@@ -67,7 +67,7 @@ index 91533e8..3ca2687 100644
 +#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
 +#endif
 +
-+/* Stack context and environment for demangler crash interception.  */
++/* Stack context and environment for demangler crash recovery.  */
 +
 +static SIGJMP_BUF gdb_demangle_jmp_buf;
 +
@@ -126,10 +126,19 @@ index 91533e8..3ca2687 100644
 +
 +      if (crash_signal != 0)
 +	{
-+	  internal_error (__FILE__, __LINE__,
-+			  _("unable to demangle '%s' "
-+			    "(demangler failed with signal %d)"),
-+			  name, crash_signal);
++	  static int error_reported = 0;
++
++	  if (!error_reported)
++	    {
++	      internal_warning (__FILE__, __LINE__,
++				_("unable to demangle '%s' "
++				  "(demangler failed with signal %d)"),
++				name, crash_signal);
++
++	      error_reported = 1;
++	    }
++
++	  result = NULL;
 +	}
 +    }
 +#endif
@@ -138,7 +147,7 @@ index 91533e8..3ca2687 100644
  }
  
  /* Don't allow just "maintenance cplus".  */
-@@ -1585,4 +1666,17 @@ _initialize_cp_support (void)
+@@ -1585,4 +1675,17 @@ _initialize_cp_support (void)
  Usage: info vtbl EXPRESSION\n\
  Evaluate EXPRESSION and display the virtual function table for the\n\
  resulting object."));
