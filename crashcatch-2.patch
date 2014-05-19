@@ -10,10 +10,10 @@ The NEWS file entry for this patch is as follows:
 maint set catch-demangler-crashes (on|off)
 maint show catch-demangler-crashes
   Control whether the debugger should attempt to catch crashes in the
-  demangler.  The default is not to attempt to catch crashes.  The
-  first time a crash is caught the offending symbol is displayed and
-  the user is presented with options to terminate the current session
-  and create a core dump.
+  symbol name demangler.  The default is not to attempt to catch
+  crashes.  The first time a crash is caught the offending symbol is
+  displayed and the user is presented with options to terminate the
+  current session and to create a core file.
 
 2014-05-19  Gary Benson  <gbenson@redhat.com>
 
