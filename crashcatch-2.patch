@@ -54,7 +54,7 @@ index 91533e8..3ca2687 100644
 +#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
 +#endif
 +
-+/* Stack context and environment for demangler crash recovery.  */
++/* Stack context and environment for demangler crash interception.  */
 +
 +static SIGJMP_BUF gdb_demangle_jmp_buf;
 +

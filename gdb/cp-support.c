@@ -1525,7 +1525,7 @@ static int catch_demangler_crashes = 0;
 #define SIGLONGJMP(buf,val)	longjmp((buf), (val))
 #endif
 
-/* Stack context and environment for demangler crash recovery.  */
+/* Stack context and environment for demangler crash interception.  */
 
 static SIGJMP_BUF gdb_demangle_jmp_buf;
 
