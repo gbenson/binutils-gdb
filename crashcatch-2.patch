@@ -15,9 +15,9 @@ maint show catch-demangler-crashes
   displayed and the user is presented with options to terminate the
   current session and to create a core file.
 
+gdb/
 2014-05-19  Gary Benson  <gbenson@redhat.com>
 
-       PR backtrace/16817
        * cp-support.c (signal.h): New include.
        (catch_demangler_crashes): New flag.
        (SIGJMP_BUF): New define.
@@ -31,6 +31,12 @@ maint show catch-demangler-crashes
        segmentation fault is caught display the offending symbol and
        call internal_warning.
        (_initialize_cp_support): New maint set/show command.
+
+gdb/doc/
+2014-05-19  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Maintenance Commands): Document new
+	"maint set/show catch-demangler-crashes" option.
 
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
 index 91533e8..d065d1f 100644
