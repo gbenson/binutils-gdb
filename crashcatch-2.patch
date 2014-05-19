@@ -1,7 +1,19 @@
 This patch adds a new maintainence boolean, catch_demangler_crashes.
 If set, calls to the demangler are wrapped with a segmentation fault
-handler.  If a segmentation fault is caught the offending symbol is
-displayed and internal_error is called.
+handler.  The first time a segmentation fault is caught the offending
+symbol is displayed and internal_warning is called.
+
+The NEWS file entry for this patch is as follows:
+
+* New options
+
+maint set catch-demangler-crashes (on|off)
+maint show catch-demangler-crashes
+  Control whether the debugger should attempt to catch crashes in the
+  demangler.  The default is not to attempt to catch crashes.  The
+  first time a crash is caught the offending symbol is displayed and
+  the user is presented with options to terminate the current session
+  and create a core dump.
 
 2014-05-19  Gary Benson  <gbenson@redhat.com>
 
@@ -15,8 +27,9 @@ displayed and internal_error is called.
        (gdb_demangle_signal_handler): New function.
        (gdb_demangle): If catch_demangler_crashes is set, install the
        above signal handler before calling bfd_demangle, and restore
-       the original signal handler afterwards.  If a SIGSEGV is caught
-       display the offending symbol and call internal_error.
+       the original signal handler afterwards.  The first time a
+       segmentation fault is caught display the offending symbol and
+       call internal_warning.
        (_initialize_cp_support): New maint set/show command.
 
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
