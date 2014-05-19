@@ -1508,6 +1508,11 @@ cp_lookup_rtti_type (const char *name, struct block *block)
 
 #ifdef SIGSEGV
 
+/* If nonzero, attempt to catch crashes in the demangler and print
+   useful debugging information.  */
+
+static int catch_demangler_crashes = 0;
+
 /* Wrap set/long jmp so that it's more portable.  */
 
 #if defined(HAVE_SIGSETJMP)
@@ -1662,4 +1667,17 @@ _initialize_cp_support (void)
 Usage: info vtbl EXPRESSION\n\
 Evaluate EXPRESSION and display the virtual function table for the\n\
 resulting object."));
+
+#ifdef SIGSEGV
+  add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
+			   &catch_demangler_crashes, _("\
+Set whether to attempt to catch demangler crashes."), _("\
+Show whether GDB will attempt to catch demangler crashes."), _("\
+If enabled GDB will attempt to catch demangler crashes and\n\
+display the offending symbol."),
+			   NULL,
+			   NULL,
+			   &maintenance_set_cmdlist,
+			   &maintenance_show_cmdlist);
+#endif
 }
