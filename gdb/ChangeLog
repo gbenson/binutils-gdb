@@ -1,3 +1,95 @@
+2014-05-17  Doug Evans  <xdje42@gmail.com>
+
+	* progspace.c (remove_program_space): Delete, unused.
+	* progspace.h (remove_program_space): Ditto.
+
+2014-05-17  Doug Evans  <xdje42@gmail.com>
+
+	* inferior.c (prune_inferiors): Fix comment.
+	(remove_inferior_command): Call prune_program_spaces.
+
+2014-05-16  Doug Evans  <dje@google.com>
+
+	New command line option -D.
+	* NEWS: Mention it.
+	* main.c (set_gdb_data_directory): New function.
+	(captured_main): Recognize -D.  Flag error for --data-directory "".
+	Call set_gdb_data_directory.
+	(print_gdb_help): Print --data-directory, -D.
+	* main.h (set_gdb_data_directory): Declare.
+	* top.c (staged_gdb_datadir): New static global.
+	(set_gdb_datadir): Call set_gdb_data_directory
+	(show_gdb_datadir): New function.
+	(init_main): Update init of data-directory parameter.
+
+2014-05-16  Gregory Fong  <gregory.0xf0@gmail.com>
+
+	Import the "dirfd" gnulib module.
+	* gnulib/update-gnulib.sh (IMPORTED_GNULIB_MODULES): Add dirfd.
+	* gnulib/aclocal.m4: Update.
+	* gnulib/config.in: Update.
+	* gnulib/configure: Update.
+	* gnulib/import/Makefile.am: Update.
+	* gnulib/import/Makefile.in: Update.
+	* gnulib/import/dirfd.c: New.
+	* gnulib/import/m4/dirfd.m4: New.
+	* gnulib/import/m4/gnulib-cache.m4: Update.
+	* gnulib/import/m4/gnulib-comp.m4: Update.
+
+2014-05-16  Pierre Muller  <muller@sourceware.org>
+	    Yao Qi  <yao@codesourcery.com>
+
+	* valprint.c (print_wchar): Move the code on checking whether
+	W is a printable wide char to the default branch of switch
+	statement below.  Call wchar_printable instead of gdb_iswprint.
+
+2014-05-16  Taimoor Mirza  <tmirza@codesourcery.com>
+
+	* arm-tdep.c (thumb_analyze_prologue): Fix offset calculation for
+	ldr.w and ldrd instructions.
+
+2014-05-15  Doug Evans  <dje@google.com>
+
+	* dwarf2read.c (read_structure_type): Delete outdated comments.
+
+2014-05-14  Tom Tromey  <tromey@redhat.com>
+
+	* macrocmd.c (print_macro_definition): Reindent.
+
+2014-05-13  Doug Evans  <xdje42@gmail.com>
+
+	* python/py-cmd.c (cmdpy_completer): Add comment.
+	(completers): Make const.
+
+2014-05-13  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* infrun.c (resume): Remove should_resume (unused).  Move up
+	declaration of resume_ptid.
+
+2014-05-13  Tom Tromey  <tromey@redhat.com>
+
+	* language.h (unop_type_check): Remove.
+	(binop_type_check): Don't declare.
+
+2014-05-13  Andreas Arnez  <arnez@vnet.linux.ibm.com>
+
+	* s390-linux-nat.c (fill_gregset): Remove erroneous offset 4 in
+	call to regcache_raw_collect.
+
+2014-05-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* mi/mi-console.c (mi_console_raw_packet): Use the value from
+	mi_console->quote as the quoting character.
+
+2014-05-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* MAINTAINERS (Write After Approval): Add "Simon Marchi".
+
+2014-04-29  Tom Tromey  <tromey@redhat.com>
+
+	* varobj.c (_initialize_varobj): Rename to "set debug varobj" and
+	"show debug varobj".
+
 2014-05-07  Kyle McMartin  <kyle@redhat.com>
 
 	Pushed by Joel Brobecker  <brobecker@adacore.com>.

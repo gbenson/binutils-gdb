@@ -1164,7 +1164,9 @@ Run @value{GDBN} using @var{directory} as its working directory,
 instead of the current directory.
 
 @item -data-directory @var{directory}
+@itemx -D @var{directory}
 @cindex @code{--data-directory}
+@cindex @code{-D}
 Run @value{GDBN} using @var{directory} as its data directory.
 The data directory is where @value{GDBN} searches for its
 auxiliary files.  @xref{Data Files}.
@@ -22926,11 +22928,11 @@ message.
 @item show debug timestamp
 Displays the current state of displaying timestamps with @value{GDBN}
 debugging info.
-@item set debugvarobj
+@item set debug varobj
 @cindex variable object debugging info
 Turns on or off display of @value{GDBN} variable object debugging
 info. The default is off.
-@item show debugvarobj
+@item show debug varobj
 Displays the current state of displaying @value{GDBN} variable object
 debugging info.
 @item set debug xml
@@ -34803,6 +34805,12 @@ ids (using the @samp{qs} form of the query), until the target responds
 with @samp{l} (lower-case ell, for @dfn{last}).
 Refer to @ref{thread-id syntax}, for the format of the @var{thread-id}
 fields.
+
+@emph{Note: @value{GDBN} will send the @code{qfThreadInfo} query during the
+initial connection with the remote target, and the very first thread ID
+mentioned in the reply will be stopped by @value{GDBN} in a subsequent
+message.  Therefore, the stub should ensure that the first thread ID in
+the @code{qfThreadInfo} reply is suitable for being stopped by @value{GDBN}.}
 
 @item qGetTLSAddr:@var{thread-id},@var{offset},@var{lm}
 @cindex get thread-local storage address, remote request

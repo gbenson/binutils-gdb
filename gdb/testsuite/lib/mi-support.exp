@@ -818,9 +818,11 @@ proc mi_run_cmd_full {use_mi_command args} {
     if {$use_mi_command} {
 	set run_prefix "220-exec-"
 	set run_match "220"
+	set set_args_cmd "-exec-arguments"
     } else {
 	set run_prefix ""
 	set run_match ""
+	set set_args_cmd "set args"
     }
 
     if [target_info exists gdb_init_command] {
@@ -862,7 +864,16 @@ proc mi_run_cmd_full {use_mi_command args} {
 	return 0
     }
 
-    send_gdb "${run_prefix}run $args\n"
+    send_gdb "${set_args_cmd} $args\n"
+    gdb_expect {
+	-re "$mi_gdb_prompt$" { }
+	default {
+	    perror "settings args failed"
+	    return -1
+	}
+    }
+
+    send_gdb "${run_prefix}run\n"
     gdb_expect {
 	-re "${run_match}\\^running\r\n(\\*running,thread-id=\"\[^\"\]+\"\r\n|=thread-created,id=\"1\",group-id=\"\[0-9\]+\"\r\n)*(${library_loaded_re})*(${thread_selected_re})?${mi_gdb_prompt}" {
 	}
@@ -1049,7 +1060,7 @@ proc mi_expect_stop { reason func args file line extra test } {
 		pass "$test"
 	    }
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
 	    }
 	}
 	return
@@ -1063,7 +1074,21 @@ proc mi_expect_stop { reason func args file line extra test } {
 	    }
 	    -re ".*$mi_gdb_prompt$" {fail "continue to end (2)"}
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
+	    }
+	}
+	return
+    }
+    if { $reason == "exited" } {
+	gdb_expect {
+	    -re "\\*stopped,reason=\"exited\",exit-code=\"\[0-7\]+\"\r\n$prompt_re" {
+		pass "$test"
+	    }
+	    -re ".*$mi_gdb_prompt$" {
+		fail "$test (inferior not stopped)"
+	    }
+	    timeout {
+		fail "$test (timeout)"
 	    }
 	}
 	return
@@ -1077,7 +1102,7 @@ proc mi_expect_stop { reason func args file line extra test } {
 		pass "$test"
 	    }
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
 	    }
 	}
 	return

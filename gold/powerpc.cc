@@ -2851,7 +2851,21 @@ Target_powerpc<size, big_endian>::do_plt_fde_location(const Output_data* plt,
   if (plt == this->glink_)
     {
       // See Output_data_glink::do_write() for glink contents.
-      if (size == 64)
+      if (len == 0)
+	{
+	  gold_assert(parameters->doing_static_link());
+	  // Static linking may need stubs, to support ifunc and long
+	  // branches.  We need to create an output section for
+	  // .eh_frame early in the link process, to have a place to
+	  // attach stub .eh_frame info.  We also need to have
+	  // registered a CIE that matches the stub CIE.  Both of
+	  // these requirements are satisfied by creating an FDE and
+	  // CIE for .glink, even though static linking will leave
+	  // .glink zero length.
+	  // ??? Hopefully generating an FDE with a zero address range
+	  // won't confuse anything that consumes .eh_frame info.
+	}
+      else if (size == 64)
 	{
 	  // There is one word before __glink_PLTresolve
 	  address += 8;
@@ -2863,7 +2877,7 @@ Target_powerpc<size, big_endian>::do_plt_fde_location(const Output_data* plt,
 	  // The first covers the branch table, the second
 	  // __glink_PLTresolve at the end of glink.
 	  off_t resolve_size = this->glink_->pltresolve_size;
-	  if (oview[9] == 0)
+	  if (oview[9] == elfcpp::DW_CFA_nop)
 	    len -= resolve_size;
 	  else
 	    {
@@ -5819,7 +5833,8 @@ Target_powerpc<size, big_endian>::Scan::global(
 	if (gsym->needs_dynamic_reloc(Scan::get_reference_flags(r_type, target))
 	    || (size == 64 && is_ifunc && target->abiversion() < 2))
 	  {
-	    if (gsym->may_need_copy_reloc())
+	    if (!parameters->options().output_is_position_independent()
+		&& gsym->may_need_copy_reloc())
 	      {
 		target->copy_reloc(symtab, layout, object,
 				   data_shndx, output_section, gsym, reloc);
@@ -5882,7 +5897,8 @@ Target_powerpc<size, big_endian>::Scan::global(
       // Make a dynamic relocation if necessary.
       if (gsym->needs_dynamic_reloc(Scan::get_reference_flags(r_type, target)))
 	{
-	  if (gsym->may_need_copy_reloc())
+	  if (!parameters->options().output_is_position_independent()
+	      && gsym->may_need_copy_reloc())
 	    {
 	      target->copy_reloc(symtab, layout, object,
 				 data_shndx, output_section, gsym,
