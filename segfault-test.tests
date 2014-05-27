@@ -32,3 +32,11 @@ _Z1-Av23*;cG~Wo2Vu
 # https://sourceware.org/bugzilla/show_bug.cgi?id=16957#c9
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61233
 _Z7ZipWithI7QStringS0_5QListZN4oral6detail16AdaptCreateTableI7AccountEES0_RKNS3_16CachedFieldsDataEEUlRKS0_SA_E_ET1_IDTclfp1_cvT__EcvT0__EEEERKT1_ISC_ERKT1_ISD_ET2_
+
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61321
+_Z13function_tempIiEv1AIXszcvT_Li999EEE
+
+# https://gcc.gnu.org/ml/gcc-patches/2014-05/msg02279.html
+_Z14int_if_addableI1YERiP1AIXszpldecvPT_Li0EdecvS4_Li0EEE
+_Z3bazIiEvP1AIXszcl3foocvT__ELCf00000000_00000000EEEE
+_Z3fooI1FEN1XIXszdtcl1PclcvT__EEE5arrayEE4TypeEv
