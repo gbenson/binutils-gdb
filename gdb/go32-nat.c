@@ -87,6 +87,7 @@
 
 #include "i386-nat.h"
 #include "inferior.h"
+#include "infrun.h"
 #include "gdbthread.h"
 #include "gdb_wait.h"
 #include "gdbcore.h"
@@ -337,12 +338,6 @@ static struct {
   {GDB_SIGNAL_PROF, 0x78},
   {GDB_SIGNAL_LAST, -1}
 };
-
-static void
-go32_open (char *name, int from_tty)
-{
-  printf_unfiltered ("Done.  Use the \"run\" command to run the program.\n");
-}
 
 static void
 go32_attach (struct target_ops *ops, char *args, int from_tty)
@@ -716,7 +711,8 @@ go32_create_inferior (struct target_ops *ops, char *exec_file,
   inf = current_inferior ();
   inferior_appeared (inf, SOME_PID);
 
-  push_target (ops);
+  if (!target_is_pushed (ops))
+    push_target (ops);
 
   add_thread_silent (inferior_ptid);
 
@@ -750,8 +746,8 @@ go32_mourn_inferior (struct target_ops *ops)
   delete_thread_silent (ptid);
   prog_has_started = 0;
 
-  unpush_target (ops);
   generic_mourn_inferior ();
+  inf_child_maybe_unpush_target (ops);
 }
 
 /* Hardware watchpoint support.  */
@@ -960,11 +956,6 @@ go32_target (void)
 {
   struct target_ops *t = inf_child_target ();
 
-  t->to_shortname = "djgpp";
-  t->to_longname = "djgpp target process";
-  t->to_doc
-    = "Program loaded by djgpp, when gdb is used as an external debugger";
-  t->to_open = go32_open;
   t->to_attach = go32_attach;
   t->to_resume = go32_resume;
   t->to_wait = go32_wait;

@@ -101,19 +101,6 @@ static unsigned long gdbscm_exception_count = 0;
 
 /* Administrivia for exception smobs.  */
 
-/* The smob "mark" function for <gdb:exception>.  */
-
-static SCM
-exscm_mark_exception_smob (SCM self)
-{
-  exception_smob *e_smob = (exception_smob *) SCM_SMOB_DATA (self);
-
-  scm_gc_mark (e_smob->key);
-  scm_gc_mark (e_smob->args);
-  /* Do this last.  */
-  return gdbscm_mark_gsmob (&e_smob->base);
-}
-
 /* The smob "print" function for <gdb:exception>.  */
 
 static int
@@ -332,7 +319,7 @@ gdbscm_make_invalid_object_error (const char *subr, int arg_pos, SCM bad_value,
 /* Throw an invalid-object error.
    OBJECT is the name of the kind of object that is invalid.  */
 
-SCM
+void
 gdbscm_invalid_object_error (const char *subr, int arg_pos, SCM bad_value,
 			     const char *object)
 {
@@ -356,7 +343,7 @@ gdbscm_make_out_of_range_error (const char *subr, int arg_pos, SCM bad_value,
 /* Throw an out-of-range error.
    This is the standard Guile out-of-range exception.  */
 
-SCM
+void
 gdbscm_out_of_range_error (const char *subr, int arg_pos, SCM bad_value,
 			   const char *error)
 {
@@ -387,7 +374,7 @@ gdbscm_make_memory_error (const char *subr, const char *msg, SCM args)
 
 /* Throw a gdb:memory-error exception.  */
 
-SCM
+void
 gdbscm_memory_error (const char *subr, const char *msg, SCM args)
 {
   SCM exception = gdbscm_make_memory_error (subr, msg, args);
@@ -667,7 +654,6 @@ gdbscm_initialize_exceptions (void)
 {
   exception_smob_tag = gdbscm_make_smob_type (exception_smob_name,
 					      sizeof (exception_smob));
-  scm_set_smob_mark (exception_smob_tag, exscm_mark_exception_smob);
   scm_set_smob_print (exception_smob_tag, exscm_print_exception_smob);
 
   gdbscm_define_functions (exception_functions, 1);

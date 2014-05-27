@@ -1214,8 +1214,6 @@ darwin_mourn_inferior (struct target_ops *ops)
   mach_port_t prev;
   int i;
 
-  unpush_target (darwin_ops);
-
   /* Deallocate threads.  */
   if (inf->private->threads)
     {
@@ -1270,7 +1268,7 @@ darwin_mourn_inferior (struct target_ops *ops)
   xfree (inf->private);
   inf->private = NULL;
 
-  generic_mourn_inferior ();
+  inf_child_mourn_inferior (ops);
 }
 
 static void
@@ -1506,7 +1504,8 @@ impact on the debugging session."));
 	     "returned: %d"),
 	   kret);
 
-  push_target (darwin_ops);
+  if (!target_is_pushed (darwin_ops))
+    push_target (darwin_ops);
 }
 
 static void
@@ -2148,10 +2147,6 @@ _initialize_darwin_inferior (void)
 
   darwin_ops = inf_child_target ();
 
-  darwin_ops->to_shortname = "darwin-child";
-  darwin_ops->to_longname = _("Darwin child process");
-  darwin_ops->to_doc =
-    _("Darwin child process (started by the \"run\" command).");
   darwin_ops->to_create_inferior = darwin_create_inferior;
   darwin_ops->to_attach = darwin_attach;
   darwin_ops->to_attach_no_wait = 0;

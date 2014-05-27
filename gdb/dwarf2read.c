@@ -239,13 +239,6 @@ struct dwarf2_per_objfile
      This is stored in malloc space because we may realloc it.  */
   struct signatured_type **all_type_units;
 
-  /* The number of entries in all_type_unit_groups.  */
-  int n_type_unit_groups;
-
-  /* Table of type unit groups.
-     This exists to make it easy to iterate over all CUs and TU groups.  */
-  struct type_unit_group **all_type_unit_groups;
-
   /* Table of struct type_unit_group objects.
      The hash key is the DW_AT_stmt_list value.  */
   htab_t type_unit_groups;
@@ -1715,11 +1708,6 @@ static void load_full_type_unit (struct dwarf2_per_cu_data *per_cu);
 
 static void read_signatured_type (struct signatured_type *);
 
-static struct type_unit_group *get_type_unit_group
-    (struct dwarf2_cu *, const struct attribute *);
-
-static void build_type_unit_groups (die_reader_func_ftype *, void *);
-
 /* memory allocation interface */
 
 static struct dwarf_block *dwarf_alloc_block (struct dwarf2_cu *);
@@ -2673,21 +2661,21 @@ dw2_instantiate_symtab (struct dwarf2_per_cu_data *per_cu)
   return per_cu->v.quick->symtab;
 }
 
-/* Return the CU given its index.
+/* Return the CU/TU given its index.
 
    This is intended for loops like:
 
    for (i = 0; i < (dwarf2_per_objfile->n_comp_units
 		    + dwarf2_per_objfile->n_type_units); ++i)
      {
-       struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+       struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
        ...;
      }
 */
 
 static struct dwarf2_per_cu_data *
-dw2_get_cu (int index)
+dw2_get_cutu (int index)
 {
   if (index >= dwarf2_per_objfile->n_comp_units)
     {
@@ -2699,30 +2687,14 @@ dw2_get_cu (int index)
   return dwarf2_per_objfile->all_comp_units[index];
 }
 
-/* Return the primary CU given its index.
-   The difference between this function and dw2_get_cu is in the handling
-   of type units (TUs).  Here we return the type_unit_group object.
-
-   This is intended for loops like:
-
-   for (i = 0; i < (dwarf2_per_objfile->n_comp_units
-		    + dwarf2_per_objfile->n_type_unit_groups); ++i)
-     {
-       struct dwarf2_per_cu_data *per_cu = dw2_get_primary_cu (i);
-
-       ...;
-     }
-*/
+/* Return the CU given its index.
+   This differs from dw2_get_cutu in that it's for when you know INDEX
+   refers to a CU.  */
 
 static struct dwarf2_per_cu_data *
-dw2_get_primary_cu (int index)
+dw2_get_cu (int index)
 {
-  if (index >= dwarf2_per_objfile->n_comp_units)
-    {
-      index -= dwarf2_per_objfile->n_comp_units;
-      gdb_assert (index < dwarf2_per_objfile->n_type_unit_groups);
-      return &dwarf2_per_objfile->all_type_unit_groups[index]->per_cu;
-    }
+  gdb_assert (index >= 0 && index < dwarf2_per_objfile->n_comp_units);
 
   return dwarf2_per_objfile->all_comp_units[index];
 }
@@ -2889,7 +2861,7 @@ create_addrmap_from_index (struct objfile *objfile, struct mapped_index *index)
 	}
 
       addrmap_set_empty (mutable_map, lo + baseaddr, hi + baseaddr - 1,
-			 dw2_get_cu (cu_index));
+			 dw2_get_cutu (cu_index));
     }
 
   objfile->psymtabs_addrmap = addrmap_create_fixed (mutable_map,
@@ -3333,7 +3305,7 @@ dw2_find_last_source_symtab (struct objfile *objfile)
 
   dw2_setup (objfile);
   index = dwarf2_per_objfile->n_comp_units - 1;
-  return dw2_instantiate_symtab (dw2_get_cu (index));
+  return dw2_instantiate_symtab (dw2_get_cutu (index));
 }
 
 /* Traversal function for dw2_forget_cached_source_info.  */
@@ -3409,7 +3381,7 @@ dw2_map_symtabs_matching_filename (struct objfile *objfile, const char *name,
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
       int j;
-      struct dwarf2_per_cu_data *per_cu = dw2_get_primary_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
       struct quick_file_names *file_data;
 
       /* We only need to look at symtabs not already expanded.  */
@@ -3557,7 +3529,7 @@ dw2_symtab_iter_next (struct dw2_symtab_iterator *iter)
 	  continue;
 	}
 
-      per_cu = dw2_get_cu (cu_index);
+      per_cu = dw2_get_cutu (cu_index);
 
       /* Skip if already read in.  */
       if (per_cu->v.quick->symtab)
@@ -3668,7 +3640,7 @@ dw2_print_stats (struct objfile *objfile)
   count = 0;
   for (i = 0; i < total; ++i)
     {
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
       if (!per_cu->v.quick->symtab)
 	++count;
@@ -3741,7 +3713,7 @@ dw2_expand_all_symtabs (struct objfile *objfile)
   for (i = 0; i < (dwarf2_per_objfile->n_comp_units
 		   + dwarf2_per_objfile->n_type_units); ++i)
     {
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
       dw2_instantiate_symtab (per_cu);
     }
@@ -3763,7 +3735,7 @@ dw2_expand_symtabs_with_fullname (struct objfile *objfile,
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
       int j;
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
       struct quick_file_names *file_data;
 
       /* We only need to look at symtabs not already expanded.  */
@@ -3840,7 +3812,7 @@ dw2_expand_symtabs_matching
       for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
 	{
 	  int j;
-	  struct dwarf2_per_cu_data *per_cu = dw2_get_primary_cu (i);
+	  struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
 	  struct quick_file_names *file_data;
 	  void **slot;
 
@@ -3975,7 +3947,7 @@ dw2_expand_symtabs_matching
 	      continue;
 	    }
 
-	  per_cu = dw2_get_cu (cu_index);
+	  per_cu = dw2_get_cutu (cu_index);
 	  if (file_matcher == NULL || per_cu->v.quick->mark)
 	    dw2_instantiate_symtab (per_cu);
 	}
@@ -4055,7 +4027,7 @@ dw2_map_symbol_filenames (struct objfile *objfile, symbol_filename_ftype *fun,
 
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
       if (per_cu->v.quick->symtab)
 	{
@@ -4069,7 +4041,7 @@ dw2_map_symbol_filenames (struct objfile *objfile, symbol_filename_ftype *fun,
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
       int j;
-      struct dwarf2_per_cu_data *per_cu = dw2_get_primary_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
       struct quick_file_names *file_data;
       void **slot;
 
@@ -4152,7 +4124,7 @@ dwarf2_initialize_objfile (struct objfile *objfile)
       for (i = 0; i < (dwarf2_per_objfile->n_comp_units
 		       + dwarf2_per_objfile->n_type_units); ++i)
 	{
-	  struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+	  struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
 	  per_cu->v.quick = OBSTACK_ZALLOC (&objfile->objfile_obstack,
 					    struct dwarf2_per_cu_quick_data);
@@ -5759,191 +5731,6 @@ get_type_unit_group (struct dwarf2_cu *cu, const struct attribute *stmt_list)
 
   return tu_group;
 }
-
-/* Struct used to sort TUs by their abbreviation table offset.  */
-
-struct tu_abbrev_offset
-{
-  struct signatured_type *sig_type;
-  sect_offset abbrev_offset;
-};
-
-/* Helper routine for build_type_unit_groups, passed to qsort.  */
-
-static int
-sort_tu_by_abbrev_offset (const void *ap, const void *bp)
-{
-  const struct tu_abbrev_offset * const *a = ap;
-  const struct tu_abbrev_offset * const *b = bp;
-  unsigned int aoff = (*a)->abbrev_offset.sect_off;
-  unsigned int boff = (*b)->abbrev_offset.sect_off;
-
-  return (aoff > boff) - (aoff < boff);
-}
-
-/* A helper function to add a type_unit_group to a table.  */
-
-static int
-add_type_unit_group_to_table (void **slot, void *datum)
-{
-  struct type_unit_group *tu_group = *slot;
-  struct type_unit_group ***datap = datum;
-
-  **datap = tu_group;
-  ++*datap;
-
-  return 1;
-}
-
-/* Efficiently read all the type units, calling init_cutu_and_read_dies on
-   each one passing FUNC,DATA.
-
-   The efficiency is because we sort TUs by the abbrev table they use and
-   only read each abbrev table once.  In one program there are 200K TUs
-   sharing 8K abbrev tables.
-
-   The main purpose of this function is to support building the
-   dwarf2_per_objfile->type_unit_groups table.
-   TUs typically share the DW_AT_stmt_list of the CU they came from, so we
-   can collapse the search space by grouping them by stmt_list.
-   The savings can be significant, in the same program from above the 200K TUs
-   share 8K stmt_list tables.
-
-   FUNC is expected to call get_type_unit_group, which will create the
-   struct type_unit_group if necessary and add it to
-   dwarf2_per_objfile->type_unit_groups.  */
-
-static void
-build_type_unit_groups (die_reader_func_ftype *func, void *data)
-{
-  struct objfile *objfile = dwarf2_per_objfile->objfile;
-  struct tu_stats *tu_stats = &dwarf2_per_objfile->tu_stats;
-  struct cleanup *cleanups;
-  struct abbrev_table *abbrev_table;
-  sect_offset abbrev_offset;
-  struct tu_abbrev_offset *sorted_by_abbrev;
-  struct type_unit_group **iter;
-  int i;
-
-  /* It's up to the caller to not call us multiple times.  */
-  gdb_assert (dwarf2_per_objfile->type_unit_groups == NULL);
-
-  if (dwarf2_per_objfile->n_type_units == 0)
-    return;
-
-  /* TUs typically share abbrev tables, and there can be way more TUs than
-     abbrev tables.  Sort by abbrev table to reduce the number of times we
-     read each abbrev table in.
-     Alternatives are to punt or to maintain a cache of abbrev tables.
-     This is simpler and efficient enough for now.
-
-     Later we group TUs by their DW_AT_stmt_list value (as this defines the
-     symtab to use).  Typically TUs with the same abbrev offset have the same
-     stmt_list value too so in practice this should work well.
-
-     The basic algorithm here is:
-
-      sort TUs by abbrev table
-      for each TU with same abbrev table:
-	read abbrev table if first user
-	read TU top level DIE
-	  [IWBN if DWO skeletons had DW_AT_stmt_list]
-	call FUNC  */
-
-  if (dwarf2_read_debug)
-    fprintf_unfiltered (gdb_stdlog, "Building type unit groups ...\n");
-
-  /* Sort in a separate table to maintain the order of all_type_units
-     for .gdb_index: TU indices directly index all_type_units.  */
-  sorted_by_abbrev = XNEWVEC (struct tu_abbrev_offset,
-			      dwarf2_per_objfile->n_type_units);
-  for (i = 0; i < dwarf2_per_objfile->n_type_units; ++i)
-    {
-      struct signatured_type *sig_type = dwarf2_per_objfile->all_type_units[i];
-
-      sorted_by_abbrev[i].sig_type = sig_type;
-      sorted_by_abbrev[i].abbrev_offset =
-	read_abbrev_offset (sig_type->per_cu.section,
-			    sig_type->per_cu.offset);
-    }
-  cleanups = make_cleanup (xfree, sorted_by_abbrev);
-  qsort (sorted_by_abbrev, dwarf2_per_objfile->n_type_units,
-	 sizeof (struct tu_abbrev_offset), sort_tu_by_abbrev_offset);
-
-  /* Note: In the .gdb_index case, get_type_unit_group may have already been
-     called any number of times, so we don't reset tu_stats here.  */
-
-  abbrev_offset.sect_off = ~(unsigned) 0;
-  abbrev_table = NULL;
-  make_cleanup (abbrev_table_free_cleanup, &abbrev_table);
-
-  for (i = 0; i < dwarf2_per_objfile->n_type_units; ++i)
-    {
-      const struct tu_abbrev_offset *tu = &sorted_by_abbrev[i];
-
-      /* Switch to the next abbrev table if necessary.  */
-      if (abbrev_table == NULL
-	  || tu->abbrev_offset.sect_off != abbrev_offset.sect_off)
-	{
-	  if (abbrev_table != NULL)
-	    {
-	      abbrev_table_free (abbrev_table);
-	      /* Reset to NULL in case abbrev_table_read_table throws
-		 an error: abbrev_table_free_cleanup will get called.  */
-	      abbrev_table = NULL;
-	    }
-	  abbrev_offset = tu->abbrev_offset;
-	  abbrev_table =
-	    abbrev_table_read_table (&dwarf2_per_objfile->abbrev,
-				     abbrev_offset);
-	  ++tu_stats->nr_uniq_abbrev_tables;
-	}
-
-      init_cutu_and_read_dies (&tu->sig_type->per_cu, abbrev_table, 0, 0,
-			       func, data);
-    }
-
-  /* type_unit_groups can be NULL if there is an error in the debug info.
-     Just create an empty table so the rest of gdb doesn't have to watch
-     for this error case.  */
-  if (dwarf2_per_objfile->type_unit_groups == NULL)
-    {
-      dwarf2_per_objfile->type_unit_groups =
-	allocate_type_unit_groups_table ();
-      dwarf2_per_objfile->n_type_unit_groups = 0;
-    }
-
-  /* Create a vector of pointers to primary type units to make it easy to
-     iterate over them and CUs.  See dw2_get_primary_cu.  */
-  dwarf2_per_objfile->n_type_unit_groups =
-    htab_elements (dwarf2_per_objfile->type_unit_groups);
-  dwarf2_per_objfile->all_type_unit_groups =
-    obstack_alloc (&objfile->objfile_obstack,
-		   dwarf2_per_objfile->n_type_unit_groups
-		   * sizeof (struct type_unit_group *));
-  iter = &dwarf2_per_objfile->all_type_unit_groups[0];
-  htab_traverse_noresize (dwarf2_per_objfile->type_unit_groups,
-			  add_type_unit_group_to_table, &iter);
-  gdb_assert (iter - &dwarf2_per_objfile->all_type_unit_groups[0]
-	      == dwarf2_per_objfile->n_type_unit_groups);
-
-  do_cleanups (cleanups);
-
-  if (dwarf2_read_debug)
-    {
-      fprintf_unfiltered (gdb_stdlog, "Done building type unit groups:\n");
-      fprintf_unfiltered (gdb_stdlog, "  %d TUs\n",
-			  dwarf2_per_objfile->n_type_units);
-      fprintf_unfiltered (gdb_stdlog, "  %d uniq abbrev tables\n",
-			  tu_stats->nr_uniq_abbrev_tables);
-      fprintf_unfiltered (gdb_stdlog, "  %d symtabs from stmt_list entries\n",
-			  tu_stats->nr_symtabs);
-      fprintf_unfiltered (gdb_stdlog, "  %d symtab sharers\n",
-			  tu_stats->nr_symtab_sharers);
-      fprintf_unfiltered (gdb_stdlog, "  %d type units without a stmt_list\n",
-			  tu_stats->nr_stmt_less_type_units);
-    }
-}
 
 /* Partial symbol tables.  */
 
@@ -6201,6 +5988,159 @@ build_type_psymtabs_reader (const struct die_reader_specs *reader,
   sort_pst_symbols (objfile, pst);
 }
 
+/* Struct used to sort TUs by their abbreviation table offset.  */
+
+struct tu_abbrev_offset
+{
+  struct signatured_type *sig_type;
+  sect_offset abbrev_offset;
+};
+
+/* Helper routine for build_type_psymtabs_1, passed to qsort.  */
+
+static int
+sort_tu_by_abbrev_offset (const void *ap, const void *bp)
+{
+  const struct tu_abbrev_offset * const *a = ap;
+  const struct tu_abbrev_offset * const *b = bp;
+  unsigned int aoff = (*a)->abbrev_offset.sect_off;
+  unsigned int boff = (*b)->abbrev_offset.sect_off;
+
+  return (aoff > boff) - (aoff < boff);
+}
+
+/* Efficiently read all the type units.
+   This does the bulk of the work for build_type_psymtabs.
+
+   The efficiency is because we sort TUs by the abbrev table they use and
+   only read each abbrev table once.  In one program there are 200K TUs
+   sharing 8K abbrev tables.
+
+   The main purpose of this function is to support building the
+   dwarf2_per_objfile->type_unit_groups table.
+   TUs typically share the DW_AT_stmt_list of the CU they came from, so we
+   can collapse the search space by grouping them by stmt_list.
+   The savings can be significant, in the same program from above the 200K TUs
+   share 8K stmt_list tables.
+
+   FUNC is expected to call get_type_unit_group, which will create the
+   struct type_unit_group if necessary and add it to
+   dwarf2_per_objfile->type_unit_groups.  */
+
+static void
+build_type_psymtabs_1 (void)
+{
+  struct objfile *objfile = dwarf2_per_objfile->objfile;
+  struct tu_stats *tu_stats = &dwarf2_per_objfile->tu_stats;
+  struct cleanup *cleanups;
+  struct abbrev_table *abbrev_table;
+  sect_offset abbrev_offset;
+  struct tu_abbrev_offset *sorted_by_abbrev;
+  struct type_unit_group **iter;
+  int i;
+
+  /* It's up to the caller to not call us multiple times.  */
+  gdb_assert (dwarf2_per_objfile->type_unit_groups == NULL);
+
+  if (dwarf2_per_objfile->n_type_units == 0)
+    return;
+
+  /* TUs typically share abbrev tables, and there can be way more TUs than
+     abbrev tables.  Sort by abbrev table to reduce the number of times we
+     read each abbrev table in.
+     Alternatives are to punt or to maintain a cache of abbrev tables.
+     This is simpler and efficient enough for now.
+
+     Later we group TUs by their DW_AT_stmt_list value (as this defines the
+     symtab to use).  Typically TUs with the same abbrev offset have the same
+     stmt_list value too so in practice this should work well.
+
+     The basic algorithm here is:
+
+      sort TUs by abbrev table
+      for each TU with same abbrev table:
+	read abbrev table if first user
+	read TU top level DIE
+	  [IWBN if DWO skeletons had DW_AT_stmt_list]
+	call FUNC  */
+
+  if (dwarf2_read_debug)
+    fprintf_unfiltered (gdb_stdlog, "Building type unit groups ...\n");
+
+  /* Sort in a separate table to maintain the order of all_type_units
+     for .gdb_index: TU indices directly index all_type_units.  */
+  sorted_by_abbrev = XNEWVEC (struct tu_abbrev_offset,
+			      dwarf2_per_objfile->n_type_units);
+  for (i = 0; i < dwarf2_per_objfile->n_type_units; ++i)
+    {
+      struct signatured_type *sig_type = dwarf2_per_objfile->all_type_units[i];
+
+      sorted_by_abbrev[i].sig_type = sig_type;
+      sorted_by_abbrev[i].abbrev_offset =
+	read_abbrev_offset (sig_type->per_cu.section,
+			    sig_type->per_cu.offset);
+    }
+  cleanups = make_cleanup (xfree, sorted_by_abbrev);
+  qsort (sorted_by_abbrev, dwarf2_per_objfile->n_type_units,
+	 sizeof (struct tu_abbrev_offset), sort_tu_by_abbrev_offset);
+
+  abbrev_offset.sect_off = ~(unsigned) 0;
+  abbrev_table = NULL;
+  make_cleanup (abbrev_table_free_cleanup, &abbrev_table);
+
+  for (i = 0; i < dwarf2_per_objfile->n_type_units; ++i)
+    {
+      const struct tu_abbrev_offset *tu = &sorted_by_abbrev[i];
+
+      /* Switch to the next abbrev table if necessary.  */
+      if (abbrev_table == NULL
+	  || tu->abbrev_offset.sect_off != abbrev_offset.sect_off)
+	{
+	  if (abbrev_table != NULL)
+	    {
+	      abbrev_table_free (abbrev_table);
+	      /* Reset to NULL in case abbrev_table_read_table throws
+		 an error: abbrev_table_free_cleanup will get called.  */
+	      abbrev_table = NULL;
+	    }
+	  abbrev_offset = tu->abbrev_offset;
+	  abbrev_table =
+	    abbrev_table_read_table (&dwarf2_per_objfile->abbrev,
+				     abbrev_offset);
+	  ++tu_stats->nr_uniq_abbrev_tables;
+	}
+
+      init_cutu_and_read_dies (&tu->sig_type->per_cu, abbrev_table, 0, 0,
+			       build_type_psymtabs_reader, NULL);
+    }
+
+  /* type_unit_groups can be NULL if there is an error in the debug info.
+     Just create an empty table so the rest of gdb doesn't have to watch
+     for this error case.  */
+  if (dwarf2_per_objfile->type_unit_groups == NULL)
+    {
+      dwarf2_per_objfile->type_unit_groups =
+	allocate_type_unit_groups_table ();
+    }
+
+  do_cleanups (cleanups);
+
+  if (dwarf2_read_debug)
+    {
+      fprintf_unfiltered (gdb_stdlog, "Done building type unit groups:\n");
+      fprintf_unfiltered (gdb_stdlog, "  %d TUs\n",
+			  dwarf2_per_objfile->n_type_units);
+      fprintf_unfiltered (gdb_stdlog, "  %d uniq abbrev tables\n",
+			  tu_stats->nr_uniq_abbrev_tables);
+      fprintf_unfiltered (gdb_stdlog, "  %d symtabs from stmt_list entries\n",
+			  tu_stats->nr_symtabs);
+      fprintf_unfiltered (gdb_stdlog, "  %d symtab sharers\n",
+			  tu_stats->nr_symtab_sharers);
+      fprintf_unfiltered (gdb_stdlog, "  %d type units without a stmt_list\n",
+			  tu_stats->nr_stmt_less_type_units);
+    }
+}
+
 /* Traversal function for build_type_psymtabs.  */
 
 static int
@@ -6243,7 +6183,7 @@ build_type_psymtabs (struct objfile *objfile)
   if (! create_all_type_units (objfile))
     return;
 
-  build_type_unit_groups (build_type_psymtabs_reader, NULL);
+  build_type_psymtabs_1 ();
 
   /* Now that all TUs have been processed we can fill in the dependencies.  */
   htab_traverse_noresize (dwarf2_per_objfile->type_unit_groups,
@@ -6269,7 +6209,7 @@ set_partial_user (struct objfile *objfile)
 
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
       struct partial_symtab *pst = per_cu->v.psymtab;
       int j;
 
@@ -6322,7 +6262,7 @@ dwarf2_build_psymtabs_hard (struct objfile *objfile)
 
   for (i = 0; i < dwarf2_per_objfile->n_comp_units; ++i)
     {
-      struct dwarf2_per_cu_data *per_cu = dw2_get_cu (i);
+      struct dwarf2_per_cu_data *per_cu = dw2_get_cutu (i);
 
       process_psymtab_comp_unit (per_cu, 0, language_minimal);
     }
@@ -12802,19 +12742,14 @@ producer_is_icc (struct dwarf2_cu *cu)
 /* Called when we find the DIE that starts a structure or union scope
    (definition) to create a type for the structure or union.  Fill in
    the type's name and general properties; the members will not be
-   processed until process_structure_scope.
+   processed until process_structure_scope.  A symbol table entry for
+   the type will also not be done until process_structure_scope (assuming
+   the type has a name).
 
    NOTE: we need to call these functions regardless of whether or not the
    DIE has a DW_AT_name attribute, since it might be an anonymous
    structure or union.  This gets the type entered into our set of
-   user defined types.
-
-   However, if the structure is incomplete (an opaque struct/union)
-   then suppress creating a symbol table entry for it since gdb only
-   wants to find the one with the complete definition.  Note that if
-   it is complete, we just call new_symbol, which does it's own
-   checking about whether the struct/union is anonymous or not (and
-   suppresses creating a symbol table entry itself).  */
+   user defined types.  */
 
 static struct type *
 read_structure_type (struct die_info *die, struct dwarf2_cu *cu)
@@ -15031,7 +14966,7 @@ abbrev_table_free (struct abbrev_table *abbrev_table)
 /* Same as abbrev_table_free but as a cleanup.
    We pass in a pointer to the pointer to the table so that we can
    set the pointer to NULL when we're done.  It also simplifies
-   build_type_unit_groups.  */
+   build_type_psymtabs_1.  */
 
 static void
 abbrev_table_free_cleanup (void *table_ptr)

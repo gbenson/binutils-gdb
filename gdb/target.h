@@ -605,7 +605,8 @@ struct target_ops
        thread-local storage for the thread PTID and the shared library
        or executable file given by OBJFILE.  If that block of
        thread-local storage hasn't been allocated yet, this function
-       may return an error.  */
+       may return an error.  LOAD_MODULE_ADDR may be zero for statically
+       linked multithreaded inferiors.  */
     CORE_ADDR (*to_get_thread_local_address) (struct target_ops *ops,
 					      ptid_t ptid,
 					      CORE_ADDR load_module_addr,
@@ -941,7 +942,7 @@ struct target_ops
        encountered while reading memory.  */
     int (*to_verify_memory) (struct target_ops *, const gdb_byte *data,
 			     CORE_ADDR memaddr, ULONGEST size)
-      TARGET_DEFAULT_NORETURN (tcomplain ());
+      TARGET_DEFAULT_FUNC (default_verify_memory);
 
     /* Return the address of the start of the Thread Information Block
        a Windows OS specific feature.  */
@@ -2004,6 +2005,14 @@ extern const struct frame_unwind *target_get_unwinder (void);
 
 /* See to_get_tailcall_unwinder in struct target_ops.  */
 extern const struct frame_unwind *target_get_tailcall_unwinder (void);
+
+/* This implements basic memory verification, reading target memory
+   and performing the comparison here (as opposed to accelerated
+   verification making use of the qCRC packet, for example).  */
+
+extern int simple_verify_memory (struct target_ops* ops,
+				 const gdb_byte *data,
+				 CORE_ADDR memaddr, ULONGEST size);
 
 /* Verify that the memory in the [MEMADDR, MEMADDR+SIZE) range matches
    the contents of [DATA,DATA+SIZE).  Returns 1 if there's a match, 0

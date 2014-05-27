@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
+#include "infrun.h"
 #include <string.h>
 #include <ctype.h>
 #include "symtab.h"
@@ -428,6 +429,7 @@ follow_fork (void)
   CORE_ADDR step_range_start = 0;
   CORE_ADDR step_range_end = 0;
   struct frame_id step_frame_id = { 0 };
+  struct interp *command_interp = NULL;
 
   if (!non_stop)
     {
@@ -479,6 +481,7 @@ follow_fork (void)
 	    step_frame_id = tp->control.step_frame_id;
 	    exception_resume_breakpoint
 	      = clone_momentary_breakpoint (tp->control.exception_resume_breakpoint);
+	    command_interp = tp->control.command_interp;
 
 	    /* For now, delete the parent's sr breakpoint, otherwise,
 	       parent/child sr breakpoints are considered duplicates,
@@ -490,6 +493,7 @@ follow_fork (void)
 	    tp->control.step_range_end = 0;
 	    tp->control.step_frame_id = null_frame_id;
 	    delete_exception_resume_breakpoint (tp);
+	    tp->control.command_interp = NULL;
 	  }
 
 	parent = inferior_ptid;
@@ -534,6 +538,7 @@ follow_fork (void)
 		    tp->control.step_frame_id = step_frame_id;
 		    tp->control.exception_resume_breakpoint
 		      = exception_resume_breakpoint;
+		    tp->control.command_interp = command_interp;
 		  }
 		else
 		  {
@@ -2024,6 +2029,8 @@ clear_proceed_status_thread (struct thread_info *tp)
 
   tp->control.proceed_to_finish = 0;
 
+  tp->control.command_interp = NULL;
+
   /* Discard any remaining commands or status from previous stop.  */
   bpstat_clear (&tp->control.stop_bpstat);
 }
@@ -2228,6 +2235,14 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal, int step)
     {
       regcache_write_pc (regcache, addr);
     }
+
+  /* Record the interpreter that issued the execution command that
+     caused this thread to resume.  If the top level interpreter is
+     MI/async, and the execution command was a CLI command
+     (next/step/etc.), we'll want to print stop event output to the MI
+     console channel (the stepped-to line, etc.), as if the user
+     entered the execution command on a real GDB console.  */
+  inferior_thread ()->control.command_interp = command_interp ();
 
   if (debug_infrun)
     fprintf_unfiltered (gdb_stdlog,
@@ -3509,6 +3524,9 @@ handle_inferior_event (struct execution_control_state *ecs)
 	  /* Also record this in the inferior itself.  */
 	  current_inferior ()->has_exit_code = 1;
 	  current_inferior ()->exit_code = (LONGEST) ecs->ws.value.integer;
+
+	  /* Support the --return-child-result option.  */
+	  return_child_result_value = ecs->ws.value.integer;
 
 	  print_exited_reason (ecs->ws.value.integer);
 	}
@@ -5957,8 +5975,6 @@ print_exited_reason (int exitstatus)
       ui_out_text (uiout, pidstr);
       ui_out_text (uiout, ") exited normally]\n");
     }
-  /* Support the --return-child-result option.  */
-  return_child_result_value = exitstatus;
 }
 
 /* Signal received, print why the inferior has stopped.  The signal table
@@ -6170,7 +6186,7 @@ normal_stop (void)
      display the frame below, but the current SAL will be incorrect
      during a user hook-stop function.  */
   if (has_stack_frames () && !stop_stack_dummy)
-    set_current_sal_from_frame (get_current_frame (), 1);
+    set_current_sal_from_frame (get_current_frame ());
 
   /* Let the user/frontend see the threads as stopped.  */
   do_cleanups (old_chain);

@@ -799,6 +799,30 @@ proc mi_gdb_test { args } {
     return $result
 }
 
+# Collect output sent to the console output stream until UNTIL is
+# seen.  UNTIL is a regular expression.  MESSAGE is the message to be
+# printed in case of timeout.
+
+proc mi_gdb_expect_cli_output {until message} {
+
+    set output ""
+    gdb_expect {
+	-re "~\"(\[^\r\n\]+)\"\r\n" {
+	    append output $expect_out(1,string)
+	    exp_continue
+	}
+	-notransfer -re "$until" {
+	    # Done
+	}
+	timeout {
+	    fail "$message (timeout)"
+	    return ""
+	}
+    }
+
+    return $output
+}
+
 #
 # MI run command.  (A modified version of gdb_run_cmd)
 #
@@ -806,6 +830,18 @@ proc mi_gdb_test { args } {
 # In patterns, the newline sequence ``\r\n'' is matched explicitly as
 # ``.*$'' could swallow up output that we attempt to match elsewhere.
 
+# Send the command to run the test program.
+#
+# If USE_MI_COMMAND is true, the "-exec-run" command is used.
+# Otherwise, the "run" (CLI) command is used.  If the global USE_GDB_STUB is
+# true, -exec-continue and continue are used instead of their run counterparts.
+#
+# ARGS is passed as argument to the command used to run the test program.
+# Beware that arguments to "-exec-run" do not have the same semantics as
+# arguments to the "run" command, so USE_MI_COMMAND influences the meaning
+# of ARGS.  If USE_MI_COMMAND is true, they are arguments to -exec-run.
+# If USE_MI_COMMAND is false, they are effectively arguments passed
+# to the test program.  If the global USE_GDB_STUB is true, ARGS is not used.
 proc mi_run_cmd_full {use_mi_command args} {
     global suppress_flag
     if { $suppress_flag } {
@@ -1049,7 +1085,7 @@ proc mi_expect_stop { reason func args file line extra test } {
 		pass "$test"
 	    }
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
 	    }
 	}
 	return
@@ -1063,7 +1099,21 @@ proc mi_expect_stop { reason func args file line extra test } {
 	    }
 	    -re ".*$mi_gdb_prompt$" {fail "continue to end (2)"}
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
+	    }
+	}
+	return
+    }
+    if { $reason == "exited" } {
+	gdb_expect {
+	    -re "\\*stopped,reason=\"exited\",exit-code=\"\[0-7\]+\"\r\n$prompt_re" {
+		pass "$test"
+	    }
+	    -re ".*$mi_gdb_prompt$" {
+		fail "$test (inferior not stopped)"
+	    }
+	    timeout {
+		fail "$test (timeout)"
 	    }
 	}
 	return
@@ -1077,7 +1127,7 @@ proc mi_expect_stop { reason func args file line extra test } {
 		pass "$test"
 	    }
 	    timeout {
-		fail "$test (unknown output after running)"
+		fail "$test (timeout)"
 	    }
 	}
 	return

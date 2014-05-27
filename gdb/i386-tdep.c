@@ -28,6 +28,7 @@
 #include "frame-base.h"
 #include "frame-unwind.h"
 #include "inferior.h"
+#include "infrun.h"
 #include "gdbcmd.h"
 #include "gdbcore.h"
 #include "gdbtypes.h"
@@ -3724,7 +3725,8 @@ void
 i386_supply_gregset (const struct regset *regset, struct regcache *regcache,
 		     int regnum, const void *gregs, size_t len)
 {
-  const struct gdbarch_tdep *tdep = gdbarch_tdep (regset->arch);
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  const struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
   const gdb_byte *regs = gregs;
   int i;
 
@@ -3743,12 +3745,13 @@ i386_supply_gregset (const struct regset *regset, struct regcache *regcache,
    general-purpose register set REGSET.  If REGNUM is -1, do this for
    all registers in REGSET.  */
 
-void
+static void
 i386_collect_gregset (const struct regset *regset,
 		      const struct regcache *regcache,
 		      int regnum, void *gregs, size_t len)
 {
-  const struct gdbarch_tdep *tdep = gdbarch_tdep (regset->arch);
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  const struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
   gdb_byte *regs = gregs;
   int i;
 
@@ -3770,7 +3773,8 @@ static void
 i386_supply_fpregset (const struct regset *regset, struct regcache *regcache,
 		      int regnum, const void *fpregs, size_t len)
 {
-  const struct gdbarch_tdep *tdep = gdbarch_tdep (regset->arch);
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  const struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   if (len == I387_SIZEOF_FXSAVE)
     {
@@ -3792,7 +3796,8 @@ i386_collect_fpregset (const struct regset *regset,
 		       const struct regcache *regcache,
 		       int regnum, void *fpregs, size_t len)
 {
-  const struct gdbarch_tdep *tdep = gdbarch_tdep (regset->arch);
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  const struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   if (len == I387_SIZEOF_FXSAVE)
     {
@@ -3824,6 +3829,23 @@ i386_collect_xstateregset (const struct regset *regset,
   i387_collect_xsave (regcache, regnum, xstateregs, 1);
 }
 
+/* Register set definitions.  */
+
+const struct regset i386_gregset =
+  {
+    NULL, i386_supply_gregset, i386_collect_gregset
+  };
+
+static const struct regset i386_fpregset =
+  {
+    NULL, i386_supply_fpregset, i386_collect_fpregset
+  };
+
+static const struct regset i386_xstateregset =
+  {
+    NULL, i386_supply_xstateregset, i386_collect_xstateregset
+  };
+
 /* Return the appropriate register set for the core section identified
    by SECT_NAME and SECT_SIZE.  */
 
@@ -3834,32 +3856,15 @@ i386_regset_from_core_section (struct gdbarch *gdbarch,
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   if (strcmp (sect_name, ".reg") == 0 && sect_size == tdep->sizeof_gregset)
-    {
-      if (tdep->gregset == NULL)
-	tdep->gregset = regset_alloc (gdbarch, i386_supply_gregset,
-				      i386_collect_gregset);
-      return tdep->gregset;
-    }
+      return &i386_gregset;
 
   if ((strcmp (sect_name, ".reg2") == 0 && sect_size == tdep->sizeof_fpregset)
       || (strcmp (sect_name, ".reg-xfp") == 0
 	  && sect_size == I387_SIZEOF_FXSAVE))
-    {
-      if (tdep->fpregset == NULL)
-	tdep->fpregset = regset_alloc (gdbarch, i386_supply_fpregset,
-				       i386_collect_fpregset);
-      return tdep->fpregset;
-    }
+    return &i386_fpregset;
 
   if (strcmp (sect_name, ".reg-xstate") == 0)
-    {
-      if (tdep->xstateregset == NULL)
-	tdep->xstateregset = regset_alloc (gdbarch,
-					   i386_supply_xstateregset,
-					   i386_collect_xstateregset);
-
-      return tdep->xstateregset;
-    }
+    return &i386_xstateregset;
 
   return NULL;
 }
@@ -8283,16 +8288,12 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   gdbarch = gdbarch_alloc (&info, tdep);
 
   /* General-purpose registers.  */
-  tdep->gregset = NULL;
   tdep->gregset_reg_offset = NULL;
   tdep->gregset_num_regs = I386_NUM_GREGS;
   tdep->sizeof_gregset = 0;
 
   /* Floating-point registers.  */
-  tdep->fpregset = NULL;
   tdep->sizeof_fpregset = I387_SIZEOF_FSAVE;
-
-  tdep->xstateregset = NULL;
 
   /* The default settings include the FPU registers, the MMX registers
      and the SSE registers.  This can be overridden for a specific ABI
