@@ -9,6 +9,8 @@ gdb/
 	(demangler_vwarning): New function.
 	(demangler_warning): Likewise.
 	(_initialize_utils): New internal problem command.
+	* maint.c (maintenance_demangler_warning): New function.
+	(_initialize_maint_cmds): New command.
 	* cp-support.c (signal.h): New include.
 	(catch_demangler_crashes): New flag.
 	(SIGJMP_BUF): New define.
