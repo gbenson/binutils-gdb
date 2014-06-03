@@ -1534,8 +1534,15 @@ static SIGJMP_BUF gdb_demangle_jmp_buf;
 static void
 gdb_demangle_signal_handler (int signo)
 {
-  if (fork () == 0)
-    dump_core ();
+  static int core_dumped = 0;
+
+  if (!core_dumped)
+    {
+      if (fork () == 0)
+	dump_core ();
+
+      core_dumped = 1;
+    }
 
   SIGLONGJMP (gdb_demangle_jmp_buf, signo);
 }

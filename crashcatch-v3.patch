@@ -140,7 +140,7 @@ index 873c33c..4cceb05 100644
  Demangle a C++/ObjC mangled name.\n\
  Call internal GDB demangler routine to demangle a C++ link name\n\
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
-index 91533e8..43670bb 100644
+index 91533e8..96f7d89 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
 @@ -36,6 +36,7 @@
@@ -151,7 +151,7 @@ index 91533e8..43670bb 100644
  
  #include "safe-ctype.h"
  
-@@ -1505,12 +1506,104 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+@@ -1505,12 +1506,111 @@ cp_lookup_rtti_type (const char *name, struct block *block)
    return rtti_type;
  }
  
@@ -183,8 +183,15 @@ index 91533e8..43670bb 100644
 +static void
 +gdb_demangle_signal_handler (int signo)
 +{
-+  if (fork () == 0)
-+    dump_core ();
++  static int core_dumped = 0;
++
++  if (!core_dumped)
++    {
++      if (fork () == 0)
++	dump_core ();
++
++      core_dumped = 1;
++    }
 +
 +  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
 +}
@@ -257,7 +264,7 @@ index 91533e8..43670bb 100644
  }
  
  /* Don't allow just "maintenance cplus".  */
-@@ -1585,4 +1678,17 @@ _initialize_cp_support (void)
+@@ -1585,4 +1685,17 @@ _initialize_cp_support (void)
  Usage: info vtbl EXPRESSION\n\
  Evaluate EXPRESSION and display the virtual function table for the\n\
  resulting object."));
