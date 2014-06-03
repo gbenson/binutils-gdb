@@ -1063,8 +1063,8 @@ Cause GDB to behave as if an internal warning was reported."),
 
   add_cmd ("demangler-warning", class_maintenance,
 	   maintenance_demangler_warning, _("\
-Give GDB an demangler warning.\n\
-Cause GDB to behave as if an demangler warning was reported."),
+Give GDB a demangler warning.\n\
+Cause GDB to behave as if a demangler warning was reported."),
 	   &maintenancelist);
 
   add_cmd ("demangle", class_maintenance, maintenance_demangle, _("\
