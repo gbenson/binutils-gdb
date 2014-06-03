@@ -1,0 +1,265 @@
+diff --git a/gdb/cp-support.c b/gdb/cp-support.c
+index 91533e8..43670bb 100644
+--- a/gdb/cp-support.c
++++ b/gdb/cp-support.c
+@@ -36,6 +36,7 @@
+ #include "value.h"
+ #include "cp-abi.h"
+ #include "language.h"
++#include <signal.h>
+ 
+ #include "safe-ctype.h"
+ 
+@@ -1505,12 +1506,104 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+   return rtti_type;
+ }
+ 
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++
++/* If nonzero, attempt to catch crashes in the demangler and print
++   useful debugging information.  */
++
++static int catch_demangler_crashes = 1;
++
++/* Wrap set/long jmp so that it's more portable.  */
++
++#if defined(HAVE_SIGSETJMP)
++#define SIGJMP_BUF		sigjmp_buf
++#define SIGSETJMP(buf)		sigsetjmp((buf), 1)
++#define SIGLONGJMP(buf,val)	siglongjmp((buf), (val))
++#else
++#define SIGJMP_BUF		jmp_buf
++#define SIGSETJMP(buf)		setjmp(buf)
++#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
++#endif
++
++/* Stack context and environment for demangler crash recovery.  */
++
++static SIGJMP_BUF gdb_demangle_jmp_buf;
++
++/* Signal handler for gdb_demangle.  */
++
++static void
++gdb_demangle_signal_handler (int signo)
++{
++  if (fork () == 0)
++    dump_core ();
++
++  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
++}
++
++#endif
++
+ /* A wrapper for bfd_demangle.  */
+ 
+ char *
+ gdb_demangle (const char *name, int options)
+ {
+-  return bfd_demangle (NULL, name, options);
++  char *result = NULL;
++  int crash_signal = 0;
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  struct sigaction sa, old_sa;
++
++  if (catch_demangler_crashes)
++    {
++      sa.sa_handler = gdb_demangle_signal_handler;
++      sigemptyset (&sa.sa_mask);
++      sa.sa_flags = 0;
++      sigaction (SIGSEGV, &sa, &old_sa);
++    }
++#else
++  void (*ofunc) ();
++
++  if (catch_demangler_crashes)
++    ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
++#endif
++
++  if (catch_demangler_crashes)
++    crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
++#endif
++
++  if (crash_signal == 0)
++    result = bfd_demangle (NULL, name, options);
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++  if (catch_demangler_crashes)
++    {
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++      sigaction (SIGSEGV, &old_sa, NULL);
++#else
++      signal (SIGSEGV, ofunc);
++#endif
++
++      if (crash_signal != 0)
++	{
++	  static int error_reported = 0;
++
++	  if (!error_reported)
++	    {
++	      demangler_warning (__FILE__, __LINE__,
++				 _("unable to demangle '%s' "
++				   "(demangler failed with signal %d)"),
++				 name, crash_signal);
++
++	      error_reported = 1;
++	    }
++
++	  result = NULL;
++	}
++    }
++#endif
++
++  return result;
+ }
+ 
+ /* Don't allow just "maintenance cplus".  */
+@@ -1585,4 +1678,17 @@ _initialize_cp_support (void)
+ Usage: info vtbl EXPRESSION\n\
+ Evaluate EXPRESSION and display the virtual function table for the\n\
+ resulting object."));
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++  add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
++			   &catch_demangler_crashes, _("\
++Set whether to attempt to catch demangler crashes."), _("\
++Show whether to attempt to catch demangler crashes."), _("\
++If enabled GDB will attempt to catch demangler crashes and\n\
++display the offending symbol."),
++			   NULL,
++			   NULL,
++			   &maintenance_set_cmdlist,
++			   &maintenance_show_cmdlist);
++#endif
+ }
+diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
+index 9f7fa18..cebd0d5 100644
+--- a/gdb/doc/gdb.texinfo
++++ b/gdb/doc/gdb.texinfo
+@@ -33235,6 +33235,17 @@ Expand symbol tables.
+ If @var{regexp} is specified, only expand symbol tables for file
+ names matching @var{regexp}.
+ 
++@kindex maint set catch-demangler-crashes
++@kindex maint show catch-demangler-crashes
++@cindex demangler crashes
++@item maint set catch-demangler-crashes [on|off]
++@itemx maint show catch-demangler-crashes
++Control whether @value{GDBN} should attempt to catch crashes in the
++symbol name demangler.  The default is to attempt to catch crashes.
++If enabled, the first time a crash is caught, a core file is created,
++the offending symbol is displayed and the user is presented with the
++option to terminate the current session.
++
+ @kindex maint cplus first_component
+ @item maint cplus first_component @var{name}
+ Print the first C@t{++} class/namespace component of @var{name}.
+@@ -33293,15 +33304,20 @@ Create a core file? (y or n) @kbd{n}
+ 
+ @cindex @value{GDBN} internal error
+ @cindex internal errors, control of @value{GDBN} behavior
++@cindex demangler crashes
+ 
+ @kindex maint set internal-error
+ @kindex maint show internal-error
+ @kindex maint set internal-warning
+ @kindex maint show internal-warning
++@kindex maint set demangler-warning
++@kindex maint show demangler-warning
+ @item maint set internal-error @var{action} [ask|yes|no]
+ @itemx maint show internal-error @var{action}
+ @itemx maint set internal-warning @var{action} [ask|yes|no]
+ @itemx maint show internal-warning @var{action}
++@itemx maint set demangler-warning @var{action} [ask|yes|no]
++@itemx maint show demangler-warning @var{action}
+ When @value{GDBN} reports an internal problem (error or warning) it
+ gives the user the opportunity to both quit @value{GDBN} and create a
+ core file of the current @value{GDBN} session.  These commands let you
+@@ -33315,7 +33331,10 @@ quit.  The default is to ask the user what to do.
+ 
+ @item corefile
+ You can specify that @value{GDBN} should always (yes) or never (no)
+-create a core file.  The default is to ask the user what to do.
++create a core file.  The default for @code{internal-error} and
++@code{internal-warning} is to ask the user what to do.  The default
++for @code{demangler-warning} is to not create a core file as this
++will already have been created by the crash handler.
+ @end table
+ 
+ @kindex maint packet
+diff --git a/gdb/utils.c b/gdb/utils.c
+index 86df1c7..4c11e7b 100644
+--- a/gdb/utils.c
++++ b/gdb/utils.c
+@@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
+ 
+ /* Dump core trying to increase the core soft limit to hard limit first.  */
+ 
+-static void
++void
+ dump_core (void)
+ {
+ #ifdef HAVE_SETRLIMIT
+@@ -834,6 +834,26 @@ internal_warning (const char *file, int line, const char *string, ...)
+   va_end (ap);
+ }
+ 
++static struct internal_problem demangler_warning_problem = {
++  "demangler-warning", internal_problem_ask, internal_problem_no
++};
++
++void
++demangler_vwarning (const char *file, int line, const char *fmt, va_list ap)
++{
++  internal_vproblem (&demangler_warning_problem, file, line, fmt, ap);
++}
++
++void
++demangler_warning (const char *file, int line, const char *string, ...)
++{
++  va_list ap;
++
++  va_start (ap, string);
++  demangler_vwarning (file, line, string, ap);
++  va_end (ap);
++}
++
+ /* Dummy functions to keep add_prefix_cmd happy.  */
+ 
+ static void
+@@ -3523,4 +3543,5 @@ _initialize_utils (void)
+ {
+   add_internal_problem_command (&internal_error_problem);
+   add_internal_problem_command (&internal_warning_problem);
++  add_internal_problem_command (&demangler_warning_problem);
+ }
+diff --git a/gdb/utils.h b/gdb/utils.h
+index 33371ac..8ada98e 100644
+--- a/gdb/utils.h
++++ b/gdb/utils.h
+@@ -313,6 +313,14 @@ extern void internal_warning (const char *file, int line,
+ extern void warning (const char *, ...) ATTRIBUTE_PRINTF (1, 2);
+ 
+ extern void vwarning (const char *, va_list args) ATTRIBUTE_PRINTF (1, 0);
++
++extern void demangler_vwarning (const char *file, int line,
++			       const char *, va_list ap)
++     ATTRIBUTE_PRINTF (3, 0);
++
++extern void demangler_warning (const char *file, int line,
++			      const char *, ...) ATTRIBUTE_PRINTF (3, 4);
++
+ 
+ /* Misc. utilities.  */
+ 
+@@ -366,4 +374,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
+ 
+ extern LONGEST gdb_sign_extend (LONGEST value, int bit);
+ 
++/* Dump core trying to increase the core soft limit to hard limit first.  */
++
++extern void dump_core (void);
++
+ #endif /* UTILS_H */
