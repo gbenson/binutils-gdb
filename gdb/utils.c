@@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
 
 /* Dump core trying to increase the core soft limit to hard limit first.  */
 
-static void
+void
 dump_core (void)
 {
 #ifdef HAVE_SETRLIMIT
