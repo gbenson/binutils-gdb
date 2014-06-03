@@ -1,3 +1,35 @@
+gdb/
+2014-06-03  Gary Benson  <gbenson@redhat.com>
+
+	* utils.h (demangler_vwarning): New declaration.
+	(demangler_warning): Likewise.
+	(dump_core): Likewise.
+	* utils.c (dump_core): Make non-static.
+	(demangler_warning_problem): New static global.
+	(demangler_vwarning): New function.
+	(demangler_warning): Likewise.
+	(_initialize_utils): New internal problem command.
+	* cp-support.c (signal.h): New include.
+	(catch_demangler_crashes): New flag.
+	(SIGJMP_BUF): New define.
+	(SIGSETJMP): Likewise.
+	(SIGLONGJMP): Likewise.
+	(gdb_demangle_jmp_buf): New static global.
+	(gdb_demangle_signal_handler): New function.
+	(gdb_demangle): If catch_demangler_crashes is set, install the
+	above signal handler before calling bfd_demangle, and restore
+	the original signal handler afterwards.  Display the offending
+	symbol and call demangler_warning the first time a segmentation
+	fault is caught.
+	(_initialize_cp_support): New maint set/show command.
+
+gdb/doc/
+2014-06-03  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Maintenance Commands): Document new
+	"maint set/show catch-demangler-crashes" and
+	"maint set/show demangler-warning" options.
+
 diff --git a/gdb/utils.h b/gdb/utils.h
 index 33371ac..8ada98e 100644
 --- a/gdb/utils.h
