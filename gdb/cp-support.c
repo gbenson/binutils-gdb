@@ -1683,7 +1683,7 @@ resulting object."));
   add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
 			   &catch_demangler_crashes, _("\
 Set whether to attempt to catch demangler crashes."), _("\
-Show whether GDB will attempt to catch demangler crashes."), _("\
+Show whether to attempt to catch demangler crashes."), _("\
 If enabled GDB will attempt to catch demangler crashes and\n\
 display the offending symbol."),
 			   NULL,
