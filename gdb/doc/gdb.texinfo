@@ -33237,13 +33237,14 @@ names matching @var{regexp}.
 
 @kindex maint set catch-demangler-crashes
 @kindex maint show catch-demangler-crashes
+@cindex demangler crashes
 @item maint set catch-demangler-crashes [on|off]
 @itemx maint show catch-demangler-crashes
 Control whether @value{GDBN} should attempt to catch crashes in the
-symbol name demangler.  The default is not to attempt to catch
-crashes.  If enabled, the first time a crash is caught the offending
-symbol is displayed and the user is presented with options to
-terminate the current session and to create a core file.
+symbol name demangler.  The default is to attempt to catch crashes.
+If enabled, the first time a crash is caught, a core file is created,
+the offending symbol is displayed and the user is presented with the
+option to terminate the current session.
 
 @kindex maint cplus first_component
 @item maint cplus first_component @var{name}
@@ -33303,15 +33304,20 @@ Create a core file? (y or n) @kbd{n}
 
 @cindex @value{GDBN} internal error
 @cindex internal errors, control of @value{GDBN} behavior
+@cindex demangler crashes
 
 @kindex maint set internal-error
 @kindex maint show internal-error
 @kindex maint set internal-warning
 @kindex maint show internal-warning
+@kindex maint set demangler-warning
+@kindex maint show demangler-warning
 @item maint set internal-error @var{action} [ask|yes|no]
 @itemx maint show internal-error @var{action}
 @itemx maint set internal-warning @var{action} [ask|yes|no]
 @itemx maint show internal-warning @var{action}
+@itemx maint set demangler-warning @var{action} [ask|yes|no]
+@itemx maint show demangler-warning @var{action}
 When @value{GDBN} reports an internal problem (error or warning) it
 gives the user the opportunity to both quit @value{GDBN} and create a
 core file of the current @value{GDBN} session.  These commands let you
@@ -33325,7 +33331,10 @@ quit.  The default is to ask the user what to do.
 
 @item corefile
 You can specify that @value{GDBN} should always (yes) or never (no)
-create a core file.  The default is to ask the user what to do.
+create a core file.  The default for @code{internal-error} and
+@code{internal-warning} is to ask the user what to do.  The default
+for @code{demangler-warning} is to not create a core file as this
+will already have been created by the crash handler.
 @end table
 
 @kindex maint packet
