@@ -1511,7 +1511,7 @@ cp_lookup_rtti_type (const char *name, struct block *block)
 /* If nonzero, attempt to catch crashes in the demangler and print
    useful debugging information.  */
 
-static int catch_demangler_crashes = 0;
+static int catch_demangler_crashes = 1;
 
 /* Wrap set/long jmp so that it's more portable.  */
 
