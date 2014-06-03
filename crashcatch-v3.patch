@@ -1,3 +1,77 @@
+diff --git a/gdb/utils.h b/gdb/utils.h
+index 33371ac..8ada98e 100644
+--- a/gdb/utils.h
++++ b/gdb/utils.h
+@@ -313,6 +313,14 @@ extern void internal_warning (const char *file, int line,
+ extern void warning (const char *, ...) ATTRIBUTE_PRINTF (1, 2);
+ 
+ extern void vwarning (const char *, va_list args) ATTRIBUTE_PRINTF (1, 0);
++
++extern void demangler_vwarning (const char *file, int line,
++			       const char *, va_list ap)
++     ATTRIBUTE_PRINTF (3, 0);
++
++extern void demangler_warning (const char *file, int line,
++			      const char *, ...) ATTRIBUTE_PRINTF (3, 4);
++
+ 
+ /* Misc. utilities.  */
+ 
+@@ -366,4 +374,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
+ 
+ extern LONGEST gdb_sign_extend (LONGEST value, int bit);
+ 
++/* Dump core trying to increase the core soft limit to hard limit first.  */
++
++extern void dump_core (void);
++
+ #endif /* UTILS_H */
+diff --git a/gdb/utils.c b/gdb/utils.c
+index 86df1c7..4c11e7b 100644
+--- a/gdb/utils.c
++++ b/gdb/utils.c
+@@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
+ 
+ /* Dump core trying to increase the core soft limit to hard limit first.  */
+ 
+-static void
++void
+ dump_core (void)
+ {
+ #ifdef HAVE_SETRLIMIT
+@@ -834,6 +834,26 @@ internal_warning (const char *file, int line, const char *string, ...)
+   va_end (ap);
+ }
+ 
++static struct internal_problem demangler_warning_problem = {
++  "demangler-warning", internal_problem_ask, internal_problem_no
++};
++
++void
++demangler_vwarning (const char *file, int line, const char *fmt, va_list ap)
++{
++  internal_vproblem (&demangler_warning_problem, file, line, fmt, ap);
++}
++
++void
++demangler_warning (const char *file, int line, const char *string, ...)
++{
++  va_list ap;
++
++  va_start (ap, string);
++  demangler_vwarning (file, line, string, ap);
++  va_end (ap);
++}
++
+ /* Dummy functions to keep add_prefix_cmd happy.  */
+ 
+ static void
+@@ -3523,4 +3543,5 @@ _initialize_utils (void)
+ {
+   add_internal_problem_command (&internal_error_problem);
+   add_internal_problem_command (&internal_warning_problem);
++  add_internal_problem_command (&demangler_warning_problem);
+ }
 diff --git a/gdb/cp-support.c b/gdb/cp-support.c
 index 91533e8..43670bb 100644
 --- a/gdb/cp-support.c
@@ -189,77 +263,3 @@ index 9f7fa18..cebd0d5 100644
  @end table
  
  @kindex maint packet
-diff --git a/gdb/utils.c b/gdb/utils.c
-index 86df1c7..4c11e7b 100644
---- a/gdb/utils.c
-+++ b/gdb/utils.c
-@@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
- 
- /* Dump core trying to increase the core soft limit to hard limit first.  */
- 
--static void
-+void
- dump_core (void)
- {
- #ifdef HAVE_SETRLIMIT
-@@ -834,6 +834,26 @@ internal_warning (const char *file, int line, const char *string, ...)
-   va_end (ap);
- }
- 
-+static struct internal_problem demangler_warning_problem = {
-+  "demangler-warning", internal_problem_ask, internal_problem_no
-+};
-+
-+void
-+demangler_vwarning (const char *file, int line, const char *fmt, va_list ap)
-+{
-+  internal_vproblem (&demangler_warning_problem, file, line, fmt, ap);
-+}
-+
-+void
-+demangler_warning (const char *file, int line, const char *string, ...)
-+{
-+  va_list ap;
-+
-+  va_start (ap, string);
-+  demangler_vwarning (file, line, string, ap);
-+  va_end (ap);
-+}
-+
- /* Dummy functions to keep add_prefix_cmd happy.  */
- 
- static void
-@@ -3523,4 +3543,5 @@ _initialize_utils (void)
- {
-   add_internal_problem_command (&internal_error_problem);
-   add_internal_problem_command (&internal_warning_problem);
-+  add_internal_problem_command (&demangler_warning_problem);
- }
-diff --git a/gdb/utils.h b/gdb/utils.h
-index 33371ac..8ada98e 100644
---- a/gdb/utils.h
-+++ b/gdb/utils.h
-@@ -313,6 +313,14 @@ extern void internal_warning (const char *file, int line,
- extern void warning (const char *, ...) ATTRIBUTE_PRINTF (1, 2);
- 
- extern void vwarning (const char *, va_list args) ATTRIBUTE_PRINTF (1, 0);
-+
-+extern void demangler_vwarning (const char *file, int line,
-+			       const char *, va_list ap)
-+     ATTRIBUTE_PRINTF (3, 0);
-+
-+extern void demangler_warning (const char *file, int line,
-+			      const char *, ...) ATTRIBUTE_PRINTF (3, 4);
-+
- 
- /* Misc. utilities.  */
- 
-@@ -366,4 +374,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
- 
- extern LONGEST gdb_sign_extend (LONGEST value, int bit);
- 
-+/* Dump core trying to increase the core soft limit to hard limit first.  */
-+
-+extern void dump_core (void);
-+
- #endif /* UTILS_H */
