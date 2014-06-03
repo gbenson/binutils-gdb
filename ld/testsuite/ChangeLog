@@ -1,3 +1,18 @@
+2014-06-03  Alan Modra  <amodra@gmail.com>
+
+	* ld-powerpc/elfv2exe.d: Update for changed plt call stubs.
+
+2014-05-28  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* lib/ld-lib.exp: Add objcopy_objects command to run_dump_test.
+	This allows each input object to be optionally run through
+	objcopy before linking.
+
+2014-05-20  Will Newton  <will.newton@linaro.org>
+
+	* ld-shared/shared.exp: Mark non-PIC shared object tests
+	as xfail on aarch64.
+
 2014-05-19  Andreas Tobler  <andreast@fgznet.ch>
 
 	* ld-elf/shared.exp: Introduce the extralibs variable to control

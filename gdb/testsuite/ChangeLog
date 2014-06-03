@@ -1,3 +1,251 @@
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-parameter.exp: New file.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-cmd.c: New file.
+	* gdb.guile/scm-cmd.exp: New file.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-pretty-print.exp: Add tests for objfile and progspace
+	pretty-printer lookup.
+	* gdb.guile/scm-pretty-print.scm (pp_s-printer): New function.
+	(make-pp_s-printer): Call it.
+	(make-pretty-printer-from-dict): New function.
+	(lookup-pretty-printer-maker-from-dict): New function.
+	(*pretty-printer*): Simplify.
+	(make-objfile-pp_s-printer): New function.
+	(install-objfile-pretty-printers!): New function.
+	(make-progspace-pp_s-printer): New function.
+	(install-progspace-pretty-printers!): New function.
+	* gdb.guile/scm-progspace.c: New file.
+	* gdb.guile/scm-progspace.exp: New file.
+
+2014-06-02  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/dprintf-bp-same-addr.c: New file.
+	* gdb.base/dprintf-bp-same-addr.exp: New file.
+
+2014-06-02  Edjunior Barbosa Machado  <emachado@linux.vnet.ibm.com>
+
+	* gdb.arch/powerpc-power.exp: Add power8 instructions to the testcase.
+	* gdb.arch/powerpc-power.s: Likewise.
+
+2014-06-02  Joel Brobecker  <brobecker@adacore.com>
+
+	* gdb.base/completion.exp: Remove code aimed at restoring TIMEOUT.
+
+2014-06-01  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/watchpoint.exp (test_watch_location): Check null
+	pointer can be dereferenced.  If not, do the test, otherwise
+	skip it.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* gdb.arch/amd64-invalid-stack-middle.exp: Update expected
+	results.
+	* gdb.arch/amd64-invalid-stack-top.exp: Likewise.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* gdb.arch/amd64-invalid-stack-middle.S: New file.
+	* gdb.arch/amd64-invalid-stack-middle.c: New file.
+	* gdb.arch/amd64-invalid-stack-middle.exp: New file.
+	* gdb.arch/amd64-invalid-stack-top.c: New file.
+	* gdb.arch/amd64-invalid-stack-top.exp: New file.
+
+2014-05-30  Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* gdb.base/sss-bp-on-user-bp.c: New file.
+	* gdb.base/sss-bp-on-user-bp.exp: New file.
+
+2014-05-30  David Blaikie  <dblaikie@gmail.com>
+
+	* gdb.opt/inline-break.c: Fix clang compatibility by specifying
+	gnu_inline semantics via attribute.
+	* gdb.opt/inline-break.exp: Remove -std=c89 now that the test
+	source explicitly specifies the required semantics.
+
+2014-05-30  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* gdb.reverse/sigall-reverse.exp: Fix a typo.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Tom Tromey  <tromey@redhat.com>
+
+	* gdb.base/async-shell.exp: Don't enable target-async.
+	* gdb.base/async.exp
+	* gdb.base/corefile.exp (corefile_test_attach): Remove 'async'
+	parameter.  Adjust.
+	(top level): Don't test with "target-async".
+	* gdb.base/dprintf-non-stop.exp: Don't enable target-async.
+	* gdb.base/gdb-sigterm.exp: Don't test with "target-async".
+	* gdb.base/inferior-died.exp: Don't enable target-async.
+	* gdb.base/interrupt-noterm.exp: Likewise.
+	* gdb.mi/mi-async.exp: Use "mi-async" instead of "target-async".
+	* gdb.mi/mi-nonstop-exit.exp: Likewise.
+	* gdb.mi/mi-nonstop.exp: Likewise.
+	* gdb.mi/mi-ns-stale-regcache.exp: Likewise.
+	* gdb.mi/mi-nsintrall.exp: Likewise.
+	* gdb.mi/mi-nsmoribund.exp: Likewise.
+	* gdb.mi/mi-nsthrexec.exp: Likewise.
+	* gdb.mi/mi-watch-nonstop.exp: Likewise.
+	* gdb.multi/watchpoint-multi.exp: Adjust comment.
+	* gdb.python/py-evsignal.exp: Don't enable target-async.
+	* gdb.python/py-evthreads.exp: Likewise.
+	* gdb.python/py-prompt.exp: Likewise.
+	* gdb.reverse/break-precsave.exp: Don't test with "target-async".
+	* gdb.server/solib-list.exp: Don't enable target-async.
+	* gdb.threads/thread-specific-bp.exp: Likewise.
+	* lib/mi-support.exp: Adjust to use mi-async.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/13860
+	* gdb.mi/mi-cli.exp: Always expect "end-stepping-range" stop
+	reason, even in sync mode.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Hui Zhu  <hui@codesourcery.com>
+
+	PR PR15693
+	* gdb.mi/mi-condbreak-call-thr-state-mt.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state-st.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state.exp: New file.
+
+2014-05-28  Joel Brobecker  <brobecker@adacore.com>
+
+	* config/monitor.exp (gdb_target_monitor): Replace use of
+	"set remotebaud" by "set serial baud".
+
+2014-05-26  Andy Wingo  <wingo@igalia.com>
+
+	* gdb.guile/scm-breakpoint.exp:
+	* gdb.guile/scm-gsmob.exp: Update to use plain old object
+	properties instead of gdb-object-properties.
+
+2014-05-26  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.server/no-thread-db.exp: Specify source file name
+	explicitly when setting a breakpoint.
+
+2014-05-23  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* gdb.btrace/vdso.c: New.
+	* gdb.btrace/vdso.exp: New.
+
+2014-05-23  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* gdb.base/gcore.exp (capture_command_output): Move ...
+	* lib/gdb.exp (capture_command_output): ... here.
+
+2014-05-23  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* gdb.btrace/data.exp: Test memory access during btrace replay.
+
+2014-05-22  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/mi-support.exp (mi_run_cmd_full): Add comments.
+
+2014-05-21  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/13860
+	* gdb.mi/mi-cli.exp (line_callee4_next_step): New global.
+	(top level): Test that output related to execution commands is
+	sent to the console with CLI commands, but not with MI commands.
+	Test that breakpoint events are always mirrored to the console.
+	Also expect the new source line to be output after a "next" in
+	async mode too.  Make it a pass/fail test.
+	* gdb.mi/mi-solib.exp: Test that the CLI solib event note is
+	output.
+	* lib/mi-support.exp (mi_gdb_expect_cli_output): New procedure.
+
+2014-05-21  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/list.exp (build_pattern, test_list): New procedures.
+	Use them to test variations of "list" after reaching a breakpoint.
+	* gdb.mi/mi-cli.exp (line_main_callme_2): New global.
+	Test "list" with listsize 10 after reaching a breakpoint.
+	* gdb.python/python.exp (decode_line current location line
+	number): Adjust expected line number.
+
+2014-05-21  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/mi-support.exp (mi_run_cmd_full): Revert to original
+	behavior for $args, pass it directly to "run".
+
+2014-05-21  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* lib/gdb.exp (default_gdb_init): Bump `match_max' up from
+	30000 to 65536.
+
+2014-05-21  Pedro Alves  <palves@redhat.com>
+
+	* boards/gdbserver-base.exp (GDBFLAGS): Set to "set
+	auto-connect-native-target off".
+	* gdb.base/auto-connect-native-target.c: New file.
+	* gdb.base/auto-connect-native-target.exp: New file.
+
+2014-05-21  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/default.exp: Test "target native" instead of "target
+	child".
+
+2014-05-21  Mark Wielaard  <mjw@redhat.com>
+
+	* gdb.cp/var-tag.exp (do_global_tests): Handle underlying type.
+
+2014-05-21  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Fix TLS access for -static -pthread.
+	* gdb.threads/staticthreads.c <HAVE_TLS> (tlsvar): New.
+	<HAVE_TLS> (thread_function, main): Initialize it.
+	* gdb.threads/staticthreads.exp: Try gdb_compile_pthreads for $have_tls.
+	Add clean_restart.
+	<$have_tls != "">: Check TLSVAR.
+
+2014-05-21  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/dcache-line-read-error.c: New.
+	* gdb.base/dcache-line-read-error.exp: New.
+
+2014-05-20  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/compare-sections.c: New file.
+	* gdb.base/compare-sections.exp: New file.
+
+2014-05-20  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/break-idempotent.c: New file.
+	* gdb.base/break-idempotent.exp: New file.
+
+2014-05-20  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* gdb.btrace/nohist.exp: New.
+
+2014-05-20  Yao Qi  <yao@codesourcery.com>
+
+	* lib/gdb.exp (gdb_init): Set timeout if test file is under
+	gdb.reverse directory and gdb_reverse_timeout exists in board
+	setting.
+	* README: Document gdb_reverse_timeout.
+
+2014-05-20  Yao Qi  <yao@codesourcery.com>
+
+	* lib/gdb.exp (default_gdb_init): Rename argument 'args' by
+	'test_file_name'.  Treat args as a string instead of a list.
+	(gdb_init): Rename argument 'args' by 'test_file_name'.
+
+2014-05-19  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* gdb.arch/powerpc-power.exp: New file.
+	* gdb.arch/powerpc-power.s: New file.
+
 2014-05-16  Doug Evans  <dje@google.com>
 
 	* gdb.base/Makefile.in (EXECUTABLES): Add completion.

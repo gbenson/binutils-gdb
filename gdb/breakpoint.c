@@ -32,6 +32,7 @@
 #include "value.h"
 #include "command.h"
 #include "inferior.h"
+#include "infrun.h"
 #include "gdbthread.h"
 #include "target.h"
 #include "language.h"
@@ -2350,13 +2351,25 @@ build_target_command_list (struct bp_location *bl)
   /* Release commands left over from a previous insert.  */
   VEC_free (agent_expr_p, bl->target_info.tcommands);
 
-  /* For now, limit to agent-style dprintf breakpoints.  */
-  if (bl->owner->type != bp_dprintf
-      || strcmp (dprintf_style, dprintf_style_agent) != 0)
-    return;
-
   if (!target_can_run_breakpoint_commands ())
     return;
+
+  /* For now, limit to agent-style dprintf breakpoints.  */
+  if (dprintf_style != dprintf_style_agent)
+    return;
+
+  /* For now, if we have any duplicate location that isn't a dprintf,
+     don't install the target-side commands, as that would make the
+     breakpoint not be reported to the core, and we'd lose
+     control.  */
+  ALL_BP_LOCATIONS_AT_ADDR (loc2p, locp, bl->address)
+    {
+      loc = (*loc2p);
+      if (is_breakpoint (loc->owner)
+	  && loc->pspace->num == bl->pspace->num
+	  && loc->owner->type != bp_dprintf)
+	return;
+    }
 
   /* Do a first pass to check for locations with no assigned
      conditions or conditions that fail to parse to a valid agent expression
@@ -13141,6 +13154,23 @@ bkpt_breakpoint_hit (const struct bp_location *bl,
 }
 
 static int
+dprintf_breakpoint_hit (const struct bp_location *bl,
+			struct address_space *aspace, CORE_ADDR bp_addr,
+			const struct target_waitstatus *ws)
+{
+  if (dprintf_style == dprintf_style_agent
+      && target_can_run_breakpoint_commands ())
+    {
+      /* An agent-style dprintf never causes a stop.  If we see a trap
+	 for this address it must be for a breakpoint that happens to
+	 be set at the same address.  */
+      return 0;
+    }
+
+  return bkpt_breakpoint_hit (bl, aspace, bp_addr, ws);
+}
+
+static int
 bkpt_resources_needed (const struct bp_location *bl)
 {
   gdb_assert (bl->owner->type == bp_hardware_breakpoint);
@@ -16219,6 +16249,7 @@ initialize_breakpoint_ops (void)
   ops->print_mention = bkpt_print_mention;
   ops->print_recreate = dprintf_print_recreate;
   ops->after_condition_true = dprintf_after_condition_true;
+  ops->breakpoint_hit = dprintf_breakpoint_hit;
 }
 
 /* Chain containing all defined "enable breakpoint" subcommands.  */

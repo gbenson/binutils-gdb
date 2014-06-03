@@ -799,6 +799,30 @@ proc mi_gdb_test { args } {
     return $result
 }
 
+# Collect output sent to the console output stream until UNTIL is
+# seen.  UNTIL is a regular expression.  MESSAGE is the message to be
+# printed in case of timeout.
+
+proc mi_gdb_expect_cli_output {until message} {
+
+    set output ""
+    gdb_expect {
+	-re "~\"(\[^\r\n\]+)\"\r\n" {
+	    append output $expect_out(1,string)
+	    exp_continue
+	}
+	-notransfer -re "$until" {
+	    # Done
+	}
+	timeout {
+	    fail "$message (timeout)"
+	    return ""
+	}
+    }
+
+    return $output
+}
+
 #
 # MI run command.  (A modified version of gdb_run_cmd)
 #
@@ -806,6 +830,18 @@ proc mi_gdb_test { args } {
 # In patterns, the newline sequence ``\r\n'' is matched explicitly as
 # ``.*$'' could swallow up output that we attempt to match elsewhere.
 
+# Send the command to run the test program.
+#
+# If USE_MI_COMMAND is true, the "-exec-run" command is used.
+# Otherwise, the "run" (CLI) command is used.  If the global USE_GDB_STUB is
+# true, -exec-continue and continue are used instead of their run counterparts.
+#
+# ARGS is passed as argument to the command used to run the test program.
+# Beware that arguments to "-exec-run" do not have the same semantics as
+# arguments to the "run" command, so USE_MI_COMMAND influences the meaning
+# of ARGS.  If USE_MI_COMMAND is true, they are arguments to -exec-run.
+# If USE_MI_COMMAND is false, they are effectively arguments passed
+# to the test program.  If the global USE_GDB_STUB is true, ARGS is not used.
 proc mi_run_cmd_full {use_mi_command args} {
     global suppress_flag
     if { $suppress_flag } {
@@ -818,11 +854,9 @@ proc mi_run_cmd_full {use_mi_command args} {
     if {$use_mi_command} {
 	set run_prefix "220-exec-"
 	set run_match "220"
-	set set_args_cmd "-exec-arguments"
     } else {
 	set run_prefix ""
 	set run_match ""
-	set set_args_cmd "set args"
     }
 
     if [target_info exists gdb_init_command] {
@@ -864,16 +898,7 @@ proc mi_run_cmd_full {use_mi_command args} {
 	return 0
     }
 
-    send_gdb "${set_args_cmd} $args\n"
-    gdb_expect {
-	-re "$mi_gdb_prompt$" { }
-	default {
-	    perror "settings args failed"
-	    return -1
-	}
-    }
-
-    send_gdb "${run_prefix}run\n"
+    send_gdb "${run_prefix}run $args\n"
     gdb_expect {
 	-re "${run_match}\\^running\r\n(\\*running,thread-id=\"\[^\"\]+\"\r\n|=thread-created,id=\"1\",group-id=\"\[0-9\]+\"\r\n)*(${library_loaded_re})*(${thread_selected_re})?${mi_gdb_prompt}" {
 	}
@@ -989,10 +1014,10 @@ proc mi_detect_async {} {
     global async
     global mi_gdb_prompt
 
-    send_gdb "show target-async\n"
+    send_gdb "show mi-async\n"
 
     gdb_expect {
-	-re ".*Controlling the inferior in asynchronous mode is on...*$mi_gdb_prompt$" {
+	-re "asynchronous mode is on...*$mi_gdb_prompt$" {
 	    set async 1
 	}
 	-re ".*$mi_gdb_prompt$" {

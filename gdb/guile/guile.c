@@ -537,14 +537,17 @@ initialize_gdb_module (void *data)
   gdbscm_initialize_auto_load ();
   gdbscm_initialize_blocks ();
   gdbscm_initialize_breakpoints ();
+  gdbscm_initialize_commands ();
   gdbscm_initialize_disasm ();
   gdbscm_initialize_frames ();
   gdbscm_initialize_iterators ();
   gdbscm_initialize_lazy_strings ();
   gdbscm_initialize_math ();
   gdbscm_initialize_objfiles ();
+  gdbscm_initialize_parameters ();
   gdbscm_initialize_ports ();
   gdbscm_initialize_pretty_printers ();
+  gdbscm_initialize_pspaces ();
   gdbscm_initialize_strings ();
   gdbscm_initialize_symbols ();
   gdbscm_initialize_symtabs ();
