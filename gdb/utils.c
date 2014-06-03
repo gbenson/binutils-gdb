@@ -834,6 +834,26 @@ internal_warning (const char *file, int line, const char *string, ...)
   va_end (ap);
 }
 
+static struct internal_problem demangler_warning_problem = {
+  "demangler-warning", internal_problem_ask, internal_problem_no
+};
+
+void
+demangler_vwarning (const char *file, int line, const char *fmt, va_list ap)
+{
+  internal_vproblem (&demangler_warning_problem, file, line, fmt, ap);
+}
+
+void
+demangler_warning (const char *file, int line, const char *string, ...)
+{
+  va_list ap;
+
+  va_start (ap, string);
+  demangler_vwarning (file, line, string, ap);
+  va_end (ap);
+}
+
 /* Dummy functions to keep add_prefix_cmd happy.  */
 
 static void
@@ -3523,4 +3543,5 @@ _initialize_utils (void)
 {
   add_internal_problem_command (&internal_error_problem);
   add_internal_problem_command (&internal_warning_problem);
+  add_internal_problem_command (&demangler_warning_problem);
 }

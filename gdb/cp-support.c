@@ -1590,10 +1590,10 @@ gdb_demangle (const char *name, int options)
 
 	  if (!error_reported)
 	    {
-	      internal_warning (__FILE__, __LINE__,
-				_("unable to demangle '%s' "
-				  "(demangler failed with signal %d)"),
-				name, crash_signal);
+	      demangler_warning (__FILE__, __LINE__,
+				 _("unable to demangle '%s' "
+				   "(demangler failed with signal %d)"),
+				 name, crash_signal);
 
 	      error_reported = 1;
 	    }
