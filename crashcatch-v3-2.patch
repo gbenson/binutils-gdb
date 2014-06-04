@@ -1,0 +1,216 @@
+gdb/
+2014-06-04  Gary Benson  <gbenson@redhat.com>
+
+	* utils.h (dump_core): New declaration.
+	* utils.c (dump_core): Make non-static.
+	* cp-support.c (signal.h): New include.
+	(catch_demangler_crashes): New flag.
+	(SIGJMP_BUF): New define.
+	(SIGSETJMP): Likewise.
+	(SIGLONGJMP): Likewise.
+	(gdb_demangle_jmp_buf): New static global.
+	(gdb_demangle_signal_handler): New function.
+	(gdb_demangle): If catch_demangler_crashes is set, install the
+	above signal handler before calling bfd_demangle, and restore
+	the original signal handler afterwards.  Display the offending
+	symbol and call demangler_warning the first time a segmentation
+	fault is caught.
+	(_initialize_cp_support): New maint set/show command.
+
+gdb/doc/
+2014-06-04  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Maintenance Commands): Document new
+	"maint set/show catch-demangler-crashes" option.
+
+diff --git a/gdb/utils.h b/gdb/utils.h
+index 33371ac..3d28f36 100644
+--- a/gdb/utils.h
++++ b/gdb/utils.h
+@@ -366,4 +366,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
+ 
+ extern LONGEST gdb_sign_extend (LONGEST value, int bit);
+ 
++/* Dump core trying to increase the core soft limit to hard limit first.  */
++
++extern void dump_core (void);
++
+ #endif /* UTILS_H */
+diff --git a/gdb/utils.c b/gdb/utils.c
+index 86df1c7..28cc83e 100644
+--- a/gdb/utils.c
++++ b/gdb/utils.c
+@@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
+ 
+ /* Dump core trying to increase the core soft limit to hard limit first.  */
+ 
+-static void
++void
+ dump_core (void)
+ {
+ #ifdef HAVE_SETRLIMIT
+diff --git a/gdb/cp-support.c b/gdb/cp-support.c
+index 91533e8..96f7d89 100644
+--- a/gdb/cp-support.c
++++ b/gdb/cp-support.c
+@@ -36,6 +36,7 @@
+ #include "value.h"
+ #include "cp-abi.h"
+ #include "language.h"
++#include <signal.h>
+ 
+ #include "safe-ctype.h"
+ 
+@@ -1505,12 +1506,111 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+   return rtti_type;
+ }
+ 
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++
++/* If nonzero, attempt to catch crashes in the demangler and print
++   useful debugging information.  */
++
++static int catch_demangler_crashes = 1;
++
++/* Wrap set/long jmp so that it's more portable.  */
++
++#if defined(HAVE_SIGSETJMP)
++#define SIGJMP_BUF		sigjmp_buf
++#define SIGSETJMP(buf)		sigsetjmp((buf), 1)
++#define SIGLONGJMP(buf,val)	siglongjmp((buf), (val))
++#else
++#define SIGJMP_BUF		jmp_buf
++#define SIGSETJMP(buf)		setjmp(buf)
++#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
++#endif
++
++/* Stack context and environment for demangler crash recovery.  */
++
++static SIGJMP_BUF gdb_demangle_jmp_buf;
++
++/* Signal handler for gdb_demangle.  */
++
++static void
++gdb_demangle_signal_handler (int signo)
++{
++  static int core_dumped = 0;
++
++  if (!core_dumped)
++    {
++      if (fork () == 0)
++	dump_core ();
++
++      core_dumped = 1;
++    }
++
++  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
++}
++
++#endif
++
+ /* A wrapper for bfd_demangle.  */
+ 
+ char *
+ gdb_demangle (const char *name, int options)
+ {
+-  return bfd_demangle (NULL, name, options);
++  char *result = NULL;
++  int crash_signal = 0;
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  struct sigaction sa, old_sa;
++
++  if (catch_demangler_crashes)
++    {
++      sa.sa_handler = gdb_demangle_signal_handler;
++      sigemptyset (&sa.sa_mask);
++      sa.sa_flags = 0;
++      sigaction (SIGSEGV, &sa, &old_sa);
++    }
++#else
++  void (*ofunc) ();
++
++  if (catch_demangler_crashes)
++    ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
++#endif
++
++  if (catch_demangler_crashes)
++    crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
++#endif
++
++  if (crash_signal == 0)
++    result = bfd_demangle (NULL, name, options);
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++  if (catch_demangler_crashes)
++    {
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++      sigaction (SIGSEGV, &old_sa, NULL);
++#else
++      signal (SIGSEGV, ofunc);
++#endif
++
++      if (crash_signal != 0)
++	{
++	  static int error_reported = 0;
++
++	  if (!error_reported)
++	    {
++	      demangler_warning (__FILE__, __LINE__,
++				 _("unable to demangle '%s' "
++				   "(demangler failed with signal %d)"),
++				 name, crash_signal);
++
++	      error_reported = 1;
++	    }
++
++	  result = NULL;
++	}
++    }
++#endif
++
++  return result;
+ }
+ 
+ /* Don't allow just "maintenance cplus".  */
+@@ -1585,4 +1685,17 @@ _initialize_cp_support (void)
+ Usage: info vtbl EXPRESSION\n\
+ Evaluate EXPRESSION and display the virtual function table for the\n\
+ resulting object."));
++
++#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
++  add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
++			   &catch_demangler_crashes, _("\
++Set whether to attempt to catch demangler crashes."), _("\
++Show whether to attempt to catch demangler crashes."), _("\
++If enabled GDB will attempt to catch demangler crashes and\n\
++display the offending symbol."),
++			   NULL,
++			   NULL,
++			   &maintenance_set_cmdlist,
++			   &maintenance_show_cmdlist);
++#endif
+ }
+diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
+index 9f7fa18..242117b 100644
+--- a/gdb/doc/gdb.texinfo
++++ b/gdb/doc/gdb.texinfo
+@@ -33235,6 +33235,17 @@ Expand symbol tables.
+ If @var{regexp} is specified, only expand symbol tables for file
+ names matching @var{regexp}.
+ 
++@kindex maint set catch-demangler-crashes
++@kindex maint show catch-demangler-crashes
++@cindex demangler crashes
++@item maint set catch-demangler-crashes [on|off]
++@itemx maint show catch-demangler-crashes
++Control whether @value{GDBN} should attempt to catch crashes in the
++symbol name demangler.  The default is to attempt to catch crashes.
++If enabled, the first time a crash is caught, a core file is created,
++the offending symbol is displayed and the user is presented with the
++option to terminate the current session.
++
+ @kindex maint cplus first_component
+ @item maint cplus first_component @var{name}
+ Print the first C@t{++} class/namespace component of @var{name}.
