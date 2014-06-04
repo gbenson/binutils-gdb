@@ -33336,10 +33336,10 @@ quit.  The default is to ask the user what to do.
 
 @item corefile
 You can specify that @value{GDBN} should always (yes) or never (no)
-create a core file.  The default for @code{internal-error} and
-@code{internal-warning} is to ask the user what to do.  The default
-for @code{demangler-warning} is to not create a core file as this
-will already have been created by the crash handler.
+create a core file.  The default is to ask the user what to do.  Note
+that there is no @code{corefile} option for @code{demangler-warning}:
+demangler warnings always create a core file and this cannot be
+disabled.
 @end table
 
 @kindex maint packet
