@@ -1,5 +1,5 @@
 gdb/
-2014-06-03  Gary Benson  <gbenson@redhat.com>
+2014-06-04  Gary Benson  <gbenson@redhat.com>
 
 	* utils.h (demangler_vwarning): New declaration.
 	(demangler_warning): Likewise.
@@ -26,7 +26,7 @@ gdb/
 	(_initialize_cp_support): New maint set/show command.
 
 gdb/doc/
-2014-06-03  Gary Benson  <gbenson@redhat.com>
+2014-06-04  Gary Benson  <gbenson@redhat.com>
 
 	* gdb.texinfo (Maintenance Commands): Document new
 	"maint set/show catch-demangler-crashes" and
@@ -61,7 +61,7 @@ index 33371ac..8ada98e 100644
 +
  #endif /* UTILS_H */
 diff --git a/gdb/utils.c b/gdb/utils.c
-index 86df1c7..4c11e7b 100644
+index 86df1c7..733c697 100644
 --- a/gdb/utils.c
 +++ b/gdb/utils.c
 @@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
@@ -73,12 +73,40 @@ index 86df1c7..4c11e7b 100644
  dump_core (void)
  {
  #ifdef HAVE_SETRLIMIT
-@@ -834,6 +834,26 @@ internal_warning (const char *file, int line, const char *string, ...)
+@@ -659,7 +659,9 @@ static const char *const internal_problem_modes[] =
+ struct internal_problem
+ {
+   const char *name;
++  int user_settable_should_quit;
+   const char *should_quit;
++  int user_settable_should_dump_core;
+   const char *should_dump_core;
+ };
+ 
+@@ -794,7 +796,7 @@ internal_vproblem (struct internal_problem *problem,
+ }
+ 
+ static struct internal_problem internal_error_problem = {
+-  "internal-error", internal_problem_ask, internal_problem_ask
++  "internal-error", 1, internal_problem_ask, 1, internal_problem_ask
+ };
+ 
+ void
+@@ -815,7 +817,7 @@ internal_error (const char *file, int line, const char *string, ...)
+ }
+ 
+ static struct internal_problem internal_warning_problem = {
+-  "internal-warning", internal_problem_ask, internal_problem_ask
++  "internal-warning", 1, internal_problem_ask, 1, internal_problem_ask
+ };
+ 
+ void
+@@ -834,6 +836,26 @@ internal_warning (const char *file, int line, const char *string, ...)
    va_end (ap);
  }
  
 +static struct internal_problem demangler_warning_problem = {
-+  "demangler-warning", internal_problem_ask, internal_problem_no
++  "demangler-warning", 1, internal_problem_ask, 0, internal_problem_no
 +};
 +
 +void
@@ -100,14 +128,104 @@ index 86df1c7..4c11e7b 100644
  /* Dummy functions to keep add_prefix_cmd happy.  */
  
  static void
-@@ -3523,4 +3543,5 @@ _initialize_utils (void)
+@@ -894,45 +916,51 @@ add_internal_problem_command (struct internal_problem *problem)
+ 			  (char *) NULL),
+ 		  0/*allow-unknown*/, &maintenance_show_cmdlist);
+ 
+-  set_doc = xstrprintf (_("Set whether GDB should quit "
+-			  "when an %s is detected"),
+-			problem->name);
+-  show_doc = xstrprintf (_("Show whether GDB will quit "
+-			   "when an %s is detected"),
+-			 problem->name);
+-  add_setshow_enum_cmd ("quit", class_maintenance,
+-			internal_problem_modes,
+-			&problem->should_quit,
+-			set_doc,
+-			show_doc,
+-			NULL, /* help_doc */
+-			NULL, /* setfunc */
+-			NULL, /* showfunc */
+-			set_cmd_list,
+-			show_cmd_list);
+-
+-  xfree (set_doc);
+-  xfree (show_doc);
+-
+-  set_doc = xstrprintf (_("Set whether GDB should create a core "
+-			  "file of GDB when %s is detected"),
+-			problem->name);
+-  show_doc = xstrprintf (_("Show whether GDB will create a core "
+-			   "file of GDB when %s is detected"),
+-			 problem->name);
+-  add_setshow_enum_cmd ("corefile", class_maintenance,
+-			internal_problem_modes,
+-			&problem->should_dump_core,
+-			set_doc,
+-			show_doc,
+-			NULL, /* help_doc */
+-			NULL, /* setfunc */
+-			NULL, /* showfunc */
+-			set_cmd_list,
+-			show_cmd_list);
++  if (problem->user_settable_should_quit)
++    {
++      set_doc = xstrprintf (_("Set whether GDB should quit "
++			      "when an %s is detected"),
++			    problem->name);
++      show_doc = xstrprintf (_("Show whether GDB will quit "
++			       "when an %s is detected"),
++			     problem->name);
++      add_setshow_enum_cmd ("quit", class_maintenance,
++			    internal_problem_modes,
++			    &problem->should_quit,
++			    set_doc,
++			    show_doc,
++			    NULL, /* help_doc */
++			    NULL, /* setfunc */
++			    NULL, /* showfunc */
++			    set_cmd_list,
++			    show_cmd_list);
++
++      xfree (set_doc);
++      xfree (show_doc);
++    }
+ 
+-  xfree (set_doc);
+-  xfree (show_doc);
++  if (problem->user_settable_should_dump_core)
++    {
++      set_doc = xstrprintf (_("Set whether GDB should create a core "
++			      "file of GDB when %s is detected"),
++			    problem->name);
++      show_doc = xstrprintf (_("Show whether GDB will create a core "
++			       "file of GDB when %s is detected"),
++			     problem->name);
++      add_setshow_enum_cmd ("corefile", class_maintenance,
++			    internal_problem_modes,
++			    &problem->should_dump_core,
++			    set_doc,
++			    show_doc,
++			    NULL, /* help_doc */
++			    NULL, /* setfunc */
++			    NULL, /* showfunc */
++			    set_cmd_list,
++			    show_cmd_list);
++
++      xfree (set_doc);
++      xfree (show_doc);
++    }
+ }
+ 
+ /* Return a newly allocated string, containing the PREFIX followed
+@@ -3523,4 +3551,5 @@ _initialize_utils (void)
  {
    add_internal_problem_command (&internal_error_problem);
    add_internal_problem_command (&internal_warning_problem);
 +  add_internal_problem_command (&demangler_warning_problem);
  }
 diff --git a/gdb/maint.c b/gdb/maint.c
-index 873c33c..4cceb05 100644
+index 873c33c..3f83891 100644
 --- a/gdb/maint.c
 +++ b/gdb/maint.c
 @@ -131,6 +131,15 @@ maintenance_internal_warning (char *args, int from_tty)
@@ -283,7 +401,7 @@ index 91533e8..96f7d89 100644
 +#endif
  }
 diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
-index 9f7fa18..a0b05fc 100644
+index 9f7fa18..6b39452 100644
 --- a/gdb/doc/gdb.texinfo
 +++ b/gdb/doc/gdb.texinfo
 @@ -33235,6 +33235,17 @@ Expand symbol tables.
@@ -354,10 +472,10 @@ index 9f7fa18..a0b05fc 100644
  @item corefile
  You can specify that @value{GDBN} should always (yes) or never (no)
 -create a core file.  The default is to ask the user what to do.
-+create a core file.  The default for @code{internal-error} and
-+@code{internal-warning} is to ask the user what to do.  The default
-+for @code{demangler-warning} is to not create a core file as this
-+will already have been created by the crash handler.
++create a core file.  The default is to ask the user what to do.  Note
++that there is no @code{corefile} option for @code{demangler-warning}:
++demangler warnings always create a core file and this cannot be
++disabled.
  @end table
  
  @kindex maint packet
