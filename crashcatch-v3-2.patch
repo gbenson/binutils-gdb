@@ -24,10 +24,10 @@ gdb/doc/
 	"maint set/show catch-demangler-crashes" option.
 
 diff --git a/gdb/utils.h b/gdb/utils.h
-index 33371ac..3d28f36 100644
+index 31f9c19..8ada98e 100644
 --- a/gdb/utils.h
 +++ b/gdb/utils.h
-@@ -366,4 +366,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
+@@ -374,4 +374,8 @@ extern ULONGEST align_down (ULONGEST v, int n);
  
  extern LONGEST gdb_sign_extend (LONGEST value, int bit);
  
@@ -37,7 +37,7 @@ index 33371ac..3d28f36 100644
 +
  #endif /* UTILS_H */
 diff --git a/gdb/utils.c b/gdb/utils.c
-index 86df1c7..28cc83e 100644
+index 686b153..733c697 100644
 --- a/gdb/utils.c
 +++ b/gdb/utils.c
 @@ -600,7 +600,7 @@ error_stream (struct ui_file *stream)
@@ -193,7 +193,7 @@ index 91533e8..96f7d89 100644
 +#endif
  }
 diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
-index 9f7fa18..242117b 100644
+index 6104f55..6b39452 100644
 --- a/gdb/doc/gdb.texinfo
 +++ b/gdb/doc/gdb.texinfo
 @@ -33235,6 +33235,17 @@ Expand symbol tables.
