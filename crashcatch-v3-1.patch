@@ -1,0 +1,293 @@
+gdb/
+2014-06-04  Gary Benson  <gbenson@redhat.com>
+
+	* utils.h (demangler_vwarning): New declaration.
+	(demangler_warning): Likewise.
+	* utils.c (struct internal_problem)
+	<user_settable_should_quit>: New field.
+	<user_settable_should_dump_core>: Likewise
+	(internal_error_problem): Add values for above new fields.
+	(internal_warning_problem): Likewise.
+	(demangler_warning_problem): New static global.
+	(demangler_vwarning): New function.
+	(demangler_warning): Likewise.
+	(add_internal_problem_command): Selectively add commands.
+	(_initialize_utils): New internal problem command.
+	* maint.c (maintenance_demangler_warning): New function.
+	(_initialize_maint_cmds): New command.
+
+gdb/doc/
+2014-06-04  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Maintenance Commands): Document new
+	"maint demangler-warning" command and new
+	"maint set/show demangler-warning" option.
+
+diff --git a/gdb/utils.h b/gdb/utils.h
+index 33371ac..8ada98e 100644
+--- a/gdb/utils.h
++++ b/gdb/utils.h
+@@ -313,6 +313,14 @@ extern void internal_warning (const char *file, int line,
+ extern void warning (const char *, ...) ATTRIBUTE_PRINTF (1, 2);
+ 
+ extern void vwarning (const char *, va_list args) ATTRIBUTE_PRINTF (1, 0);
++
++extern void demangler_vwarning (const char *file, int line,
++			       const char *, va_list ap)
++     ATTRIBUTE_PRINTF (3, 0);
++
++extern void demangler_warning (const char *file, int line,
++			      const char *, ...) ATTRIBUTE_PRINTF (3, 4);
++
+ 
+ /* Misc. utilities.  */
+ 
+diff --git a/gdb/utils.c b/gdb/utils.c
+index 86df1c7..733c697 100644
+--- a/gdb/utils.c
++++ b/gdb/utils.c
+@@ -659,7 +659,9 @@ static const char *const internal_problem_modes[] =
+ struct internal_problem
+ {
+   const char *name;
++  int user_settable_should_quit;
+   const char *should_quit;
++  int user_settable_should_dump_core;
+   const char *should_dump_core;
+ };
+ 
+@@ -794,7 +796,7 @@ internal_vproblem (struct internal_problem *problem,
+ }
+ 
+ static struct internal_problem internal_error_problem = {
+-  "internal-error", internal_problem_ask, internal_problem_ask
++  "internal-error", 1, internal_problem_ask, 1, internal_problem_ask
+ };
+ 
+ void
+@@ -815,7 +817,7 @@ internal_error (const char *file, int line, const char *string, ...)
+ }
+ 
+ static struct internal_problem internal_warning_problem = {
+-  "internal-warning", internal_problem_ask, internal_problem_ask
++  "internal-warning", 1, internal_problem_ask, 1, internal_problem_ask
+ };
+ 
+ void
+@@ -834,6 +836,26 @@ internal_warning (const char *file, int line, const char *string, ...)
+   va_end (ap);
+ }
+ 
++static struct internal_problem demangler_warning_problem = {
++  "demangler-warning", 1, internal_problem_ask, 0, internal_problem_no
++};
++
++void
++demangler_vwarning (const char *file, int line, const char *fmt, va_list ap)
++{
++  internal_vproblem (&demangler_warning_problem, file, line, fmt, ap);
++}
++
++void
++demangler_warning (const char *file, int line, const char *string, ...)
++{
++  va_list ap;
++
++  va_start (ap, string);
++  demangler_vwarning (file, line, string, ap);
++  va_end (ap);
++}
++
+ /* Dummy functions to keep add_prefix_cmd happy.  */
+ 
+ static void
+@@ -894,45 +916,51 @@ add_internal_problem_command (struct internal_problem *problem)
+ 			  (char *) NULL),
+ 		  0/*allow-unknown*/, &maintenance_show_cmdlist);
+ 
+-  set_doc = xstrprintf (_("Set whether GDB should quit "
+-			  "when an %s is detected"),
+-			problem->name);
+-  show_doc = xstrprintf (_("Show whether GDB will quit "
+-			   "when an %s is detected"),
+-			 problem->name);
+-  add_setshow_enum_cmd ("quit", class_maintenance,
+-			internal_problem_modes,
+-			&problem->should_quit,
+-			set_doc,
+-			show_doc,
+-			NULL, /* help_doc */
+-			NULL, /* setfunc */
+-			NULL, /* showfunc */
+-			set_cmd_list,
+-			show_cmd_list);
+-
+-  xfree (set_doc);
+-  xfree (show_doc);
+-
+-  set_doc = xstrprintf (_("Set whether GDB should create a core "
+-			  "file of GDB when %s is detected"),
+-			problem->name);
+-  show_doc = xstrprintf (_("Show whether GDB will create a core "
+-			   "file of GDB when %s is detected"),
+-			 problem->name);
+-  add_setshow_enum_cmd ("corefile", class_maintenance,
+-			internal_problem_modes,
+-			&problem->should_dump_core,
+-			set_doc,
+-			show_doc,
+-			NULL, /* help_doc */
+-			NULL, /* setfunc */
+-			NULL, /* showfunc */
+-			set_cmd_list,
+-			show_cmd_list);
++  if (problem->user_settable_should_quit)
++    {
++      set_doc = xstrprintf (_("Set whether GDB should quit "
++			      "when an %s is detected"),
++			    problem->name);
++      show_doc = xstrprintf (_("Show whether GDB will quit "
++			       "when an %s is detected"),
++			     problem->name);
++      add_setshow_enum_cmd ("quit", class_maintenance,
++			    internal_problem_modes,
++			    &problem->should_quit,
++			    set_doc,
++			    show_doc,
++			    NULL, /* help_doc */
++			    NULL, /* setfunc */
++			    NULL, /* showfunc */
++			    set_cmd_list,
++			    show_cmd_list);
++
++      xfree (set_doc);
++      xfree (show_doc);
++    }
+ 
+-  xfree (set_doc);
+-  xfree (show_doc);
++  if (problem->user_settable_should_dump_core)
++    {
++      set_doc = xstrprintf (_("Set whether GDB should create a core "
++			      "file of GDB when %s is detected"),
++			    problem->name);
++      show_doc = xstrprintf (_("Show whether GDB will create a core "
++			       "file of GDB when %s is detected"),
++			     problem->name);
++      add_setshow_enum_cmd ("corefile", class_maintenance,
++			    internal_problem_modes,
++			    &problem->should_dump_core,
++			    set_doc,
++			    show_doc,
++			    NULL, /* help_doc */
++			    NULL, /* setfunc */
++			    NULL, /* showfunc */
++			    set_cmd_list,
++			    show_cmd_list);
++
++      xfree (set_doc);
++      xfree (show_doc);
++    }
+ }
+ 
+ /* Return a newly allocated string, containing the PREFIX followed
+@@ -3523,4 +3551,5 @@ _initialize_utils (void)
+ {
+   add_internal_problem_command (&internal_error_problem);
+   add_internal_problem_command (&internal_warning_problem);
++  add_internal_problem_command (&demangler_warning_problem);
+ }
+diff --git a/gdb/maint.c b/gdb/maint.c
+index 873c33c..3f83891 100644
+--- a/gdb/maint.c
++++ b/gdb/maint.c
+@@ -131,6 +131,15 @@ maintenance_internal_warning (char *args, int from_tty)
+   internal_warning (__FILE__, __LINE__, "%s", (args == NULL ? "" : args));
+ }
+ 
++/* Stimulate the internal error mechanism that GDB uses when an
++   demangler problem is detected.  Allows testing of the mechanism.  */
++
++static void
++maintenance_demangler_warning (char *args, int from_tty)
++{
++  demangler_warning (__FILE__, __LINE__, "%s", (args == NULL ? "" : args));
++}
++
+ /* Someday we should allow demangling for things other than just
+    explicit strings.  For example, we might want to be able to specify
+    the address of a string in either GDB's process space or the
+@@ -1052,6 +1061,12 @@ Give GDB an internal warning.\n\
+ Cause GDB to behave as if an internal warning was reported."),
+ 	   &maintenancelist);
+ 
++  add_cmd ("demangler-warning", class_maintenance,
++	   maintenance_demangler_warning, _("\
++Give GDB a demangler warning.\n\
++Cause GDB to behave as if a demangler warning was reported."),
++	   &maintenancelist);
++
+   add_cmd ("demangle", class_maintenance, maintenance_demangle, _("\
+ Demangle a C++/ObjC mangled name.\n\
+ Call internal GDB demangler routine to demangle a C++ link name\n\
+diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
+index 9f7fa18..6b39452 100644
+--- a/gdb/doc/gdb.texinfo
++++ b/gdb/doc/gdb.texinfo
+@@ -33267,13 +33278,18 @@ with the @code{SIGQUIT} signal.
+ 
+ @kindex maint internal-error
+ @kindex maint internal-warning
++@kindex maint demangler-warning
++@cindex demangler crashes
+ @item maint internal-error @r{[}@var{message-text}@r{]}
+ @itemx maint internal-warning @r{[}@var{message-text}@r{]}
+-Cause @value{GDBN} to call the internal function @code{internal_error}
+-or @code{internal_warning} and hence behave as though an internal error
+-or internal warning has been detected.  In addition to reporting the
+-internal problem, these functions give the user the opportunity to
+-either quit @value{GDBN} or create a core file of the current
++@itemx maint demangler-warning @r{[}@var{message-text}@r{]}
++
++Cause @value{GDBN} to call the internal function @code{internal_error},
++@code{internal_warning} or @code{demangler_warning} and hence behave
++as though an internal problam has been detected.  In addition to
++reporting the internal problem, these functions give the user the
++opportunity to either quit @value{GDBN} or (for @code{internal_error}
++and @code{internal_warning}) create a core file of the current
+ @value{GDBN} session.
+ 
+ These commands take an optional parameter @var{message-text} that is
+@@ -33293,15 +33309,20 @@ Create a core file? (y or n) @kbd{n}
+ 
+ @cindex @value{GDBN} internal error
+ @cindex internal errors, control of @value{GDBN} behavior
++@cindex demangler crashes
+ 
+ @kindex maint set internal-error
+ @kindex maint show internal-error
+ @kindex maint set internal-warning
+ @kindex maint show internal-warning
++@kindex maint set demangler-warning
++@kindex maint show demangler-warning
+ @item maint set internal-error @var{action} [ask|yes|no]
+ @itemx maint show internal-error @var{action}
+ @itemx maint set internal-warning @var{action} [ask|yes|no]
+ @itemx maint show internal-warning @var{action}
++@itemx maint set demangler-warning @var{action} [ask|yes|no]
++@itemx maint show demangler-warning @var{action}
+ When @value{GDBN} reports an internal problem (error or warning) it
+ gives the user the opportunity to both quit @value{GDBN} and create a
+ core file of the current @value{GDBN} session.  These commands let you
+@@ -33315,7 +33336,10 @@ quit.  The default is to ask the user what to do.
+ 
+ @item corefile
+ You can specify that @value{GDBN} should always (yes) or never (no)
+-create a core file.  The default is to ask the user what to do.
++create a core file.  The default is to ask the user what to do.  Note
++that there is no @code{corefile} option for @code{demangler-warning}:
++demangler warnings always create a core file and this cannot be
++disabled.
+ @end table
+ 
+ @kindex maint packet
