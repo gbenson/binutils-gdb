@@ -7,6 +7,11 @@ choice to exit or to continue their GDB session.  A maintainence
 option is provided to allow the user to disable the crash handler
 if required.
 
+Eli pointed out that SIGSEGV is an ANSI-standard signal but I found
+various other SIGSEGV checks in GDB so I have left the preprocessor
+conditionals intact for consistency.  I hope this is ok.
+
+
 gdb/
 2014-06-04  Gary Benson  <gbenson@redhat.com>
 
