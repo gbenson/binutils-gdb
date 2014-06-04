@@ -1,3 +1,12 @@
+Demangler crash handler
+
+This patch wraps calls to the demangler with a segmentation fault
+handler.  The first time a segmentation fault is caught a core file
+is generated and the user is prompted to file a bug and offered the
+choice to exit or to continue their GDB session.  A maintainence
+option is provided to allow the user to disable the crash handler
+if required.
+
 gdb/
 2014-06-04  Gary Benson  <gbenson@redhat.com>
 

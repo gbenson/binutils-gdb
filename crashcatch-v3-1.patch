@@ -1,3 +1,10 @@
+Add new internal problem for demangler warnings
+
+This patch adds a new category of internal problem for demangler
+warnings.  Demangler warnings behave in much the same way as internal
+warnings except that they do not create core files and no option to
+change this is presented to the user.
+
 gdb/
 2014-06-04  Gary Benson  <gbenson@redhat.com>
 
