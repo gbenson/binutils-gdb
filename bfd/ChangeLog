@@ -1,3 +1,19 @@
+2014-06-04  Will Newton  <will.newton@linaro.org>
+
+        * elfnn-aarch64.c (tpoff_base): Make test of tls_sec
+	being non-NULL into an assert.
+	(elfNN_aarch64_tls_relax): Remove unused code.
+
+2014-06-03  DJ Delorie  <dj@redhat.com>
+
+	* elf32-rx.c (rx_table_map): Use BFD_VMA_FMT for portability.
+
+2014-06-03  Nick Clifton  <nickc@redhat.com>
+
+	PR ld/16807
+	* peXXigen.c (rsrc_process_section): Page align the new contents
+	befgore writing out.
+
 2014-06-03  Alan Modra  <amodra@gmail.com>
 
 	* elf64-ppc.c (ADDIS_R12_R2): Define.

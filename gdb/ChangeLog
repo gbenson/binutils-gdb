@@ -1,3 +1,150 @@
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* guile/scm-type.c (type_smob): Remove duplicate typedef.
+
+2014-06-04  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* record-btrace.c: Include event-loop.h and inf-loop.h.
+	(record_btrace_resume_exec_dir)
+	(record_btrace_async_inferior_event_handler)
+	(record_btrace_handle_async_inferior_event): New.
+	(record_btrace_open): Create async event handler.
+	(record_btrace_close): Delete async event handler.
+	(record_btrace_resume): Set record_btrace_resume_exec_dir,
+	Mark async event handler.
+	(record_btrace_execution_direction): New.
+	(init_record_btrace_ops): Initialize to_execution_direction.
+
+2014-06-03  Doug Evans  <xdje42@gmail.com>
+
+	* guile/scm-param.c (pascm_make_param_smob): Add ARI comment.
+	(gdbscm_make_parameter): Ditto.
+
+2014-06-03  Doug Evans  <dje@google.com>
+
+	* exec.c (exec_close_1): Call clear_section_table instead of
+	resize_section_table.
+	(clear_section_table): New function.
+	(resize_section_table): Make static.  Rename arg num_added to
+	adjustment.
+	* exec.h (clear_section_table): Declare.
+	(resize_section_table): Delete.
+	* progspace.c (release_program_space): Call clear_section_table
+	instead of resize_section_table.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* NEWS (Python Scripting): Add entry about the new xmethods
+	feature.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* python/py-xmethods.c: New file.
+	* python/py-objfile.c (objfile_object): New field 'xmethods'.
+	(objfpy_dealloc): XDECREF on the new xmethods field.
+	(objfpy_new, objfile_to_objfile_object): Initialize xmethods
+	field.
+	(objfpy_get_xmethods): New function.
+	(objfile_getset): New entry 'xmethods'.
+	* python/py-progspace.c (pspace_object): New field 'xmethods'.
+	(pspy_dealloc): XDECREF on the new xmethods field.
+	(pspy_new, pspace_to_pspace_object): Initialize	xmethods
+	field.
+	(pspy_get_xmethods): New function.
+	(pspace_getset): New entry 'xmethods'.
+	* python/python-internal.h: Add declarations for new functions.
+	* python/python.c (_initialize_python): Invoke
+	gdbpy_initialize_xmethods.
+	* python/lib/gdb/__init__.py (xmethods): New
+	attribute.
+	* python/lib/gdb/xmethod.py: New file.
+	* python/lib/gdb/command/xmethods.py: New file.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* eval.c (evaluate_subexp_standard): Call the xmethod if the
+	best match method returned by find_overload_match is an xmethod.
+	* valarith.c (value_x_binop, value_x_unop): Call the xmethod if
+	the best matching operator returned by find_overload_match is an
+	xmethod.
+	* valops.c: #include "extension.h".
+	(find_method_list): Add "fn_list" and "xm_worker_vec" arguments.
+	Return void.  The list of matching source methods is returned in
+	"fn_list" and a vector of matching debug method workers is
+	returned in "xm_worker_vec".  Update all callers.
+	(value_find_oload_method_list): Likewise.
+	(find_oload_champ): Add "xm_worker_vec" parameter.  If it is
+	non-NULL, then the index of the best matching method in this
+	vector is returned.  Update all callers.
+	(find_overload_match): Include xmethods while performing overload
+	resolution.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* defs.h (enum lval_type): New enumerator "lval_xcallable".
+	* extension-priv.h (struct extension_language_ops): Add the
+	xmethod interface.
+	* extension.c (new_xmethod_worker, clone_xmethod_worker,
+	get_matching_xmethod_workers, get_xmethod_argtypes,
+	invoke_xmethod, free_xmethod_worker,
+	free_xmethod_worker_vec): New functions.
+	* extension.h: #include "common/vec.h".
+	New function declarations.
+	(struct xmethod_worker): New struct.
+	(VEC (xmethod_worker_ptr)): New vector type.
+	(xmethod_worker_ptr): New typedef.
+	(xmethod_worker_vec): Likewise.
+	* gdbtypes.c (gdbtypes_post_init): Initialize "xmethod" field of
+	builtin_type.
+	* gdbtypes.h (enum type_code): New enumerator TYPE_CODE_XMETHOD.
+	(struct builtin_type): New field "xmethod".
+	* valarith.c (value_ptradd): Assert that the value argument is not
+	lval_xcallable.
+	* valops.c (value_must_coerce_to_target): Return 0 for
+	lval_xcallable values.
+	* value.c (struct value): New field XM_WORKER in the field
+	LOCATION.
+	(value_address, value_raw_address): Return 0 for lval_xcallable
+	values.
+	(set_value_address): Assert that the value is not an
+	lval_xcallable.
+	(value_free): Free the associated xmethod worker when freeing
+	lval_xcallable values.
+	(set_value_component_location): Assert that the WHOLE value is not
+	lval_xcallable.
+	(value_of_xmethod, call_xmethod): New functions.
+	* value.h: Declare "struct xmethod_worker".
+	Declare new functions value_of_xmethod, call_xmethod.
+
+2014-06-03  Joel Brobecker  <brobecker@adacore.com>
+	    Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* breakpoint.c (find_non_raw_software_breakpoint_inserted_here):
+	New function, extracted from software_breakpoint_inserted_here_p.
+	(software_breakpoint_inserted_here_p): Replace factored out code
+	by call to find_non_raw_software_breakpoint_inserted_here.
+	(bp_target_info_copy_insertion_state): New function.
+	(bkpt_insert_location): Handle the case of a single-step
+	breakpoint already inserted at the same address.
+	(bkpt_remove_location): Handle the case of a single-step
+	breakpoint still inserted at the same address.
+	(deprecated_insert_raw_breakpoint): Handle the case of non-raw
+	breakpoint already inserted at the same address.
+	(deprecated_remove_raw_breakpoint): Handle the case of a
+	non-raw breakpoint still inserted at the same address.
+	(find_single_step_breakpoint): New function, extracted from
+	single_step_breakpoint_inserted_here_p.
+	(find_single_step_breakpoint): New function,
+	factored out from single_step_breakpoint_inserted_here_p.
+	(single_step_breakpoint_inserted_here_p): Reimplement.
+
+2014-06-03  Brad Mouring  <bmouring@ni.com>  (tiny patch)
+
+	Pushed by Joel Brobecker  <brobecker@adacore.com>
+	* source.c (show_substitute_path_command): Fix display of matching
+	substitution rules.
+
 2014-06-03  Gary Benson  <gbenson@redhat.com>
 
 	* gnu-v2-abi.c (gnuv2_value_rtti_type): Use gdb_demangle.

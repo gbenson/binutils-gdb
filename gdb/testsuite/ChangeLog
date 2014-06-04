@@ -1,3 +1,44 @@
+2014-06-04  Nathan Sidwell  <nathan@codesourcery.com>
+	    Hui Zhu  <hui@codesourcery.com>
+
+	* gdb.base/fileio.exp: Add test for shell not available as well as
+	available.
+	* gdb.base/fileio.c (test_system): Check for shell twice.
+
+2014-06-04  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/auto-connect-native-target.exp: Remove redundant
+	space from the regexp pattern.
+
+2014-06-04  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/default.exp: Replace "child" with "native" in
+	regexp pattern.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* gdb.python/py-xmethods.cc: New testcase to test xmethods.
+	* gdb.python/py-xmethods.exp: New tests to test xmethods.
+	* gdb.python/py-xmethods.py: Python script supporting the
+	new testcase and tests.
+
+2014-06-03  Joel Brobecker  <brobecker@adacore.com>
+	    Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* gdb.base/sss-bp-on-user-bp.exp: Remove kfail.
+	* gdb.base/sss-bp-on-user-bp-2.exp: Remove kfail.
+
+2014-06-03  Brad Mouring  <bmouring@ni.com>  (tiny patch)
+
+	* gdb.base/subst.exp: Add tests to verify partial path matching
+	output.
+
+2014-06-03  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/sss-bp-on-user-bp-2.exp: Skip if testing with a remote
+	target that doesn't use software single-stepping.
+
 2014-06-03  Pedro Alves  <palves@redhat.com>
 
 	PR breakpoints/17000
