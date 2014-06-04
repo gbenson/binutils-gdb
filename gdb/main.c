@@ -45,6 +45,7 @@
 
 #include "filenames.h"
 #include "filestuff.h"
+#include <signal.h>
 
 /* The selected interpreter.  This will be used as a set command
    variable, so it should always be malloc'ed - since
@@ -386,6 +387,20 @@ captured_main (void *data)
   struct objfile *objfile;
 
   struct cleanup *pre_stat_chain;
+
+  stack_t ss;
+
+  ss.ss_sp = malloc(SIGSTKSZ);
+  if (ss.ss_sp != NULL)
+    {
+      ss.ss_size = SIGSTKSZ;
+      ss.ss_flags = 0;
+
+      if (sigaltstack(&ss, NULL) == -1)
+	{
+	  /* Handle error */
+	}
+    }
 
 #ifdef HAVE_SBRK
   /* Set this before calling make_command_stats_cleanup.  */

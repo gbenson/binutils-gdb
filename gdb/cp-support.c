@@ -1565,7 +1565,7 @@ gdb_demangle (const char *name, int options)
     {
       sa.sa_handler = gdb_demangle_signal_handler;
       sigemptyset (&sa.sa_mask);
-      sa.sa_flags = 0;
+      sa.sa_flags = SA_ONSTACK;
       sigaction (SIGSEGV, &sa, &old_sa);
     }
 #else
