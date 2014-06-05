@@ -1529,19 +1529,21 @@ static int catch_demangler_crashes = 1;
 
 static SIGJMP_BUF gdb_demangle_jmp_buf;
 
+/* If nonzero, attempt to dump core from the signal handler.  */
+
+static int gdb_demangle_attempt_core_dump = 1;
+
 /* Signal handler for gdb_demangle.  */
 
 static void
 gdb_demangle_signal_handler (int signo)
 {
-  static int core_dumped = 0;
-
-  if (!core_dumped)
+  if (gdb_demangle_attempt_core_dump)
     {
       if (fork () == 0)
 	dump_core ();
 
-      core_dumped = 1;
+      gdb_demangle_attempt_core_dump = 0;
     }
 
   SIGLONGJMP (gdb_demangle_jmp_buf, signo);
