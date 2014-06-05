@@ -1,5 +1,67 @@
 2014-06-04  Doug Evans  <xdje42@gmail.com>
 
+	* guile/scm-breakpoint.c (struct gdbscm_breakpoint_object): New members
+	is_scheme_bkpt, spec.
+	(bpscm_make_breakpoint_smob): Initialize new members.
+	(gdbscm_create_breakpoint_x): Split into two ...
+	(gdbscm_make_breakpoint, gdbscm_register_breakpoint_x): New functions.
+	(bpscm_breakpoint_deleted): Reset breakpoint number and stop function.
+	(scheme_function breakpoint_functions): Update.
+	* guile/lib/gdb.scm: Delete create-breakpoint!.  Rename
+	breakpoint-delete! to delete-breakpoint!.  Add make-breakpoint,
+	register-breakpoint!.
+
+2014-06-04  Joel Brobecker  <brobecker@adacorer.com>
+
+	PR server/17023
+	* mem-break.c (z_type_supported): Return zero if
+	THE_TARGET->SUPPORTS_Z_POINT_TYPE is NULL.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* ada-lang.c (ada_template_to_fixed_record_type_1): Use
+	value_from_contents_and_address_unresolved.
+	(ada_template_to_fixed_record_type_1): Likewise.
+	(ada_which_variant_applies): Likewise.
+	* value.h (value_from_contents_and_address_unresolved): Declare.
+	* value.c (value_from_contents_and_address_unresolved): New
+	function.
+	* gdbtypes.c (is_dynamic_type, resolve_dynamic_type)
+	<TYPE_CODE_STRUCT, TYPE_CODE_UNION>: New cases.
+	(resolve_dynamic_struct, resolve_dynamic_union): New functions.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* gdbtypes.c (is_dynamic_type): Remove unneeded "break"s.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* procfs.c (procfs_attach): Make "args" const.
+	* windows-nat.c (windows_attach): Make "args" const.
+	* nto-procfs.c (procfs_attach): Make "args" const.
+	* inf-ttrace.c (inf_ttrace_attach): Make "args" const.
+	* go32-nat.c (go32_attach): Make "args" const.
+	* gnu-nat.c (gnu_attach): Make "args" const.
+	* darwin-nat.c (darwin_attach): Make "args" const.
+	* inf-ptrace.c (inf_ptrace_attach): Make "args" const.
+	* linux-nat.c (linux_nat_attach): Make "args" const.
+	* remote.c (extended_remote_attach_1, extended_remote_attach):
+	Make "args" const.
+	* target.h (struct target_ops) <to_attach>: Make "args" const.
+	(find_default_attach): Likewise.
+	* utils.c (parse_pid_to_attach): Make "args" const.
+	* utils.h (parse_pid_to_attach): Update.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* target-delegates.c: Rebuild.
+	* target.c (default_thread_address_space): New function.
+	(target_thread_address_space): Simplify.
+	* target.h (struct target_ops) <to_thread_address_space>: Add
+	TARGET_DEFAULT_FUNC.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
 	* guile/scm-type.c (type_smob): Remove duplicate typedef.
 
 2014-06-04  Markus Metzger  <markus.t.metzger@intel.com>
