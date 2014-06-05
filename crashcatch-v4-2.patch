@@ -1,4 +1,4 @@
-Expose and refactor core-dumping functions
+Refactor and expose core-dumping functionality
 
 This patch exposes the functions that dump core outside utils.c.
 The function can_dump_core has been split into two new functions,
