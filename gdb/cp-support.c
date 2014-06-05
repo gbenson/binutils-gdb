@@ -1562,23 +1562,32 @@ gdb_demangle (const char *name, int options)
 #ifdef HAVE_WORKING_FORK
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
   struct sigaction sa, old_sa;
+#else
+  void (*ofunc) ();
+#endif
+  static int can_dump_core = -1;
+
+  if (can_dump_core == -1)
+    {
+      can_dump_core = check_can_dump_core ();
+
+      if (!can_dump_core)
+	gdb_demangle_attempt_core_dump = 0;
+    }
 
   if (catch_demangler_crashes)
     {
+#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
       sa.sa_handler = gdb_demangle_signal_handler;
       sigemptyset (&sa.sa_mask);
       sa.sa_flags = SA_ONSTACK;
       sigaction (SIGSEGV, &sa, &old_sa);
-    }
 #else
-  void (*ofunc) ();
-
-  if (catch_demangler_crashes)
-    ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
+      ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
 #endif
 
-  if (catch_demangler_crashes)
-    crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
+      crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
+    }
 #endif
 
   if (crash_signal == 0)
@@ -1599,6 +1608,9 @@ gdb_demangle (const char *name, int options)
 
 	  if (!error_reported)
 	    {
+	      if (!can_dump_core)
+		warn_cant_dump_core ("XXX");
+
 	      demangler_warning (__FILE__, __LINE__,
 				 _("unable to demangle '%s' "
 				   "(demangler failed with signal %d)"),
