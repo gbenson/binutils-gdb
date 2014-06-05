@@ -1,0 +1,262 @@
+diff --git a/gdb/configure.ac b/gdb/configure.ac
+index 903f378..f41ba2f 100644
+--- a/gdb/configure.ac
++++ b/gdb/configure.ac
+@@ -1328,7 +1328,7 @@ AC_CHECK_FUNCS([canonicalize_file_name realpath getrusage getuid getgid \
+ 		sigaction sigprocmask sigsetmask socketpair \
+ 		ttrace wborder wresize setlocale iconvlist libiconvlist btowc \
+ 		setrlimit getrlimit posix_madvise waitpid lstat \
+-		ptrace64])
++		ptrace64 sigaltstack])
+ AM_LANGINFO_CODESET
+ GDB_AC_COMMON
+ 
+diff --git a/gdb/configure b/gdb/configure
+index 56c92d3..e23a58f 100755
+--- a/gdb/configure
++++ b/gdb/configure
+@@ -10507,7 +10507,7 @@ for ac_func in canonicalize_file_name realpath getrusage getuid getgid \
+ 		sigaction sigprocmask sigsetmask socketpair \
+ 		ttrace wborder wresize setlocale iconvlist libiconvlist btowc \
+ 		setrlimit getrlimit posix_madvise waitpid lstat \
+-		ptrace64
++		ptrace64 sigaltstack
+ do :
+   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+diff --git a/gdb/config.in b/gdb/config.in
+index cd4ce92..8585b49 100644
+--- a/gdb/config.in
++++ b/gdb/config.in
+@@ -366,6 +366,9 @@
+ /* Define to 1 if you have the `sigaction' function. */
+ #undef HAVE_SIGACTION
+ 
++/* Define to 1 if you have the `sigaltstack' function. */
++#undef HAVE_SIGALTSTACK
++
+ /* Define to 1 if you have the <signal.h> header file. */
+ #undef HAVE_SIGNAL_H
+ 
+diff --git a/gdb/main.c b/gdb/main.c
+index a9fc378..7031cc3 100644
+--- a/gdb/main.c
++++ b/gdb/main.c
+@@ -45,6 +45,7 @@
+ 
+ #include "filenames.h"
+ #include "filestuff.h"
++#include <signal.h>
+ 
+ /* The selected interpreter.  This will be used as a set command
+    variable, so it should always be malloc'ed - since
+@@ -288,6 +289,27 @@ get_init_files (const char **system_gdbinit,
+   *local_gdbinit = localinit;
+ }
+ 
++/* Try to set up an alternate signal stack for SIGSEGV handlers.
++   This allows us to handle SIGSEGV signals generated when the
++   normal process stack is exhausted.  If this stack is not set
++   up (sigaltstack is unavailable or fails) and a SIGSEGV is
++   generated when the normal stack is exhausted then the program
++   will behave as though no SIGSEGV handler was installed.  */
++
++static void
++setup_alternate_signal_stack (void)
++{
++#ifdef HAVE_SIGALTSTACK
++  stack_t ss;
++
++  ss.ss_sp = xmalloc (SIGSTKSZ);
++  ss.ss_size = SIGSTKSZ;
++  ss.ss_flags = 0;
++
++  sigaltstack(&ss, NULL);
++#endif
++}
++
+ /* Call command_loop.  If it happens to return, pass that through as a
+    non-zero return status.  */
+ 
+@@ -785,6 +807,9 @@ captured_main (void *data)
+       quiet = 1;
+   }
+ 
++  /* Try to set up an alternate signal stack for SIGSEGV handlers.  */
++  setup_alternate_signal_stack ();
++
+   /* Initialize all files.  Give the interpreter a chance to take
+      control of the console via the deprecated_init_ui_hook ().  */
+   gdb_init (gdb_program_name);
+diff --git a/gdb/cp-support.c b/gdb/cp-support.c
+index 91533e8..f4dde70 100644
+--- a/gdb/cp-support.c
++++ b/gdb/cp-support.c
+@@ -36,6 +36,7 @@
+ #include "value.h"
+ #include "cp-abi.h"
+ #include "language.h"
++#include <signal.h>
+ 
+ #include "safe-ctype.h"
+ 
+@@ -1505,12 +1506,140 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+   return rtti_type;
+ }
+ 
++#ifdef HAVE_WORKING_FORK
++
++/* If nonzero, attempt to catch crashes in the demangler and print
++   useful debugging information.  */
++
++static int catch_demangler_crashes = 1;
++
++/* Wrap set/long jmp so that it's more portable.  */
++
++#if defined(HAVE_SIGSETJMP)
++#define SIGJMP_BUF		sigjmp_buf
++#define SIGSETJMP(buf)		sigsetjmp((buf), 1)
++#define SIGLONGJMP(buf,val)	siglongjmp((buf), (val))
++#else
++#define SIGJMP_BUF		jmp_buf
++#define SIGSETJMP(buf)		setjmp(buf)
++#define SIGLONGJMP(buf,val)	longjmp((buf), (val))
++#endif
++
++/* Stack context and environment for demangler crash recovery.  */
++
++static SIGJMP_BUF gdb_demangle_jmp_buf;
++
++/* If nonzero, attempt to dump core from the signal handler.  */
++
++static int gdb_demangle_attempt_core_dump = 1;
++
++/* Signal handler for gdb_demangle.  */
++
++static void
++gdb_demangle_signal_handler (int signo)
++{
++  if (gdb_demangle_attempt_core_dump)
++    {
++      if (fork () == 0)
++	dump_core ();
++
++      gdb_demangle_attempt_core_dump = 0;
++    }
++
++  SIGLONGJMP (gdb_demangle_jmp_buf, signo);
++}
++
++#endif
++
+ /* A wrapper for bfd_demangle.  */
+ 
+ char *
+ gdb_demangle (const char *name, int options)
+ {
+-  return bfd_demangle (NULL, name, options);
++  char *result = NULL;
++  int crash_signal = 0;
++
++#ifdef HAVE_WORKING_FORK
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  struct sigaction sa, old_sa;
++#else
++  void (*ofunc) ();
++#endif
++  static int can_dump_core = -1;
++
++  if (can_dump_core == -1)
++    {
++      can_dump_core = check_can_dump_core ();
++
++      if (!can_dump_core)
++	gdb_demangle_attempt_core_dump = 0;
++    }
++
++  if (catch_demangler_crashes)
++    {
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++      sa.sa_handler = gdb_demangle_signal_handler;
++      sigemptyset (&sa.sa_mask);
++      sa.sa_flags = SA_ONSTACK;
++      sigaction (SIGSEGV, &sa, &old_sa);
++#else
++      ofunc = (void (*)()) signal (SIGSEGV, gdb_demangle_signal_handler);
++#endif
++
++      crash_signal = SIGSETJMP (gdb_demangle_jmp_buf);
++    }
++#endif
++
++  if (crash_signal == 0)
++    result = bfd_demangle (NULL, name, options);
++
++#ifdef HAVE_WORKING_FORK
++  if (catch_demangler_crashes)
++    {
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++      sigaction (SIGSEGV, &old_sa, NULL);
++#else
++      signal (SIGSEGV, ofunc);
++#endif
++
++      if (crash_signal != 0)
++	{
++	  static int error_reported = 0;
++
++	  if (!error_reported)
++	    {
++	      char *dmw_msg;
++	      struct cleanup *back_to;
++
++	      dmw_msg = xstrprintf (_("unable to demangle '%s' "
++				      "(demangler failed with signal %d)"),
++				    name, crash_signal);
++	      back_to = make_cleanup (xfree, dmw_msg);
++
++	      if (!can_dump_core)
++		{
++		  char *cdc_msg = xstrprintf ("%s:%d: %s: %s",
++					      __FILE__, __LINE__,
++					      "demangler-warning",
++					      dmw_msg);
++
++		  make_cleanup (xfree, cdc_msg);
++		  warn_cant_dump_core (cdc_msg);
++		}
++
++	      demangler_warning (__FILE__, __LINE__, "%s", dmw_msg);
++
++	      do_cleanups (back_to);
++
++	      error_reported = 1;
++	    }
++
++	  result = NULL;
++	}
++    }
++#endif
++
++  return result;
+ }
+ 
+ /* Don't allow just "maintenance cplus".  */
+@@ -1585,4 +1714,17 @@ _initialize_cp_support (void)
+ Usage: info vtbl EXPRESSION\n\
+ Evaluate EXPRESSION and display the virtual function table for the\n\
+ resulting object."));
++
++#ifdef HAVE_WORKING_FORK
++  add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
++			   &catch_demangler_crashes, _("\
++Set whether to attempt to catch demangler crashes."), _("\
++Show whether to attempt to catch demangler crashes."), _("\
++If enabled GDB will attempt to catch demangler crashes and\n\
++display the offending symbol."),
++			   NULL,
++			   NULL,
++			   &maintenance_set_cmdlist,
++			   &maintenance_show_cmdlist);
++#endif
+ }
