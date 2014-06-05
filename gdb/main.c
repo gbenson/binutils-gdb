@@ -388,6 +388,7 @@ captured_main (void *data)
 
   struct cleanup *pre_stat_chain;
 
+#ifdef HAVE_SIGALTSTACK
   stack_t ss;
 
   ss.ss_sp = malloc(SIGSTKSZ);
@@ -400,7 +401,12 @@ captured_main (void *data)
 	{
 	  /* Handle error */
 	}
+      else
+	{
+	  puts ("sigaltstack set up");
+	}
     }
+#endif
 
 #ifdef HAVE_SBRK
   /* Set this before calling make_command_stats_cleanup.  */
