@@ -1608,13 +1608,28 @@ gdb_demangle (const char *name, int options)
 
 	  if (!error_reported)
 	    {
-	      if (!can_dump_core)
-		warn_cant_dump_core ("XXX");
+	      char *dmw_msg;
+	      struct cleanup *back_to;
 
-	      demangler_warning (__FILE__, __LINE__,
-				 _("unable to demangle '%s' "
-				   "(demangler failed with signal %d)"),
-				 name, crash_signal);
+	      dmw_msg = xstrprintf (_("unable to demangle '%s' "
+				      "(demangler failed with signal %d)"),
+				    name, crash_signal);
+	      back_to = make_cleanup (xfree, dmw_msg);
+
+	      if (!can_dump_core)
+		{
+		  char *cdc_msg = xstrprintf ("%s:%d: %s: %s",
+					      __FILE__, __LINE__,
+					      "demangler-warning",
+					      dmw_msg);
+
+		  make_cleanup (xfree, cdc_msg);
+		  warn_cant_dump_core (cdc_msg);
+		}
+
+	      demangler_warning (__FILE__, __LINE__, "%s", dmw_msg);
+
+	      do_cleanups (back_to);
 
 	      error_reported = 1;
 	    }
