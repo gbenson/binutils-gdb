@@ -1,3 +1,43 @@
+Demangler crash handler
+
+This patch wraps calls to the demangler with a segmentation fault
+handler.  The first time a segmentation fault is caught a core file
+is generated and the user is prompted to file a bug and offered the
+choice to exit or to continue their GDB session.  A maintainence
+option is provided to allow the user to disable the crash handler
+if required.
+
+
+gdb/
+2014-06-05  Gary Benson  <gbenson@redhat.com>
+
+	* configure.ac [AC_CHECK_FUNCS] <sigaltstack>: New check.
+	* configure: Regenerate.
+	* config.in: Likewise.
+	* main.c (signal.h): New include.
+	(setup_alternate_signal_stack): New function.
+	(captured_main): Call the above.
+	* cp-support.c (signal.h): New include.
+	(catch_demangler_crashes): New flag.
+	(SIGJMP_BUF): New define.
+	(SIGSETJMP): Likewise.
+	(SIGLONGJMP): Likewise.
+	(gdb_demangle_jmp_buf): New static global.
+	(gdb_demangle_attempt_core_dump): Likewise.
+	(gdb_demangle_signal_handler): New function.
+	(gdb_demangle): If catch_demangler_crashes is set, install the
+	above signal handler before calling bfd_demangle, and restore
+	the original signal handler afterwards.  Display the offending
+	symbol and call demangler_warning the first time a segmentation
+	fault is caught.
+	(_initialize_cp_support): New maint set/show command.
+
+gdb/doc/
+2014-06-05  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Maintenance Commands): Document new
+	"maint set/show catch-demangler-crashes" option.
+
 diff --git a/gdb/configure.ac b/gdb/configure.ac
 index 903f378..f41ba2f 100644
 --- a/gdb/configure.ac

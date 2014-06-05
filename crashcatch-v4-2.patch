@@ -1,3 +1,25 @@
+Expose and refactor core-dumping functions
+
+This patch exposes the functions that dump core outside utils.c.
+The function can_dump_core has been split into two new functions,
+check_can_dump_core and warn_cant_dump_core so that the check and
+the printed warning can be separated.  A new function
+check_can_dump_core_warn replaces the original can_dump_core.
+
+gdb/
+2014-06-05  Gary Benson  <gbenson@redhat.com>
+
+	* utils.h (check_can_dump_core): New declaration.
+	(warn_cant_dump_core): Likewise.
+	(dump_core): Likewise.
+	* utils.c (dump_core): Made nonstatic.
+	(can_dump_core): Removed function.
+	(check_can_dump_core): New function.
+	(warn_cant_dump_core): Likewise.
+	(check_can_dump_core_warn): Likewise.
+	(internal_vproblem): Replace calls to can_dump_core with
+	calls to check_can_dump_core_warn.
+
 diff --git a/gdb/utils.h b/gdb/utils.h
 index 0ba7879..a6115c1 100644
 --- a/gdb/utils.h

@@ -7,7 +7,7 @@ change this is presented to the user.
 
 
 gdb/
-2014-06-04  Gary Benson  <gbenson@redhat.com>
+2014-06-05  Gary Benson  <gbenson@redhat.com>
 
 	* utils.h (demangler_vwarning): New declaration.
 	(demangler_warning): Likewise.
@@ -25,7 +25,7 @@ gdb/
 	(_initialize_maint_cmds): New command.
 
 gdb/doc/
-2014-06-04  Gary Benson  <gbenson@redhat.com>
+2014-06-05  Gary Benson  <gbenson@redhat.com>
 
 	* gdb.texinfo (Maintenance Commands): Document new
 	"maint demangler-warning" command and new
