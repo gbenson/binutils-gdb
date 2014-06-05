@@ -1506,7 +1506,7 @@ cp_lookup_rtti_type (const char *name, struct block *block)
   return rtti_type;
 }
 
-#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
+#ifdef HAVE_WORKING_FORK
 
 /* If nonzero, attempt to catch crashes in the demangler and print
    useful debugging information.  */
@@ -1557,7 +1557,7 @@ gdb_demangle (const char *name, int options)
   char *result = NULL;
   int crash_signal = 0;
 
-#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
+#ifdef HAVE_WORKING_FORK
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
   struct sigaction sa, old_sa;
 
@@ -1582,7 +1582,7 @@ gdb_demangle (const char *name, int options)
   if (crash_signal == 0)
     result = bfd_demangle (NULL, name, options);
 
-#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
+#ifdef HAVE_WORKING_FORK
   if (catch_demangler_crashes)
     {
 #if defined (HAVE_SIGACTION) && defined (SA_RESTART)
@@ -1686,7 +1686,7 @@ Usage: info vtbl EXPRESSION\n\
 Evaluate EXPRESSION and display the virtual function table for the\n\
 resulting object."));
 
-#if defined (SIGSEGV) && defined (HAVE_WORKING_FORK)
+#ifdef HAVE_WORKING_FORK
   add_setshow_boolean_cmd ("catch-demangler-crashes", class_maintenance,
 			   &catch_demangler_crashes, _("\
 Set whether to attempt to catch demangler crashes."), _("\
