@@ -390,22 +390,6 @@ captured_main (void *data)
 
 #ifdef HAVE_SIGALTSTACK
   stack_t ss;
-
-  ss.ss_sp = malloc(SIGSTKSZ);
-  if (ss.ss_sp != NULL)
-    {
-      ss.ss_size = SIGSTKSZ;
-      ss.ss_flags = 0;
-
-      if (sigaltstack(&ss, NULL) == -1)
-	{
-	  /* Handle error */
-	}
-      else
-	{
-	  puts ("sigaltstack set up");
-	}
-    }
 #endif
 
 #ifdef HAVE_SBRK
@@ -805,6 +789,25 @@ captured_main (void *data)
     if (batch_flag)
       quiet = 1;
   }
+
+  /* Try to set up an alternate signal stack for SIGSEGV handlers.  */
+#ifdef HAVE_SIGALTSTACK
+  ss.ss_sp = malloc(SIGSTKSZ);
+  if (ss.ss_sp != NULL)
+    {
+      ss.ss_size = SIGSTKSZ;
+      ss.ss_flags = 0;
+
+      if (sigaltstack(&ss, NULL) == -1)
+	{
+	  /* Handle error */
+	}
+      else
+	{
+	  puts ("sigaltstack set up");
+	}
+    }
+#endif
 
   /* Initialize all files.  Give the interpreter a chance to take
      control of the console via the deprecated_init_ui_hook ().  */
