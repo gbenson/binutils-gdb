@@ -302,21 +302,11 @@ setup_alternate_signal_stack (void)
 #ifdef HAVE_SIGALTSTACK
   stack_t ss;
 
-  ss.ss_sp = malloc(SIGSTKSZ);
-  if (ss.ss_sp != NULL)
-    {
-      ss.ss_size = SIGSTKSZ;
-      ss.ss_flags = 0;
+  ss.ss_sp = xmalloc (SIGSTKSZ);
+  ss.ss_size = SIGSTKSZ;
+  ss.ss_flags = 0;
 
-      if (sigaltstack(&ss, NULL) == -1)
-	{
-	  /* Handle error */
-	}
-      else
-	{
-	  puts ("sigaltstack set up");
-	}
-    }
+  sigaltstack(&ss, NULL);
 #endif
 }
 
