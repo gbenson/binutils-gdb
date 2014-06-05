@@ -616,7 +616,7 @@ dump_core (void)
    function.  */
 
 int
-can_dump_core (void)
+check_can_dump_core (void)
 {
 #ifdef HAVE_GETRLIMIT
   struct rlimit rlim;
@@ -647,14 +647,14 @@ warn_cant_dump_core (const char *reason)
    function, and print a warning if we cannot.  */
 
 static int
-can_dump_core_warn (const char *reason)
+check_can_dump_core_warn (const char *reason)
 {
-  int result = can_dump_core ();
+  int can_dump_core = check_can_dump_core ();
 
-  if (!result)
+  if (!can_dump_core)
     warn_cant_dump_core (reason);
 
-  return result;
+  return can_dump_core;
 }
 
 /* Allow the user to configure the debugger behavior with respect to
@@ -775,7 +775,7 @@ internal_vproblem (struct internal_problem *problem,
 
   if (problem->should_dump_core == internal_problem_ask)
     {
-      if (!can_dump_core_warn (reason))
+      if (!check_can_dump_core_warn (reason))
 	dump_core_p = 0;
       else
 	{
@@ -786,7 +786,7 @@ internal_vproblem (struct internal_problem *problem,
 	}
     }
   else if (problem->should_dump_core == internal_problem_yes)
-    dump_core_p = can_dump_core_warn (reason);
+    dump_core_p = check_can_dump_core_warn (reason);
   else if (problem->should_dump_core == internal_problem_no)
     dump_core_p = 0;
   else
