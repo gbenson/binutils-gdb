@@ -289,6 +289,37 @@ get_init_files (const char **system_gdbinit,
   *local_gdbinit = localinit;
 }
 
+/* Try to set up an alternate signal stack for SIGSEGV handlers.
+   This allows us to handle SIGSEGV signals generated when the
+   normal process stack is exhausted.  If this stack is not set
+   up (sigaltstack is unavailable or fails) and a SIGSEGV is
+   generated when the normal stack is exhausted then the program
+   will behave as though no SIGSEGV handler was installed.  */
+
+static void
+setup_alternate_signal_stack (void)
+{
+#ifdef HAVE_SIGALTSTACK
+  stack_t ss;
+
+  ss.ss_sp = malloc(SIGSTKSZ);
+  if (ss.ss_sp != NULL)
+    {
+      ss.ss_size = SIGSTKSZ;
+      ss.ss_flags = 0;
+
+      if (sigaltstack(&ss, NULL) == -1)
+	{
+	  /* Handle error */
+	}
+      else
+	{
+	  puts ("sigaltstack set up");
+	}
+    }
+#endif
+}
+
 /* Call command_loop.  If it happens to return, pass that through as a
    non-zero return status.  */
 
@@ -387,10 +418,6 @@ captured_main (void *data)
   struct objfile *objfile;
 
   struct cleanup *pre_stat_chain;
-
-#ifdef HAVE_SIGALTSTACK
-  stack_t ss;
-#endif
 
 #ifdef HAVE_SBRK
   /* Set this before calling make_command_stats_cleanup.  */
@@ -791,23 +818,7 @@ captured_main (void *data)
   }
 
   /* Try to set up an alternate signal stack for SIGSEGV handlers.  */
-#ifdef HAVE_SIGALTSTACK
-  ss.ss_sp = malloc(SIGSTKSZ);
-  if (ss.ss_sp != NULL)
-    {
-      ss.ss_size = SIGSTKSZ;
-      ss.ss_flags = 0;
-
-      if (sigaltstack(&ss, NULL) == -1)
-	{
-	  /* Handle error */
-	}
-      else
-	{
-	  puts ("sigaltstack set up");
-	}
-    }
-#endif
+  setup_alternate_signal_stack ();
 
   /* Initialize all files.  Give the interpreter a chance to take
      control of the console via the deprecated_init_ui_hook ().  */
