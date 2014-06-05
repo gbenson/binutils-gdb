@@ -374,7 +374,17 @@ extern ULONGEST align_down (ULONGEST v, int n);
 
 extern LONGEST gdb_sign_extend (LONGEST value, int bit);
 
-/* Dump core trying to increase the core soft limit to hard limit first.  */
+/* Check whether GDB will be able to dump core using the dump_core
+   function.  */
+
+extern int can_dump_core (void);
+
+/* Print a warning that we cannot dump core.  */
+
+extern void warn_cant_dump_core (const char *reason);
+
+/* Dump core trying to increase the core soft limit to hard limit
+   first.  */
 
 extern void dump_core (void);
 

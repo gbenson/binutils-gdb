@@ -615,8 +615,8 @@ dump_core (void)
 /* Check whether GDB will be able to dump core using the dump_core
    function.  */
 
-static int
-can_dump_core (const char *reason)
+int
+can_dump_core (void)
 {
 #ifdef HAVE_GETRLIMIT
   struct rlimit rlim;
@@ -626,16 +626,35 @@ can_dump_core (const char *reason)
     return 1;
 
   if (rlim.rlim_max == 0)
-    {
-      fprintf_unfiltered (gdb_stderr,
-			  _("%s\nUnable to dump core, use `ulimit -c"
-			    " unlimited' before executing GDB next time.\n"),
-			  reason);
-      return 0;
-    }
+    return 0;
 #endif /* HAVE_GETRLIMIT */
 
   return 1;
+}
+
+/* Print a warning that we cannot dump core.  */
+
+void
+warn_cant_dump_core (const char *reason)
+{
+  fprintf_unfiltered (gdb_stderr,
+		      _("%s\nUnable to dump core, use `ulimit -c"
+			" unlimited' before executing GDB next time.\n"),
+		      reason);
+}
+
+/* Check whether GDB will be able to dump core using the dump_core
+   function, and print a warning if we cannot.  */
+
+static int
+can_dump_core_warn (const char *reason)
+{
+  int result = can_dump_core ();
+
+  if (!result)
+    warn_cant_dump_core (reason);
+
+  return result;
 }
 
 /* Allow the user to configure the debugger behavior with respect to
@@ -756,7 +775,7 @@ internal_vproblem (struct internal_problem *problem,
 
   if (problem->should_dump_core == internal_problem_ask)
     {
-      if (!can_dump_core (reason))
+      if (!can_dump_core_warn (reason))
 	dump_core_p = 0;
       else
 	{
@@ -767,7 +786,7 @@ internal_vproblem (struct internal_problem *problem,
 	}
     }
   else if (problem->should_dump_core == internal_problem_yes)
-    dump_core_p = can_dump_core (reason);
+    dump_core_p = can_dump_core_warn (reason);
   else if (problem->should_dump_core == internal_problem_no)
     dump_core_p = 0;
   else
