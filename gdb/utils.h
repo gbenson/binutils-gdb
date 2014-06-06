@@ -377,7 +377,7 @@ extern LONGEST gdb_sign_extend (LONGEST value, int bit);
 /* Check whether GDB will be able to dump core using the dump_core
    function.  */
 
-extern int check_can_dump_core (void);
+extern int can_dump_core (void);
 
 /* Print a warning that we cannot dump core.  */
 

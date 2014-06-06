@@ -1565,13 +1565,13 @@ gdb_demangle (const char *name, int options)
 #else
   void (*ofunc) ();
 #endif
-  static int can_dump_core = -1;
+  static int core_dump_allowed = -1;
 
-  if (can_dump_core == -1)
+  if (core_dump_allowed == -1)
     {
-      can_dump_core = check_can_dump_core ();
+      core_dump_allowed = can_dump_core ();
 
-      if (!can_dump_core)
+      if (!core_dump_allowed)
 	gdb_demangle_attempt_core_dump = 0;
     }
 
@@ -1616,7 +1616,7 @@ gdb_demangle (const char *name, int options)
 				    name, crash_signal);
 	      back_to = make_cleanup (xfree, dmw_msg);
 
-	      if (!can_dump_core)
+	      if (!core_dump_allowed)
 		{
 		  char *cdc_msg = xstrprintf ("%s:%d: %s: %s",
 					      __FILE__, __LINE__,

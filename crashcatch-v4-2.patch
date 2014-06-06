@@ -1,25 +1,23 @@
 Refactor and expose core-dumping functionality
 
 This patch exposes the functions that dump core outside utils.c.
-The function can_dump_core has been split into two new functions,
-check_can_dump_core and warn_cant_dump_core so that the check and
-the printed warning can be separated.  A new function
-check_can_dump_core_warn replaces the original can_dump_core.
+The printing code from can_dump_core has separated into the new
+function warn_cant_dump_core.  The new function can_dump_core_warn
+does what can_dump_core previously did (print and warn).
 
 
 gdb/
 2014-06-05  Gary Benson  <gbenson@redhat.com>
 
-	* utils.h (check_can_dump_core): New declaration.
+	* utils.h (can_dump_core): New declaration.
 	(warn_cant_dump_core): Likewise.
 	(dump_core): Likewise.
 	* utils.c (dump_core): Made nonstatic.
-	(can_dump_core): Removed function.
-	(check_can_dump_core): New function.
-	(warn_cant_dump_core): Likewise.
-	(check_can_dump_core_warn): Likewise.
+	(can_dump_core): Made nonstatic. Moved printing code to...
+	(warn_cant_dump_core): New function.
+	(can_dump_core_warn): Likewise.
 	(internal_vproblem): Replace calls to can_dump_core with
-	calls to check_can_dump_core_warn.
+	calls to can_dump_core_warn.
 
 diff --git a/gdb/utils.h b/gdb/utils.h
 index 0ba7879..a6115c1 100644
@@ -32,7 +30,7 @@ index 0ba7879..a6115c1 100644
 +/* Check whether GDB will be able to dump core using the dump_core
 +   function.  */
 +
-+extern int check_can_dump_core (void);
++extern int can_dump_core (void);
 +
 +/* Print a warning that we cannot dump core.  */
 +
@@ -64,7 +62,7 @@ index a72f3bd..0f25436 100644
 -static int
 -can_dump_core (const char *reason)
 +int
-+check_can_dump_core (void)
++can_dump_core (void)
  {
  #ifdef HAVE_GETRLIMIT
    struct rlimit rlim;
@@ -100,14 +98,14 @@ index a72f3bd..0f25436 100644
 +   function, and print a warning if we cannot.  */
 +
 +static int
-+check_can_dump_core_warn (const char *reason)
++can_dump_core_warn (const char *reason)
 +{
-+  int can_dump_core = check_can_dump_core ();
++  int core_dump_allowed = can_dump_core ();
 +
-+  if (!can_dump_core)
++  if (!core_dump_allowed)
 +    warn_cant_dump_core (reason);
 +
-+  return can_dump_core;
++  return core_dump_allowed;
 +}
 +
  /* Allow the user to configure the debugger behavior with respect to
@@ -118,7 +116,7 @@ index a72f3bd..0f25436 100644
    if (problem->should_dump_core == internal_problem_ask)
      {
 -      if (!can_dump_core (reason))
-+      if (!check_can_dump_core_warn (reason))
++      if (!can_dump_core_warn (reason))
  	dump_core_p = 0;
        else
  	{
@@ -127,7 +125,7 @@ index a72f3bd..0f25436 100644
      }
    else if (problem->should_dump_core == internal_problem_yes)
 -    dump_core_p = can_dump_core (reason);
-+    dump_core_p = check_can_dump_core_warn (reason);
++    dump_core_p = can_dump_core_warn (reason);
    else if (problem->should_dump_core == internal_problem_no)
      dump_core_p = 0;
    else
