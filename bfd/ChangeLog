@@ -1,3 +1,18 @@
+2014-06-07  Alan Modra  <amodra@gmail.com>
+
+	* elf32-ppc.c (ppc_elf_relocate_section): Treat field of cmpli
+	insn as a bitfield; Use complain_overflow_bitfield.
+	* elf64-ppc.c (ppc64_elf_relocate_section): Likewise.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* development.sh: New file.
+	* warning.m4 (AM_BINUTILS_WARNINGS): Source bfd/development.sh.
+	Make -Werror the default with GCC only if DEVELOPMENT is true.
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): Add
+	$(srcdir)/development.sh.
+	* Makefile.in, configure: Regenerate.
+
 2014-06-04  Will Newton  <will.newton@linaro.org>
 
         * elfnn-aarch64.c (tpoff_base): Make test of tls_sec

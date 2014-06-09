@@ -1,3 +1,81 @@
+2014-06-09  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.base/sigall.c [Functions to send signals]: Reorder to
+	separate the always-available ANSI-standard signals from the
+	signals that require checking.
+	(main): Likewise.
+	* gdb.reverse/sigall-reverse.c [Functions to send signals]:
+	Likewise.
+	(main): Likewise.
+
+2014-06-07  Keith Seitz  <keiths@redhat.com>
+
+	Revert:
+	PR c++/16253
+	* gdb.cp/var-tag.cc: New file.
+	* gdb.cp/var-tag.exp: New file.
+	* gdb.dwarf2/dw2-ada-ffffffff.exp: Set the language to C++.
+	* gdb.dwarf2/dw2-anon-mptr.exp: Likewise.
+	* gdb.dwarf2/dw2-double-set-die-type.exp: Likewise.
+	* gdb.dwarf2/dw2-inheritance.exp: Likewise.
+
+2014-06-06  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-frame-args.c (foo): Tweak to work with gcc 4.6.3.
+
+2014-06-06  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/sss-bp-on-user-bp-2.exp: Look for target_resume(step)
+	in target debug output instead of looking at RSP packets,
+	disabling the test on any target that uses hardware stepping.
+	Update comments.
+
+2014-06-06  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/break-unload-file.exp: Fix typo.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/jit.exp (one_jit_test): Restrict the pattern
+	from "jit_function" to "^jit_function".
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/async.c (foo): Add one statement.
+	* gdb.base/async.exp: Get the next instruction address and
+	match the output of "nexti" by instruction address.  Match
+	the hex address in the output of "finish".
+
+2014-06-06  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.base/call-signals.c: Remove preprocessor conditionals
+	for always-defined signals SIGINT, SIGILL, SIGABRT, SIGFPE,
+	SIGSEGV and SIGTERM.
+	* gdb.base/sigall.c: Likewise.
+	* gdb.base/unwindonsignal.c: Likewise.
+	* gdb.reverse/sigall-reverse.c: Likewise.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/hbreak-unmapped.exp: Read memory at address 0.  If
+	readable, skip the test.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.threads/staticthreads.c (thread_function): Move the line
+	setting breakpoint on forward.
+	* gdb.threads/staticthreads.exp: Update comments.
+
+2014-06-05  Ludovic Courtès  <ludo@gnu.org>
+
+	* gdb.guile/scm-value.exp (test_value_in_inferior): Add test
+	"history-append! type error".
+
+2014-06-05  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.mi/mi-breakpoint-changed.exp (test_insert_delete_modify): Fix
+	erroneous dprintf expected input.
+
 2014-06-04  Doug Evans  <xdje42@gmail.com>
 
 	* gdb.guile/scm-generics.exp: Delete.

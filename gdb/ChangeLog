@@ -1,3 +1,123 @@
+2014-06-09  Gary Benson  <gbenson@redhat.com>
+
+	* common/signals.c (gdb_signal_from_host): Reorder to separate
+	the always-available ANSI-standard signals from the signals that
+	require checking.
+	(do_gdb_signal_to_host): Likewise.
+	* proc-events.c (signal_table): Likewise.
+
+2014-06-08  Hui Zhu  <hui@codesourcery.com>
+
+	* common/linux-ptrace.c (linux_disable_event_reporting): New
+	function.
+	* common/linux-ptrace.h (linux_disable_event_reporting): New
+	declaration.
+	* linux-nat.c (linux_child_follow_fork): Do a single step before
+	detach.
+
+2014-06-07  Keith Seitz  <keiths@redhat.com>
+
+	Revert:
+	PR c++/16253
+	* ada-lang.c (ada_symbol_matches_domain): Moved here and renamed
+	from symbol_matches_domain in symtab.c. All local callers
+	of symbol_matches_domain updated.
+	(standard_lookup): If DOMAIN is VAR_DOMAIN and no symbol is found,
+	search STRUCT_DOMAIN.
+	(ada_find_any_type_symbol): Do not search STRUCT_DOMAIN
+	independently.  standard_lookup will do that automatically.
+	* cp-namespace.c (cp_lookup_symbol_nonlocal): Explain when/why
+	VAR_DOMAIN searches may return a STRUCT_DOMAIN match.
+	(cp_lookup_symbol_in_namespace): Likewise.
+	If no VAR_DOMAIN symbol is found, search STRUCT_DOMAIN.
+	(cp_lookup_symbol_exports): Explain when/why VAR_DOMAIN searches
+	may return a STRUCT_DOMAIN match.
+	(lookup_symbol_file): Search for the class name in STRUCT_DOMAIN.
+	* cp-support.c: Include language.h.
+	(inspect_type): Explicitly search STRUCT_DOMAIN before searching
+	VAR_DOMAIN.
+	* psymtab.c (match_partial_symbol): Compare the requested
+	domain with the symbol's domain directly.
+	(lookup_partial_symbol): Likewise.
+	* symtab.c (lookup_symbol_in_language): Explain when/why
+	VAR_DOMAIN searches may return a STRUCT_DOMAIN match.
+	If no VAR_DOMAIN symbol is found, search STRUCT_DOMAIN for
+	appropriate languages.
+	(symbol_matches_domain): Renamed `ada_symbol_matches_domain'
+	and moved to ada-lang.c
+	(lookup_block_symbol): Explain that this function only returns
+	symbol matching the requested DOMAIN.
+	Compare the requested domain with the symbol's domain directly.
+	(iterate_over_symbols): Compare the requested domain with the
+	symbol's domain directly.
+	* symtab.h (symbol_matches_domain): Remove.
+
+2014-06-06  Doug Evans  <xdje42@gmail.com>
+
+	* guile/guile-internal.h (gdbscm_guile_major_version): Declare.
+	(gdbscm_guile_minor_version, gdbscm_guile_micro_version): Declare.
+	(gdbscm_guile_version_is_at_least): Declare.
+	(gdbscm_scm_string_to_int): Declare.
+	* guile/guile.c (gdbscm_guile_major_version): New global.
+	(gdbscm_guile_minor_version, gdbscm_guile_micro_version): New globals.
+	(guile_datadir): New static global.
+	(gdbscm_guile_data_directory): New function.
+	(initialize_scheme_side): Update.
+	(misc_guile_functions): Add guile-data-directory.
+	(initialize_gdb_module): Fetch guile version number.
+	* guile/lib/gdb.scm: Remove call to add-to-load-path.
+	* guile/lib/gdb/init.scm (%initialize!): Ditto.
+	* guile/lib/gdb/boot.scm: Use guile-data-directory.
+	* guile/scm-exception.c (gdbscm_print_exception_with_stack): Fix
+	comments.
+	* guile/scm-string.c (gdbscm_scm_string_to_int): New function.
+	* guile/scm-utils.c (gdbscm_guile_version_is_at_least): New function.
+	* guile/scm-value.c (gdbscm_value_to_string): Only call
+	scm_port_conversion_strategy if Guile version >= 2.0.6.
+
+2014-06-06  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* main.c (print_gdb_help): Add -q and --silent.
+
+2014-06-06  Gary Benson  <gbenson@redhat.com>
+
+	* common/signals.c: Remove preprocessor conditionals for
+	always-defined signals SIGINT, SIGILL, SIGABRT, SIGFPE,
+	SIGSEGV and SIGTERM.
+	* proc-events.c: Likewise.
+
+2014-06-06  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* symfile.c (symfile_free_objfile): Remove restriction to
+	OBJF_USERLOADED.
+	* symfile-mem.c (symbol_file_add_from_memory): Call
+	add_target_sections_of_objfile.
+
+2014-06-05  Ludovic Courtès  <ludo@gnu.org>
+
+	* guile/scm-value.c (gdbscm_history_append_x): Use
+	'vlscm_get_value_smob_arg_unsafe' instead of
+	'vlscm_scm_to_value'.
+
+2014-06-05  Simon Marchi  <simon.marchi@ericsson.com>
+
+	PR mi/15806
+	* utils.c (printchar): Don't escape at all if quoter is NUL.
+	Update function documentation to clarify effect of parameter
+	QUOTER.
+	* remote.c (escape_buffer): Pass '\\' as the quoter to
+	fputstrn_unfiltered.
+	* mi/mi-interp.c (mi_solib_loaded): Use ui_out_field_* functions to
+	generate the output.
+	(mi_solib_unloaded): Same.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* development.sh: Delete.
+	* Makefile.in (config.status): Adjust dependency on development.sh.
+	* configure.ac: Adjust development.sh source call.
+	* configure: Regenerate.
+
 2014-06-04  Doug Evans  <xdje42@gmail.com>
 
 	* guile/scm-breakpoint.c (struct gdbscm_breakpoint_object): New members
