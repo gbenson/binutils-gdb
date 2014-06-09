@@ -1585,7 +1585,7 @@ gdb_demangle (const char *name, int options)
 
 	  if (!error_reported)
 	    {
-	      char *dmw_msg;
+	      char *dmw_msg, *cdw_msg;
 	      struct cleanup *back_to;
 
 	      dmw_msg = xstrprintf (_("unable to demangle '%s' "
@@ -1593,16 +1593,18 @@ gdb_demangle (const char *name, int options)
 				    name, crash_signal);
 	      back_to = make_cleanup (xfree, dmw_msg);
 
-	      if (!core_dump_allowed)
-		{
-		  char *cdc_msg = xstrprintf ("%s:%d: %s: %s",
-					      __FILE__, __LINE__,
-					      "demangler-warning",
-					      dmw_msg);
+	      cdw_msg = xstrprintf ("%s:%d: %s: %s", __FILE__, __LINE__,
+				    "demangler-warning", dmw_msg);
+	      make_cleanup (xfree, cdw_msg);
 
-		  make_cleanup (xfree, cdc_msg);
-		  warn_cant_dump_core (cdc_msg);
-		}
+	      target_terminal_ours ();
+	      begin_line ();
+	      if (core_dump_allowed)
+		fprintf_unfiltered (gdb_stderr,
+				    _("%s\nAttempting to dump core.\n"),
+				    cdw_msg);
+	      else
+		warn_cant_dump_core (cdw_msg);
 
 	      demangler_warning (__FILE__, __LINE__, "%s", dmw_msg);
 
