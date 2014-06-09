@@ -1546,7 +1546,7 @@ gdb_demangle (const char *name, int options)
 
   if (core_dump_allowed == -1)
     {
-      core_dump_allowed = can_dump_core ();
+      core_dump_allowed = can_dump_core (LIMIT_CUR);
 
       if (!core_dump_allowed)
 	gdb_demangle_attempt_core_dump = 0;

@@ -613,10 +613,12 @@ dump_core (void)
 }
 
 /* Check whether GDB will be able to dump core using the dump_core
-   function.  */
+   function.  Returns zero if GDB cannot or should not dump core.
+   If LIMIT_KIND is LIMIT_CUR the user's soft limit will be respected.
+   If LIMIT_KIND is LIMIT_MAX only the hard limit will be respected.  */
 
 int
-can_dump_core (void)
+can_dump_core (enum resource_limit_kind limit_kind)
 {
 #ifdef HAVE_GETRLIMIT
   struct rlimit rlim;
@@ -625,8 +627,16 @@ can_dump_core (void)
   if (getrlimit (RLIMIT_CORE, &rlim) != 0)
     return 1;
 
-  if (rlim.rlim_max == 0)
-    return 0;
+  switch (limit_kind)
+    {
+    case LIMIT_CUR:
+      if (rlim.rlim_cur == 0)
+	return 0;
+
+    case LIMIT_MAX:
+      if (rlim.rlim_max == 0)
+	return 0;
+    }
 #endif /* HAVE_GETRLIMIT */
 
   return 1;
@@ -647,9 +657,10 @@ warn_cant_dump_core (const char *reason)
    function, and print a warning if we cannot.  */
 
 static int
-can_dump_core_warn (const char *reason)
+can_dump_core_warn (enum resource_limit_kind limit_kind,
+		    const char *reason)
 {
-  int core_dump_allowed = can_dump_core ();
+  int core_dump_allowed = can_dump_core (limit_kind);
 
   if (!core_dump_allowed)
     warn_cant_dump_core (reason);
@@ -775,7 +786,7 @@ internal_vproblem (struct internal_problem *problem,
 
   if (problem->should_dump_core == internal_problem_ask)
     {
-      if (!can_dump_core_warn (reason))
+      if (!can_dump_core_warn (LIMIT_MAX, reason))
 	dump_core_p = 0;
       else
 	{
@@ -786,7 +797,7 @@ internal_vproblem (struct internal_problem *problem,
 	}
     }
   else if (problem->should_dump_core == internal_problem_yes)
-    dump_core_p = can_dump_core_warn (reason);
+    dump_core_p = can_dump_core_warn (LIMIT_MAX, reason);
   else if (problem->should_dump_core == internal_problem_no)
     dump_core_p = 0;
   else
