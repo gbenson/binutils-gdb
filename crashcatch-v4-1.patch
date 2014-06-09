@@ -7,7 +7,7 @@ change this is presented to the user.
 
 
 gdb/
-2014-06-05  Gary Benson  <gbenson@redhat.com>
+2014-06-09  Gary Benson  <gbenson@redhat.com>
 
 	* utils.h (demangler_vwarning): New declaration.
 	(demangler_warning): Likewise.
@@ -25,7 +25,7 @@ gdb/
 	(_initialize_maint_cmds): New command.
 
 gdb/doc/
-2014-06-05  Gary Benson  <gbenson@redhat.com>
+2014-06-09  Gary Benson  <gbenson@redhat.com>
 
 	* gdb.texinfo (Maintenance Commands): Document new
 	"maint demangler-warning" command and new
@@ -199,7 +199,7 @@ index 86df1c7..686b153 100644
  }
  
  /* Return a newly allocated string, containing the PREFIX followed
-@@ -3523,4 +3551,5 @@ _initialize_utils (void)
+@@ -3529,4 +3557,5 @@ _initialize_utils (void)
  {
    add_internal_problem_command (&internal_error_problem);
    add_internal_problem_command (&internal_warning_problem);
@@ -242,7 +242,7 @@ diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
 index 9f7fa18..6104f55 100644
 --- a/gdb/doc/gdb.texinfo
 +++ b/gdb/doc/gdb.texinfo
-@@ -33267,13 +33267,18 @@ with the @code{SIGQUIT} signal.
+@@ -33268,13 +33268,18 @@ with the @code{SIGQUIT} signal.
  
  @kindex maint internal-error
  @kindex maint internal-warning
@@ -266,7 +266,7 @@ index 9f7fa18..6104f55 100644
  @value{GDBN} session.
  
  These commands take an optional parameter @var{message-text} that is
-@@ -33293,15 +33298,20 @@ Create a core file? (y or n) @kbd{n}
+@@ -33294,15 +33299,20 @@ Create a core file? (y or n) @kbd{n}
  
  @cindex @value{GDBN} internal error
  @cindex internal errors, control of @value{GDBN} behavior
@@ -287,7 +287,7 @@ index 9f7fa18..6104f55 100644
  When @value{GDBN} reports an internal problem (error or warning) it
  gives the user the opportunity to both quit @value{GDBN} and create a
  core file of the current @value{GDBN} session.  These commands let you
-@@ -33315,7 +33325,10 @@ quit.  The default is to ask the user what to do.
+@@ -33316,7 +33326,10 @@ quit.  The default is to ask the user what to do.
  
  @item corefile
  You can specify that @value{GDBN} should always (yes) or never (no)
