@@ -133,9 +133,9 @@ index 91533e8..f4dde70 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
 @@ -36,6 +36,7 @@
+ #include "expression.h"
  #include "value.h"
  #include "cp-abi.h"
- #include "language.h"
 +#include <signal.h>
  
  #include "safe-ctype.h"
