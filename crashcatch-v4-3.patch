@@ -9,7 +9,7 @@ if required.
 
 
 gdb/
-2014-06-05  Gary Benson  <gbenson@redhat.com>
+2014-06-09  Gary Benson  <gbenson@redhat.com>
 
 	* configure.ac [AC_CHECK_FUNCS] <sigaltstack>: New check.
 	* configure: Regenerate.
@@ -33,7 +33,7 @@ gdb/
 	(_initialize_cp_support): New maint set/show command.
 
 gdb/doc/
-2014-06-05  Gary Benson  <gbenson@redhat.com>
+2014-06-09  Gary Benson  <gbenson@redhat.com>
 
 	* gdb.texinfo (Maintenance Commands): Document new
 	"maint set/show catch-demangler-crashes" option.
@@ -132,7 +132,7 @@ diff --git a/gdb/cp-support.c b/gdb/cp-support.c
 index 91533e8..f4dde70 100644
 --- a/gdb/cp-support.c
 +++ b/gdb/cp-support.c
-@@ -36,6 +36,7 @@
+@@ -35,6 +35,7 @@
  #include "expression.h"
  #include "value.h"
  #include "cp-abi.h"
@@ -140,7 +140,7 @@ index 91533e8..f4dde70 100644
  
  #include "safe-ctype.h"
  
-@@ -1505,12 +1506,140 @@ cp_lookup_rtti_type (const char *name, struct block *block)
+@@ -1482,12 +1483,142 @@ cp_lookup_rtti_type (const char *name, struct block *block)
    return rtti_type;
  }
  
@@ -208,7 +208,7 @@ index 91533e8..f4dde70 100644
 +
 +  if (core_dump_allowed == -1)
 +    {
-+      core_dump_allowed = can_dump_core ();
++      core_dump_allowed = can_dump_core (LIMIT_CUR);
 +
 +      if (!core_dump_allowed)
 +	gdb_demangle_attempt_core_dump = 0;
@@ -247,26 +247,28 @@ index 91533e8..f4dde70 100644
 +
 +	  if (!error_reported)
 +	    {
-+	      char *dmw_msg;
++	      char *short_msg, *long_msg;
 +	      struct cleanup *back_to;
 +
-+	      dmw_msg = xstrprintf (_("unable to demangle '%s' "
++	      short_msg = xstrprintf (_("unable to demangle '%s' "
 +				      "(demangler failed with signal %d)"),
 +				    name, crash_signal);
-+	      back_to = make_cleanup (xfree, dmw_msg);
++	      back_to = make_cleanup (xfree, short_msg);
 +
-+	      if (!core_dump_allowed)
-+		{
-+		  char *cdc_msg = xstrprintf ("%s:%d: %s: %s",
-+					      __FILE__, __LINE__,
-+					      "demangler-warning",
-+					      dmw_msg);
++	      long_msg = xstrprintf ("%s:%d: %s: %s", __FILE__, __LINE__,
++				    "demangler-warning", short_msg);
++	      make_cleanup (xfree, long_msg);
 +
-+		  make_cleanup (xfree, cdc_msg);
-+		  warn_cant_dump_core (cdc_msg);
-+		}
++	      target_terminal_ours ();
++	      begin_line ();
++	      if (core_dump_allowed)
++		fprintf_unfiltered (gdb_stderr,
++				    _("%s\nAttempting to dump core.\n"),
++				    long_msg);
++	      else
++		warn_cant_dump_core (long_msg);
 +
-+	      demangler_warning (__FILE__, __LINE__, "%s", dmw_msg);
++	      demangler_warning (__FILE__, __LINE__, "%s", short_msg);
 +
 +	      do_cleanups (back_to);
 +
@@ -282,7 +284,7 @@ index 91533e8..f4dde70 100644
  }
  
  /* Don't allow just "maintenance cplus".  */
-@@ -1585,4 +1714,17 @@ _initialize_cp_support (void)
+@@ -1562,4 +1693,17 @@ _initialize_cp_support (void)
  Usage: info vtbl EXPRESSION\n\
  Evaluate EXPRESSION and display the virtual function table for the\n\
  resulting object."));
@@ -304,7 +306,7 @@ diff --git a/gdb/doc/gdb.texinfo b/gdb/doc/gdb.texinfo
 index 9f7fa18..242117b 100644
 --- a/gdb/doc/gdb.texinfo
 +++ b/gdb/doc/gdb.texinfo
-@@ -33235,6 +33235,17 @@ Expand symbol tables.
+@@ -33236,6 +33236,17 @@ Expand symbol tables.
  If @var{regexp} is specified, only expand symbol tables for file
  names matching @var{regexp}.
  
