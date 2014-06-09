@@ -1,4 +1,4 @@
-Refactor and expose core-dumping functionality
+[PATCH 2/3 v5] Refactor and expose core-dumping functionality
 
 This patch exposes the functions that dump core outside utils.c.
 can_dump_core gains a new parameter, "limit_kind", to allow either
