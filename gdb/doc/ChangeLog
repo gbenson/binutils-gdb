@@ -1,3 +1,78 @@
+2014-06-09  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* python.texi (Xmethod API): Add space before the opening
+	parenthesis in function descriptions.
+
+2014-06-06  Doug Evans  <xdje42@gmail.com>
+
+	* guile.texi (Guile Configuration): Document guile-data-directory.
+
+2014-06-06  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* gdb.texinfo (Invoking GDB): Add -q and --quiet.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* guile.texi (Breakpoints In Guile): Update.
+
+2014-06-03  Joel Brobecker  <brobecker@adacore.com>
+
+	* python.texi (Xmethod API): Fix reference to "Progspaces In
+	Python".
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	*  python.texi (Xmethods In Python, XMethod API)
+	(Writing an Xmethod): New nodes.
+	(Python API): New menu entries "Xmethods In Python",
+	"Xmethod API", "Writing an Xmethod".
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* guile.texi (Guile API): Add entry for Parameters In Guile.
+	(GDB Scheme Data Types): Mention <gdb:parameter> object.
+	(Parameters In Guile): New node.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* guile.texi (Guile API): Add entry for Commands In Guile.
+	(Basic Guile) <parse-and-eval>: Add reference.
+	(Basic Guile) <string->argv>: Move definition to Commands In Guile.
+	(GDB Scheme Data Types): Mention <gdb:command> object.
+	(Commands In Guile): New node.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* guile.texi (Guile API): Add entry for Progspaces In Guile.
+	(GDB Scheme Data Types): Mention <gdb:progspace> object.
+	(Progspaces In Guile): New node.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* guile.texi (Frames In Guile): Mention FRAME_UNWIND_MEMORY_ERROR.
+	* python.texi (Frames In Python): Mention
+	gdb.FRAME_UNWIND_MEMORY_ERROR.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Tom Tromey  <tromey@redhat.com>
+
+	* gdb.texinfo (Non-Stop Mode): Remove "set target-async 1"
+	from example.
+	(Asynchronous and non-stop modes): Document '-gdb-set mi-async'.
+	Mention that target-async is now deprecated.
+	(Maintenance Commands): Document maint set/show target-async.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* observer.texi (sync_execution_done, command_error): New
+	subjects.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/13860
+	* observer.texi (signal_received, end_stepping_range)
+	(signal_exited, exited, no_history): New observer subjects.
+
 2014-05-26  Andy Wingo  <wingo@igalia.com>
 
 	* guile.texi (GDB Scheme Data Types): Remove documentation for

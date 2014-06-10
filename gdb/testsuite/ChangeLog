@@ -1,3 +1,277 @@
+2014-06-09  Pedro Alves  <palves@redhat.com>
+
+	* linux-nat.c (linux_child_follow_fork): Initialize status with
+	W_STOPCODE (0) instead of 0.  Remove shodowing 'status' local from
+	inner block.  Only pass the signal to PTRACE_DETACH if in pass
+	state.
+
+2014-06-09  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.base/sigall.c [Functions to send signals]: Reorder to
+	separate the always-available ANSI-standard signals from the
+	signals that require checking.
+	(main): Likewise.
+	* gdb.reverse/sigall-reverse.c [Functions to send signals]:
+	Likewise.
+	(main): Likewise.
+
+2014-06-07  Keith Seitz  <keiths@redhat.com>
+
+	Revert:
+	PR c++/16253
+	* gdb.cp/var-tag.cc: New file.
+	* gdb.cp/var-tag.exp: New file.
+	* gdb.dwarf2/dw2-ada-ffffffff.exp: Set the language to C++.
+	* gdb.dwarf2/dw2-anon-mptr.exp: Likewise.
+	* gdb.dwarf2/dw2-double-set-die-type.exp: Likewise.
+	* gdb.dwarf2/dw2-inheritance.exp: Likewise.
+
+2014-06-06  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-frame-args.c (foo): Tweak to work with gcc 4.6.3.
+
+2014-06-06  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/sss-bp-on-user-bp-2.exp: Look for target_resume(step)
+	in target debug output instead of looking at RSP packets,
+	disabling the test on any target that uses hardware stepping.
+	Update comments.
+
+2014-06-06  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/break-unload-file.exp: Fix typo.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/jit.exp (one_jit_test): Restrict the pattern
+	from "jit_function" to "^jit_function".
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/async.c (foo): Add one statement.
+	* gdb.base/async.exp: Get the next instruction address and
+	match the output of "nexti" by instruction address.  Match
+	the hex address in the output of "finish".
+
+2014-06-06  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.base/call-signals.c: Remove preprocessor conditionals
+	for always-defined signals SIGINT, SIGILL, SIGABRT, SIGFPE,
+	SIGSEGV and SIGTERM.
+	* gdb.base/sigall.c: Likewise.
+	* gdb.base/unwindonsignal.c: Likewise.
+	* gdb.reverse/sigall-reverse.c: Likewise.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/hbreak-unmapped.exp: Read memory at address 0.  If
+	readable, skip the test.
+
+2014-06-06  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.threads/staticthreads.c (thread_function): Move the line
+	setting breakpoint on forward.
+	* gdb.threads/staticthreads.exp: Update comments.
+
+2014-06-05  Ludovic Courtès  <ludo@gnu.org>
+
+	* gdb.guile/scm-value.exp (test_value_in_inferior): Add test
+	"history-append! type error".
+
+2014-06-05  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.mi/mi-breakpoint-changed.exp (test_insert_delete_modify): Fix
+	erroneous dprintf expected input.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-generics.exp: Delete.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-breakpoint.exp: Update.
+	Add tests for breakpoint registration.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* gdb.base/vla-datatypes.exp: Add tests for VLA-in-structure and
+	VLA-in-union.
+	* gdb.base/vla-datatypes.c (vla_factory): Add vla_struct,
+	inner_vla_struct, vla_union types.  Initialize objects of those
+	types and compute their sizes.
+
+2014-06-04  Nathan Sidwell  <nathan@codesourcery.com>
+	    Hui Zhu  <hui@codesourcery.com>
+
+	* gdb.base/fileio.exp: Add test for shell not available as well as
+	available.
+	* gdb.base/fileio.c (test_system): Check for shell twice.
+
+2014-06-04  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/auto-connect-native-target.exp: Remove redundant
+	space from the regexp pattern.
+
+2014-06-04  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/default.exp: Replace "child" with "native" in
+	regexp pattern.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* gdb.python/py-xmethods.cc: New testcase to test xmethods.
+	* gdb.python/py-xmethods.exp: New tests to test xmethods.
+	* gdb.python/py-xmethods.py: Python script supporting the
+	new testcase and tests.
+
+2014-06-03  Joel Brobecker  <brobecker@adacore.com>
+	    Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* gdb.base/sss-bp-on-user-bp.exp: Remove kfail.
+	* gdb.base/sss-bp-on-user-bp-2.exp: Remove kfail.
+
+2014-06-03  Brad Mouring  <bmouring@ni.com>  (tiny patch)
+
+	* gdb.base/subst.exp: Add tests to verify partial path matching
+	output.
+
+2014-06-03  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/sss-bp-on-user-bp-2.exp: Skip if testing with a remote
+	target that doesn't use software single-stepping.
+
+2014-06-03  Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* gdb.base/sss-bp-on-user-bp-2.c: New file.
+	* gdb.base/sss-bp-on-user-bp-2.exp: New file.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-parameter.exp: New file.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-cmd.c: New file.
+	* gdb.guile/scm-cmd.exp: New file.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.guile/scm-pretty-print.exp: Add tests for objfile and progspace
+	pretty-printer lookup.
+	* gdb.guile/scm-pretty-print.scm (pp_s-printer): New function.
+	(make-pp_s-printer): Call it.
+	(make-pretty-printer-from-dict): New function.
+	(lookup-pretty-printer-maker-from-dict): New function.
+	(*pretty-printer*): Simplify.
+	(make-objfile-pp_s-printer): New function.
+	(install-objfile-pretty-printers!): New function.
+	(make-progspace-pp_s-printer): New function.
+	(install-progspace-pretty-printers!): New function.
+	* gdb.guile/scm-progspace.c: New file.
+	* gdb.guile/scm-progspace.exp: New file.
+
+2014-06-02  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/dprintf-bp-same-addr.c: New file.
+	* gdb.base/dprintf-bp-same-addr.exp: New file.
+
+2014-06-02  Edjunior Barbosa Machado  <emachado@linux.vnet.ibm.com>
+
+	* gdb.arch/powerpc-power.exp: Add power8 instructions to the testcase.
+	* gdb.arch/powerpc-power.s: Likewise.
+
+2014-06-02  Joel Brobecker  <brobecker@adacore.com>
+
+	* gdb.base/completion.exp: Remove code aimed at restoring TIMEOUT.
+
+2014-06-01  Yao Qi  <yao@codesourcery.com>
+
+	* gdb.base/watchpoint.exp (test_watch_location): Check null
+	pointer can be dereferenced.  If not, do the test, otherwise
+	skip it.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* gdb.arch/amd64-invalid-stack-middle.exp: Update expected
+	results.
+	* gdb.arch/amd64-invalid-stack-top.exp: Likewise.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* gdb.arch/amd64-invalid-stack-middle.S: New file.
+	* gdb.arch/amd64-invalid-stack-middle.c: New file.
+	* gdb.arch/amd64-invalid-stack-middle.exp: New file.
+	* gdb.arch/amd64-invalid-stack-top.c: New file.
+	* gdb.arch/amd64-invalid-stack-top.exp: New file.
+
+2014-05-30  Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* gdb.base/sss-bp-on-user-bp.c: New file.
+	* gdb.base/sss-bp-on-user-bp.exp: New file.
+
+2014-05-30  David Blaikie  <dblaikie@gmail.com>
+
+	* gdb.opt/inline-break.c: Fix clang compatibility by specifying
+	gnu_inline semantics via attribute.
+	* gdb.opt/inline-break.exp: Remove -std=c89 now that the test
+	source explicitly specifies the required semantics.
+
+2014-05-30  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* gdb.reverse/sigall-reverse.exp: Fix a typo.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Tom Tromey  <tromey@redhat.com>
+
+	* gdb.base/async-shell.exp: Don't enable target-async.
+	* gdb.base/async.exp
+	* gdb.base/corefile.exp (corefile_test_attach): Remove 'async'
+	parameter.  Adjust.
+	(top level): Don't test with "target-async".
+	* gdb.base/dprintf-non-stop.exp: Don't enable target-async.
+	* gdb.base/gdb-sigterm.exp: Don't test with "target-async".
+	* gdb.base/inferior-died.exp: Don't enable target-async.
+	* gdb.base/interrupt-noterm.exp: Likewise.
+	* gdb.mi/mi-async.exp: Use "mi-async" instead of "target-async".
+	* gdb.mi/mi-nonstop-exit.exp: Likewise.
+	* gdb.mi/mi-nonstop.exp: Likewise.
+	* gdb.mi/mi-ns-stale-regcache.exp: Likewise.
+	* gdb.mi/mi-nsintrall.exp: Likewise.
+	* gdb.mi/mi-nsmoribund.exp: Likewise.
+	* gdb.mi/mi-nsthrexec.exp: Likewise.
+	* gdb.mi/mi-watch-nonstop.exp: Likewise.
+	* gdb.multi/watchpoint-multi.exp: Adjust comment.
+	* gdb.python/py-evsignal.exp: Don't enable target-async.
+	* gdb.python/py-evthreads.exp: Likewise.
+	* gdb.python/py-prompt.exp: Likewise.
+	* gdb.reverse/break-precsave.exp: Don't test with "target-async".
+	* gdb.server/solib-list.exp: Don't enable target-async.
+	* gdb.threads/thread-specific-bp.exp: Likewise.
+	* lib/mi-support.exp: Adjust to use mi-async.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/13860
+	* gdb.mi/mi-cli.exp: Always expect "end-stepping-range" stop
+	reason, even in sync mode.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Hui Zhu  <hui@codesourcery.com>
+
+	PR PR15693
+	* gdb.mi/mi-condbreak-call-thr-state-mt.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state-st.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state.c: New file.
+	* gdb.mi/mi-condbreak-call-thr-state.exp: New file.
+
+2014-05-28  Joel Brobecker  <brobecker@adacore.com>
+
+	* config/monitor.exp (gdb_target_monitor): Replace use of
+	"set remotebaud" by "set serial baud".
+
 2014-05-26  Andy Wingo  <wingo@igalia.com>
 
 	* gdb.guile/scm-breakpoint.exp:

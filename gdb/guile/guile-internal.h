@@ -97,6 +97,18 @@ typedef struct
 #define gdbscm_is_false(scm) scm_is_eq ((scm), SCM_BOOL_F)
 #define gdbscm_is_true(scm) (!gdbscm_is_false (scm))
 
+#ifndef HAVE_SCM_NEW_SMOB
+
+/* Guile <= 2.0.5 did not provide this function, so provide it here.  */
+
+static inline SCM
+scm_new_smob (scm_t_bits tc, scm_t_bits data)
+{
+  SCM_RETURN_NEWSMOB (tc, data);
+}
+
+#endif
+
 /* Function name that is passed around in case an error needs to be reported.
    __func is in C99, but we provide a wrapper "just in case",
    and because FUNC_NAME is the canonical value used in guile sources.
@@ -108,6 +120,10 @@ extern const char gdbscm_module_name[];
 extern const char gdbscm_init_module_name[];
 
 extern int gdb_scheme_initialized;
+
+extern int gdbscm_guile_major_version;
+extern int gdbscm_guile_minor_version;
+extern int gdbscm_guile_micro_version;
 
 extern const char gdbscm_print_excp_none[];
 extern const char gdbscm_print_excp_full[];
@@ -152,6 +168,12 @@ extern ULONGEST gdbscm_scm_to_ulongest (SCM u);
 extern void gdbscm_dynwind_xfree (void *ptr);
 
 extern int gdbscm_is_procedure (SCM proc);
+
+extern char *gdbscm_gc_xstrdup (const char *);
+
+extern const char * const *gdbscm_gc_dup_argv (char **argv);
+
+extern int gdbscm_guile_version_is_at_least (int major, int minor, int micro);
 
 /* GDB smobs, from scm-gsmob.c */
 
@@ -287,6 +309,10 @@ extern void gdbscm_out_of_range_error (const char *subr, int arg_pos,
 extern SCM gdbscm_make_misc_error (const char *subr, int arg_pos,
 				   SCM bad_value, const char *error);
 
+extern void gdbscm_misc_error (const char *subr, int arg_pos,
+			       SCM bad_value, const char *error)
+   ATTRIBUTE_NORETURN;
+
 extern void gdbscm_throw (SCM exception) ATTRIBUTE_NORETURN;
 
 extern SCM gdbscm_scm_from_gdb_exception (struct gdb_exception exception);
@@ -302,6 +328,8 @@ extern void gdbscm_print_gdb_exception (SCM port, SCM exception);
 extern char *gdbscm_exception_message_to_string (SCM exception);
 
 extern excp_matcher_func gdbscm_memory_error_p;
+
+extern excp_matcher_func gdbscm_user_error_p;
 
 extern SCM gdbscm_make_memory_error (const char *subr, const char *msg,
 				     SCM args);
@@ -362,6 +390,18 @@ extern SCM bkscm_scm_from_block (const struct block *block,
 
 extern const struct block *bkscm_scm_to_block
   (SCM block_scm, int arg_pos, const char *func_name, SCM *excp);
+
+/* scm-cmd.c */
+
+extern char *gdbscm_parse_command_name (const char *name,
+					const char *func_name, int arg_pos,
+					struct cmd_list_element ***base_list,
+					struct cmd_list_element **start_list);
+
+extern int gdbscm_valid_command_class_p (int command_class);
+
+extern char *gdbscm_canonicalize_command_name (const char *name,
+					       int want_trailing_space);
 
 /* scm-frame.c */
 
@@ -426,7 +466,19 @@ extern objfile_smob *ofscm_objfile_smob_from_objfile (struct objfile *objfile);
 
 extern SCM ofscm_scm_from_objfile (struct objfile *objfile);
 
+/* scm-progspace.c */
+
+typedef struct _pspace_smob pspace_smob;
+
+extern SCM psscm_pspace_smob_pretty_printers (const pspace_smob *);
+
+extern pspace_smob *psscm_pspace_smob_from_pspace (struct program_space *);
+
+extern SCM psscm_scm_from_pspace (struct program_space *);
+
 /* scm-string.c */
+
+extern int gdbscm_scm_string_to_int (SCM string);
 
 extern char *gdbscm_scm_to_c_string (SCM string);
 
@@ -440,6 +492,10 @@ extern char *gdbscm_scm_to_string (SCM string, size_t *lenp,
 
 extern SCM gdbscm_scm_from_string (const char *string, size_t len,
 				   const char *charset, int strict);
+
+extern char *gdbscm_scm_to_host_string (SCM string, size_t *lenp, SCM *except);
+
+extern SCM gdbscm_scm_from_host_string (const char *string, size_t len);
 
 /* scm-symbol.c */
 
@@ -521,6 +577,7 @@ extern void gdbscm_initialize_arches (void);
 extern void gdbscm_initialize_auto_load (void);
 extern void gdbscm_initialize_blocks (void);
 extern void gdbscm_initialize_breakpoints (void);
+extern void gdbscm_initialize_commands (void);
 extern void gdbscm_initialize_disasm (void);
 extern void gdbscm_initialize_exceptions (void);
 extern void gdbscm_initialize_frames (void);
@@ -529,7 +586,9 @@ extern void gdbscm_initialize_lazy_strings (void);
 extern void gdbscm_initialize_math (void);
 extern void gdbscm_initialize_objfiles (void);
 extern void gdbscm_initialize_pretty_printers (void);
+extern void gdbscm_initialize_parameters (void);
 extern void gdbscm_initialize_ports (void);
+extern void gdbscm_initialize_pspaces (void);
 extern void gdbscm_initialize_smobs (void);
 extern void gdbscm_initialize_strings (void);
 extern void gdbscm_initialize_symbols (void);

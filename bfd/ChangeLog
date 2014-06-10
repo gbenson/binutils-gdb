@@ -1,3 +1,67 @@
+2014-06-07  Alan Modra  <amodra@gmail.com>
+
+	* elf32-ppc.c (ppc_elf_relocate_section): Treat field of cmpli
+	insn as a bitfield; Use complain_overflow_bitfield.
+	* elf64-ppc.c (ppc64_elf_relocate_section): Likewise.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* development.sh: New file.
+	* warning.m4 (AM_BINUTILS_WARNINGS): Source bfd/development.sh.
+	Make -Werror the default with GCC only if DEVELOPMENT is true.
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): Add
+	$(srcdir)/development.sh.
+	* Makefile.in, configure: Regenerate.
+
+2014-06-04  Will Newton  <will.newton@linaro.org>
+
+        * elfnn-aarch64.c (tpoff_base): Make test of tls_sec
+	being non-NULL into an assert.
+	(elfNN_aarch64_tls_relax): Remove unused code.
+
+2014-06-03  DJ Delorie  <dj@redhat.com>
+
+	* elf32-rx.c (rx_table_map): Use BFD_VMA_FMT for portability.
+
+2014-06-03  Nick Clifton  <nickc@redhat.com>
+
+	PR ld/16807
+	* peXXigen.c (rsrc_process_section): Page align the new contents
+	befgore writing out.
+
+2014-06-03  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (ADDIS_R12_R2): Define.
+	(build_plt_stub): Support fusion on ELFv2 stub.
+	(ppc_build_one_stub): Likewise for plt branch stubs.
+
+2014-05-28  Alan Modra  <amodra@gmail.com>
+
+	* elf32-rx.c (rx_table_map): Delete set but not used variables.
+
+2014-05-28  Tristan Gingold  <gingold@adacore.com>
+
+	* dwarf2.c (lookup_address_in_function_table): Add best_fit_len
+	to keep the length of the best fit range.
+	(lookup_symbol_in_function_table, info_hash_lookup_funcinfo):
+	Likewise.
+
+2014-05-27  DJ Delorie  <dj@redhat.com>
+
+	* bfd/elf32-rx.c (get_symbol_value_maybe): New.
+	(rx_elf_relocate_section): If we find a reloc against
+	$tableentry$default$<name>, redirect it to the appropriate
+	$tableentry$<n>$.
+	(RX_Table_Info): New.
+	(rx_table_find): New.  Check all tables and SEC_KEEP all sections
+	with table parts in them.
+	(rx_check_directives): New.
+	(rx_table_map_2): New.
+	(rx_table_map): New.
+	(rx_additional_link_map_text): New.  Called to dump tables to the
+	map file.
+	* bfd/elf32-rx.h: New.
+
 2014-05-20  DJ Delorie  <dj@redhat.com>
 
 	* elf32-msp430.c (msp430_elf_relax_adjust_locals): Avoid overflow.
@@ -24,7 +88,7 @@
 
 2014-05-16  Ryan Mansfield  <rmansfield@qnx.com>
 
-        * config.bfd: Move QNX target_cflags from arm-*-netbsd* to arm-*-nto*.
+	* config.bfd: Move QNX target_cflags from arm-*-netbsd* to arm-*-nto*.
 
 2014-05-16  Jon Turney  <jon.turney@dronecode.org.uk>
 
@@ -576,14 +640,14 @@
 	when num == 0.
 
 2014-03-27  Yury Gribov  <y.gribov@samsung.com>
-    	    Pavel Fedin  <p.fedin@samsung.com>
+	    Pavel Fedin  <p.fedin@samsung.com>
 
-    	* elf32-arm.c: Add support for limited pretty-printing of PLT
+	* elf32-arm.c: Add support for limited pretty-printing of PLT
 	entries on eabi and nacl targets.
 	(elf32_arm_get_synthetic_symtab): Add new callback.
-    	(elf32_arm_nacl_plt_sym_val): Likewise.
-    	(elf32_arm_plt0_size): Add helper function.
-    	(elf32_arm_plt_size): Likewise.
+	(elf32_arm_nacl_plt_sym_val): Likewise.
+	(elf32_arm_plt0_size): Add helper function.
+	(elf32_arm_plt_size): Likewise.
 
 2014-03-27  Tristan Gingold  <gingold@adacore.com>
 
@@ -649,10 +713,10 @@
 
 2014-03-14  Meador Inge  <meadori@codesourcery.com>
 
-	 * configure.in: Add strnlen to AC_CHECK_DECLS.
-	 * config.in: Regenerate.
-         * configure: Regenerate.
-	 * sysdep.h (strnlen): Add prototype.
+	* configure.in: Add strnlen to AC_CHECK_DECLS.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* sysdep.h (strnlen): Add prototype.
 
 2014-03-14  Alan Modra  <amodra@gmail.com>
 
@@ -853,8 +917,8 @@
 
 2014-02-18  Jack Carter  <jack.carter@imgtec.com>
 
-        * elfxx-mips.c(_bfd_mips_elf_modify_segment_map): Deleted hard coding of
-        PT_DYNAMIC segment flags.
+	* elfxx-mips.c(_bfd_mips_elf_modify_segment_map): Deleted hard coding of
+	PT_DYNAMIC segment flags.
 
 2014-02-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
 

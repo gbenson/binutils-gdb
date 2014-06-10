@@ -538,10 +538,8 @@ d_print_array_type (struct d_print_info *, int,
 static void
 d_print_expr_op (struct d_print_info *, int, const struct demangle_component *);
 
-static void d_print_cast (struct d_print_info *, int,
-			  const struct demangle_component *);
-static void d_print_conversion (struct d_print_info *, int,
-				const struct demangle_component *);
+static void
+d_print_cast (struct d_print_info *, int, const struct demangle_component *);
 
 static int d_demangle_callback (const char *, int,
                                 demangle_callbackref, void *);
@@ -729,9 +727,6 @@ d_dump (struct demangle_component *dc, int indent)
     case DEMANGLE_COMPONENT_CAST:
       printf ("cast\n");
       break;
-    case DEMANGLE_COMPONENT_CONVERSION:
-      printf ("conversion operator\n");
-      break;
     case DEMANGLE_COMPONENT_NULLARY:
       printf ("nullary operator\n");
       break;
@@ -767,6 +762,9 @@ d_dump (struct demangle_component *dc, int indent)
       break;
     case DEMANGLE_COMPONENT_CHARACTER:
       printf ("character '%c'\n",  dc->u.s_character.character);
+      return;
+    case DEMANGLE_COMPONENT_NUMBER:
+      printf ("number %ld\n", dc->u.s_number.number);
       return;
     case DEMANGLE_COMPONENT_DECLTYPE:
       printf ("decltype\n");
@@ -938,7 +936,6 @@ d_make_comp (struct d_info *di, enum demangle_component_type type,
     case DEMANGLE_COMPONENT_IMAGINARY:
     case DEMANGLE_COMPONENT_VENDOR_TYPE:
     case DEMANGLE_COMPONENT_CAST:
-    case DEMANGLE_COMPONENT_CONVERSION:
     case DEMANGLE_COMPONENT_JAVA_RESOURCE:
     case DEMANGLE_COMPONENT_DECLTYPE:
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
@@ -1230,7 +1227,7 @@ is_ctor_dtor_or_conversion (struct demangle_component *dc)
       return is_ctor_dtor_or_conversion (d_right (dc));
     case DEMANGLE_COMPONENT_CTOR:
     case DEMANGLE_COMPONENT_DTOR:
-    case DEMANGLE_COMPONENT_CONVERSION:
+    case DEMANGLE_COMPONENT_CAST:
       return 1;
     }
 }
@@ -1786,16 +1783,11 @@ d_operator_name (struct d_info *di)
     {
       struct demangle_component *type;
       int was_conversion = di->is_conversion;
-      struct demangle_component *res;
 
       di->is_conversion = ! di->is_expression;
       type = cplus_demangle_type (di);
-      if (di->is_conversion)
-	res = d_make_comp (di, DEMANGLE_COMPONENT_CONVERSION, type, NULL);
-      else
-	res = d_make_comp (di, DEMANGLE_COMPONENT_CAST, type, NULL);
       di->is_conversion = was_conversion;
-      return res;
+      return d_make_comp (di, DEMANGLE_COMPONENT_CAST, type, NULL);
     }
   else
     {
@@ -3889,7 +3881,6 @@ d_count_templates_scopes (int *num_templates, int *num_scopes,
     case DEMANGLE_COMPONENT_TEMPLATE_ARGLIST:
     case DEMANGLE_COMPONENT_INITIALIZER_LIST:
     case DEMANGLE_COMPONENT_CAST:
-    case DEMANGLE_COMPONENT_CONVERSION:
     case DEMANGLE_COMPONENT_NULLARY:
     case DEMANGLE_COMPONENT_UNARY:
     case DEMANGLE_COMPONENT_BINARY:
@@ -5010,9 +5001,9 @@ d_print_comp_inner (struct d_print_info *dpi, int options,
       d_print_comp (dpi, options, dc->u.s_extended_operator.name);
       return;
 
-    case DEMANGLE_COMPONENT_CONVERSION:
+    case DEMANGLE_COMPONENT_CAST:
       d_append_string (dpi, "operator ");
-      d_print_conversion (dpi, options, dc);
+      d_print_cast (dpi, options, dc);
       return;
 
     case DEMANGLE_COMPONENT_NULLARY:
@@ -5745,20 +5736,11 @@ d_print_expr_op (struct d_print_info *dpi, int options,
 
 static void
 d_print_cast (struct d_print_info *dpi, int options,
-		    const struct demangle_component *dc)
-{
-  d_print_comp (dpi, options, d_left (dc));
-}
-
-/* Print a conversion operator.  */
-
-static void
-d_print_conversion (struct d_print_info *dpi, int options,
-		    const struct demangle_component *dc)
+              const struct demangle_component *dc)
 {
   struct d_print_template dpt;
 
-  /* For a conversion operator, we need the template parameters from
+  /* For a cast operator, we need the template parameters from
      the enclosing template in scope for processing the type.  */
   if (dpi->current_template != NULL)
     {

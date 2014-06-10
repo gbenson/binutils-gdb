@@ -1,3 +1,23 @@
+2014-06-07  Alan Modra  <amodra@gmail.com>
+
+	* ppc-opc.c (UISIGNOPT): Define and use with cmpli.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): Add dependency on
+	bfd's development.sh.
+	* Makefile.in, configure: Regenerate.
+
+2014-06-03  Nick Clifton  <nickc@redhat.com>
+
+	* msp430-dis.c (msp430_doubleoperand): Use extension_word to
+	decide when extended addressing is being used.
+
+2014-06-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* sparc-opc.c (cas): Disable for LEON.
+	(casl): Likewise.
+
 2014-05-20  Alan Modra  <amodra@gmail.com>
 
 	* m68k-dis.c: Don't include setjmp.h.
@@ -29,7 +49,7 @@
 	* mips-dis.c (mips_arch_choices): Add mips32r3, mips32r5, mips64r3 and
 	mips64r5.
 	(parse_mips_dis_option): Update MSA and virtualization support to
-	allow mips64r3 and mips64r5. 
+	allow mips64r3 and mips64r5.
 
 2014-05-07  Andrew Bennett  <andrew.bennett@imgtec.com>
 

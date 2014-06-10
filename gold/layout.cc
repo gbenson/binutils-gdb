@@ -563,7 +563,9 @@ static const char* gdb_fast_lookup_sections[] =
 {
   "aranges",
   "pubnames",
+  "gnu_pubnames",
   "pubtypes",
+  "gnu_pubtypes",
 };
 
 // Returns whether the given debug section is in the list of
@@ -5492,6 +5494,10 @@ Layout::print_to_mapfile(Mapfile* mapfile) const
        p != this->segment_list_.end();
        ++p)
     (*p)->print_sections_to_mapfile(mapfile);
+  for (Section_list::const_iterator p = this->unattached_section_list_.begin();
+       p != this->unattached_section_list_.end();
+       ++p)
+    (*p)->print_to_mapfile(mapfile);
 }
 
 // Print statistical information to stderr.  This is used for --stats.

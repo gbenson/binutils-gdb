@@ -64,6 +64,9 @@ static SCM memory_error_symbol;
 /* User interrupt, e.g., RETURN_QUIT in struct gdb_exception.  */
 static SCM signal_symbol;
 
+/* A user error, e.g., bad arg to gdb command.  */
+static SCM user_error_symbol;
+
 /* Printing the stack is done by first capturing the stack and recording it in
    a <gdb:exception> object with this key and with the ARGS field set to
    (cons real-key (cons stack real-args)).
@@ -357,10 +360,21 @@ gdbscm_out_of_range_error (const char *subr, int arg_pos, SCM bad_value,
 
 SCM
 gdbscm_make_misc_error (const char *subr, int arg_pos, SCM bad_value,
-		       const char *error)
+			const char *error)
 {
   return gdbscm_make_arg_error (scm_misc_error_key,
 				subr, arg_pos, bad_value, NULL, error);
+}
+
+/* Throw a misc-error error.  */
+
+void
+gdbscm_misc_error (const char *subr, int arg_pos, SCM bad_value,
+		   const char *error)
+{
+  SCM exception = gdbscm_make_misc_error (subr, arg_pos, bad_value, error);
+
+  gdbscm_throw (exception);
 }
 
 /* Return a <gdb:exception> object for gdb:memory-error.  */
@@ -389,6 +403,15 @@ int
 gdbscm_memory_error_p (SCM key)
 {
   return scm_is_eq (key, memory_error_symbol);
+}
+
+/* Return non-zero if KEY is gdb:user-error.
+   Note: This is an excp_matcher_func function.  */
+
+int
+gdbscm_user_error_p (SCM key)
+{
+  return scm_is_eq (key, user_error_symbol);
 }
 
 /* Wrapper around scm_throw to throw a gdb:exception.
@@ -498,7 +521,7 @@ gdbscm_print_exception_message (SCM port, SCM frame, SCM key, SCM args)
    KEY, ARGS are the standard arguments to scm_throw, et.al.
 
    Basically this function is just a wrapper around calling
-   %print-exception-with-args.  */
+   %print-exception-with-stack.  */
 
 void
 gdbscm_print_exception_with_stack (SCM port, SCM stack, SCM key, SCM args)
@@ -513,7 +536,7 @@ gdbscm_print_exception_with_stack (SCM port, SCM stack, SCM key, SCM args)
       percent_print_exception_with_stack_var
 	= scm_c_private_variable (gdbscm_init_module_name,
 				  percent_print_exception_with_stack_name);
-      /* If we can't find %print-exception-with-args, there's a problem on the
+      /* If we can't find %print-exception-with-stack, there's a problem on the
 	 Scheme side.  Don't kill GDB, just flag an error and leave it at
 	 that.  */
       if (gdbscm_is_false (percent_print_exception_with_stack_var))
@@ -662,6 +685,8 @@ gdbscm_initialize_exceptions (void)
   error_symbol = scm_from_latin1_symbol ("gdb:error");
 
   memory_error_symbol = scm_from_latin1_symbol ("gdb:memory-error");
+
+  user_error_symbol = scm_from_latin1_symbol ("gdb:user-error");
 
   gdbscm_invalid_object_error_symbol
     = scm_from_latin1_symbol ("gdb:invalid-object-error");

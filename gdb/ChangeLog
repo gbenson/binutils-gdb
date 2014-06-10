@@ -1,3 +1,680 @@
+2014-06-09  Gary Benson  <gbenson@redhat.com>
+
+	* common/signals.c (gdb_signal_from_host): Reorder to separate
+	the always-available ANSI-standard signals from the signals that
+	require checking.
+	(do_gdb_signal_to_host): Likewise.
+	* proc-events.c (signal_table): Likewise.
+
+2014-06-08  Hui Zhu  <hui@codesourcery.com>
+
+	* common/linux-ptrace.c (linux_disable_event_reporting): New
+	function.
+	* common/linux-ptrace.h (linux_disable_event_reporting): New
+	declaration.
+	* linux-nat.c (linux_child_follow_fork): Do a single step before
+	detach.
+
+2014-06-07  Keith Seitz  <keiths@redhat.com>
+
+	Revert:
+	PR c++/16253
+	* ada-lang.c (ada_symbol_matches_domain): Moved here and renamed
+	from symbol_matches_domain in symtab.c. All local callers
+	of symbol_matches_domain updated.
+	(standard_lookup): If DOMAIN is VAR_DOMAIN and no symbol is found,
+	search STRUCT_DOMAIN.
+	(ada_find_any_type_symbol): Do not search STRUCT_DOMAIN
+	independently.  standard_lookup will do that automatically.
+	* cp-namespace.c (cp_lookup_symbol_nonlocal): Explain when/why
+	VAR_DOMAIN searches may return a STRUCT_DOMAIN match.
+	(cp_lookup_symbol_in_namespace): Likewise.
+	If no VAR_DOMAIN symbol is found, search STRUCT_DOMAIN.
+	(cp_lookup_symbol_exports): Explain when/why VAR_DOMAIN searches
+	may return a STRUCT_DOMAIN match.
+	(lookup_symbol_file): Search for the class name in STRUCT_DOMAIN.
+	* cp-support.c: Include language.h.
+	(inspect_type): Explicitly search STRUCT_DOMAIN before searching
+	VAR_DOMAIN.
+	* psymtab.c (match_partial_symbol): Compare the requested
+	domain with the symbol's domain directly.
+	(lookup_partial_symbol): Likewise.
+	* symtab.c (lookup_symbol_in_language): Explain when/why
+	VAR_DOMAIN searches may return a STRUCT_DOMAIN match.
+	If no VAR_DOMAIN symbol is found, search STRUCT_DOMAIN for
+	appropriate languages.
+	(symbol_matches_domain): Renamed `ada_symbol_matches_domain'
+	and moved to ada-lang.c
+	(lookup_block_symbol): Explain that this function only returns
+	symbol matching the requested DOMAIN.
+	Compare the requested domain with the symbol's domain directly.
+	(iterate_over_symbols): Compare the requested domain with the
+	symbol's domain directly.
+	* symtab.h (symbol_matches_domain): Remove.
+
+2014-06-06  Doug Evans  <xdje42@gmail.com>
+
+	* guile/guile-internal.h (gdbscm_guile_major_version): Declare.
+	(gdbscm_guile_minor_version, gdbscm_guile_micro_version): Declare.
+	(gdbscm_guile_version_is_at_least): Declare.
+	(gdbscm_scm_string_to_int): Declare.
+	* guile/guile.c (gdbscm_guile_major_version): New global.
+	(gdbscm_guile_minor_version, gdbscm_guile_micro_version): New globals.
+	(guile_datadir): New static global.
+	(gdbscm_guile_data_directory): New function.
+	(initialize_scheme_side): Update.
+	(misc_guile_functions): Add guile-data-directory.
+	(initialize_gdb_module): Fetch guile version number.
+	* guile/lib/gdb.scm: Remove call to add-to-load-path.
+	* guile/lib/gdb/init.scm (%initialize!): Ditto.
+	* guile/lib/gdb/boot.scm: Use guile-data-directory.
+	* guile/scm-exception.c (gdbscm_print_exception_with_stack): Fix
+	comments.
+	* guile/scm-string.c (gdbscm_scm_string_to_int): New function.
+	* guile/scm-utils.c (gdbscm_guile_version_is_at_least): New function.
+	* guile/scm-value.c (gdbscm_value_to_string): Only call
+	scm_port_conversion_strategy if Guile version >= 2.0.6.
+
+2014-06-06  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* main.c (print_gdb_help): Add -q and --silent.
+
+2014-06-06  Gary Benson  <gbenson@redhat.com>
+
+	* common/signals.c: Remove preprocessor conditionals for
+	always-defined signals SIGINT, SIGILL, SIGABRT, SIGFPE,
+	SIGSEGV and SIGTERM.
+	* proc-events.c: Likewise.
+
+2014-06-06  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* symfile.c (symfile_free_objfile): Remove restriction to
+	OBJF_USERLOADED.
+	* symfile-mem.c (symbol_file_add_from_memory): Call
+	add_target_sections_of_objfile.
+
+2014-06-05  Ludovic Courtès  <ludo@gnu.org>
+
+	* guile/scm-value.c (gdbscm_history_append_x): Use
+	'vlscm_get_value_smob_arg_unsafe' instead of
+	'vlscm_scm_to_value'.
+
+2014-06-05  Simon Marchi  <simon.marchi@ericsson.com>
+
+	PR mi/15806
+	* utils.c (printchar): Don't escape at all if quoter is NUL.
+	Update function documentation to clarify effect of parameter
+	QUOTER.
+	* remote.c (escape_buffer): Pass '\\' as the quoter to
+	fputstrn_unfiltered.
+	* mi/mi-interp.c (mi_solib_loaded): Use ui_out_field_* functions to
+	generate the output.
+	(mi_solib_unloaded): Same.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* development.sh: Delete.
+	* Makefile.in (config.status): Adjust dependency on development.sh.
+	* configure.ac: Adjust development.sh source call.
+	* configure: Regenerate.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* guile/scm-breakpoint.c (struct gdbscm_breakpoint_object): New members
+	is_scheme_bkpt, spec.
+	(bpscm_make_breakpoint_smob): Initialize new members.
+	(gdbscm_create_breakpoint_x): Split into two ...
+	(gdbscm_make_breakpoint, gdbscm_register_breakpoint_x): New functions.
+	(bpscm_breakpoint_deleted): Reset breakpoint number and stop function.
+	(scheme_function breakpoint_functions): Update.
+	* guile/lib/gdb.scm: Delete create-breakpoint!.  Rename
+	breakpoint-delete! to delete-breakpoint!.  Add make-breakpoint,
+	register-breakpoint!.
+
+2014-06-04  Joel Brobecker  <brobecker@adacorer.com>
+
+	PR server/17023
+	* mem-break.c (z_type_supported): Return zero if
+	THE_TARGET->SUPPORTS_Z_POINT_TYPE is NULL.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* ada-lang.c (ada_template_to_fixed_record_type_1): Use
+	value_from_contents_and_address_unresolved.
+	(ada_template_to_fixed_record_type_1): Likewise.
+	(ada_which_variant_applies): Likewise.
+	* value.h (value_from_contents_and_address_unresolved): Declare.
+	* value.c (value_from_contents_and_address_unresolved): New
+	function.
+	* gdbtypes.c (is_dynamic_type, resolve_dynamic_type)
+	<TYPE_CODE_STRUCT, TYPE_CODE_UNION>: New cases.
+	(resolve_dynamic_struct, resolve_dynamic_union): New functions.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* gdbtypes.c (is_dynamic_type): Remove unneeded "break"s.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* procfs.c (procfs_attach): Make "args" const.
+	* windows-nat.c (windows_attach): Make "args" const.
+	* nto-procfs.c (procfs_attach): Make "args" const.
+	* inf-ttrace.c (inf_ttrace_attach): Make "args" const.
+	* go32-nat.c (go32_attach): Make "args" const.
+	* gnu-nat.c (gnu_attach): Make "args" const.
+	* darwin-nat.c (darwin_attach): Make "args" const.
+	* inf-ptrace.c (inf_ptrace_attach): Make "args" const.
+	* linux-nat.c (linux_nat_attach): Make "args" const.
+	* remote.c (extended_remote_attach_1, extended_remote_attach):
+	Make "args" const.
+	* target.h (struct target_ops) <to_attach>: Make "args" const.
+	(find_default_attach): Likewise.
+	* utils.c (parse_pid_to_attach): Make "args" const.
+	* utils.h (parse_pid_to_attach): Update.
+
+2014-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* target-delegates.c: Rebuild.
+	* target.c (default_thread_address_space): New function.
+	(target_thread_address_space): Simplify.
+	* target.h (struct target_ops) <to_thread_address_space>: Add
+	TARGET_DEFAULT_FUNC.
+
+2014-06-04  Doug Evans  <xdje42@gmail.com>
+
+	* guile/scm-type.c (type_smob): Remove duplicate typedef.
+
+2014-06-04  Markus Metzger  <markus.t.metzger@intel.com>
+
+	* record-btrace.c: Include event-loop.h and inf-loop.h.
+	(record_btrace_resume_exec_dir)
+	(record_btrace_async_inferior_event_handler)
+	(record_btrace_handle_async_inferior_event): New.
+	(record_btrace_open): Create async event handler.
+	(record_btrace_close): Delete async event handler.
+	(record_btrace_resume): Set record_btrace_resume_exec_dir,
+	Mark async event handler.
+	(record_btrace_execution_direction): New.
+	(init_record_btrace_ops): Initialize to_execution_direction.
+
+2014-06-03  Doug Evans  <xdje42@gmail.com>
+
+	* guile/scm-param.c (pascm_make_param_smob): Add ARI comment.
+	(gdbscm_make_parameter): Ditto.
+
+2014-06-03  Doug Evans  <dje@google.com>
+
+	* exec.c (exec_close_1): Call clear_section_table instead of
+	resize_section_table.
+	(clear_section_table): New function.
+	(resize_section_table): Make static.  Rename arg num_added to
+	adjustment.
+	* exec.h (clear_section_table): Declare.
+	(resize_section_table): Delete.
+	* progspace.c (release_program_space): Call clear_section_table
+	instead of resize_section_table.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* NEWS (Python Scripting): Add entry about the new xmethods
+	feature.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* python/py-xmethods.c: New file.
+	* python/py-objfile.c (objfile_object): New field 'xmethods'.
+	(objfpy_dealloc): XDECREF on the new xmethods field.
+	(objfpy_new, objfile_to_objfile_object): Initialize xmethods
+	field.
+	(objfpy_get_xmethods): New function.
+	(objfile_getset): New entry 'xmethods'.
+	* python/py-progspace.c (pspace_object): New field 'xmethods'.
+	(pspy_dealloc): XDECREF on the new xmethods field.
+	(pspy_new, pspace_to_pspace_object): Initialize	xmethods
+	field.
+	(pspy_get_xmethods): New function.
+	(pspace_getset): New entry 'xmethods'.
+	* python/python-internal.h: Add declarations for new functions.
+	* python/python.c (_initialize_python): Invoke
+	gdbpy_initialize_xmethods.
+	* python/lib/gdb/__init__.py (xmethods): New
+	attribute.
+	* python/lib/gdb/xmethod.py: New file.
+	* python/lib/gdb/command/xmethods.py: New file.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* eval.c (evaluate_subexp_standard): Call the xmethod if the
+	best match method returned by find_overload_match is an xmethod.
+	* valarith.c (value_x_binop, value_x_unop): Call the xmethod if
+	the best matching operator returned by find_overload_match is an
+	xmethod.
+	* valops.c: #include "extension.h".
+	(find_method_list): Add "fn_list" and "xm_worker_vec" arguments.
+	Return void.  The list of matching source methods is returned in
+	"fn_list" and a vector of matching debug method workers is
+	returned in "xm_worker_vec".  Update all callers.
+	(value_find_oload_method_list): Likewise.
+	(find_oload_champ): Add "xm_worker_vec" parameter.  If it is
+	non-NULL, then the index of the best matching method in this
+	vector is returned.  Update all callers.
+	(find_overload_match): Include xmethods while performing overload
+	resolution.
+
+2014-06-03  Siva Chandra Reddy  <sivachandra@google.com>
+
+	* defs.h (enum lval_type): New enumerator "lval_xcallable".
+	* extension-priv.h (struct extension_language_ops): Add the
+	xmethod interface.
+	* extension.c (new_xmethod_worker, clone_xmethod_worker,
+	get_matching_xmethod_workers, get_xmethod_argtypes,
+	invoke_xmethod, free_xmethod_worker,
+	free_xmethod_worker_vec): New functions.
+	* extension.h: #include "common/vec.h".
+	New function declarations.
+	(struct xmethod_worker): New struct.
+	(VEC (xmethod_worker_ptr)): New vector type.
+	(xmethod_worker_ptr): New typedef.
+	(xmethod_worker_vec): Likewise.
+	* gdbtypes.c (gdbtypes_post_init): Initialize "xmethod" field of
+	builtin_type.
+	* gdbtypes.h (enum type_code): New enumerator TYPE_CODE_XMETHOD.
+	(struct builtin_type): New field "xmethod".
+	* valarith.c (value_ptradd): Assert that the value argument is not
+	lval_xcallable.
+	* valops.c (value_must_coerce_to_target): Return 0 for
+	lval_xcallable values.
+	* value.c (struct value): New field XM_WORKER in the field
+	LOCATION.
+	(value_address, value_raw_address): Return 0 for lval_xcallable
+	values.
+	(set_value_address): Assert that the value is not an
+	lval_xcallable.
+	(value_free): Free the associated xmethod worker when freeing
+	lval_xcallable values.
+	(set_value_component_location): Assert that the WHOLE value is not
+	lval_xcallable.
+	(value_of_xmethod, call_xmethod): New functions.
+	* value.h: Declare "struct xmethod_worker".
+	Declare new functions value_of_xmethod, call_xmethod.
+
+2014-06-03  Joel Brobecker  <brobecker@adacore.com>
+	    Pedro Alves  <palves@redhat.com>
+
+	PR breakpoints/17000
+	* breakpoint.c (find_non_raw_software_breakpoint_inserted_here):
+	New function, extracted from software_breakpoint_inserted_here_p.
+	(software_breakpoint_inserted_here_p): Replace factored out code
+	by call to find_non_raw_software_breakpoint_inserted_here.
+	(bp_target_info_copy_insertion_state): New function.
+	(bkpt_insert_location): Handle the case of a single-step
+	breakpoint already inserted at the same address.
+	(bkpt_remove_location): Handle the case of a single-step
+	breakpoint still inserted at the same address.
+	(deprecated_insert_raw_breakpoint): Handle the case of non-raw
+	breakpoint already inserted at the same address.
+	(deprecated_remove_raw_breakpoint): Handle the case of a
+	non-raw breakpoint still inserted at the same address.
+	(find_single_step_breakpoint): New function, extracted from
+	single_step_breakpoint_inserted_here_p.
+	(find_single_step_breakpoint): New function,
+	factored out from single_step_breakpoint_inserted_here_p.
+	(single_step_breakpoint_inserted_here_p): Reimplement.
+
+2014-06-03  Brad Mouring  <bmouring@ni.com>  (tiny patch)
+
+	Pushed by Joel Brobecker  <brobecker@adacore.com>
+	* source.c (show_substitute_path_command): Fix display of matching
+	substitution rules.
+
+2014-06-03  Gary Benson  <gbenson@redhat.com>
+
+	* gnu-v2-abi.c (gnuv2_value_rtti_type): Use gdb_demangle.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	Add parameter support for Guile.
+	* Makefile.in (SUBDIR_GUILE_OBS): Add scm-param.o.
+	(SUBDIR_GUILE_SRCS): Add scm-param.c.
+	(scm-param.o): New rule.
+	* guile/guile-internal.h (gdbscm_gc_dup_argv): Declare.
+	(gdbscm_misc_error): Declare.
+	(gdbscm_canonicalize_command_name): Declare.
+	(gdbscm_scm_to_host_string): Declare.
+	(gdbscm_scm_from_host_string): Declare.
+	(gdbscm_initialize_parameters): Declare.
+	* guile/guile.c (initialize_gdb_module): Call
+	gdbscm_initialize_parameters.
+	* guile/lib/gdb.scm: Export parameter symbols.
+	* guile/scm-cmd.c (gdbscm_canonicalize_command_name): Renamed from
+	cmdscm_canonicalize_name and made public.  All callers updated.
+	* guile/scm-exception.c (gdbscm_misc_error): New function.
+	* guile/scm-param.c: New file.
+	* guile/scm-string.c (gdbscm_scm_to_string): Add comments.
+	(gdbscm_scm_to_host_string): New function.
+	(gdbscm_scm_from_host_string): New function.
+	* scm-utils.c (gdbscm_gc_dup_argv): New function.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	Add command support for Guile.
+	* Makefile.in (SUBDIR_GUILE_OBS): Add scm-cmd.o.
+	(SUBDIR_GUILE_SRCS): Add scm-cmd.c.
+	(scm-cmd.o): New rule.
+	* guile/guile-internal.h (gdbscm_gc_xstrdup): Declare.
+	(gdbscm_user_error_p): Declare.
+	(gdbscm_parse_command_name): Declare.
+	(gdbscm_valid_command_class_p): Declare.
+	(gdbscm_initialize_commands): Declare.
+	* guile/guile.c (initialize_gdb_module): Call
+	gdbscm_initialize_commands.
+	* guile/lib/gdb.scm: Export command symbols.
+	* guile/lib/gdb/init.scm (%exception-keys): Add gdb:user-error.
+	(throw-user-error): New function.
+	* guile/scm-cmd.c: New file.
+	* guile/scm-exception.c (user_error_symbol): New static global.
+	(gdbscm_user_error_p): New function.
+	(gdbscm_initialize_exceptions): Set user_error_symbol.
+	* scm-utils.c (gdbscm_gc_xstrdup): New function.
+
+2014-06-02  Phil Muldoon  <pmuldoon@redhat.com>
+
+	* top.c (command_loop): Handle comments here...
+	(command_line_input): ... not here.
+
+2014-06-02  Doug Evans  <xdje42@gmail.com>
+
+	Add progspace support for Guile.
+	* Makefile.in (SUBDIR_GUILE_OBS): Add scm-progspace.o.
+	(SUBDIR_GUILE_SRCS): Add scm-progspace.c.
+	(scm-progspace.o): New rule.
+	* guile/guile-internal.h (pspace_smob): New typedef.
+	(psscm_pspace_smob_pretty_printers): Declare.
+	(psscm_pspace_smob_from_pspace): Declare.
+	(psscm_scm_from_pspace): Declare.
+	* guile/guile.c (initialize_gdb_module): Call
+	gdbscm_initialize_pspaces.
+	* guile/lib/gdb.scm: Export progspace symbols.
+	* guile/lib/gdb/printing.scm (prepend-pretty-printer!): Add progspace
+	support.
+	(append-pretty-printer!): Ditto.
+	* guile/scm-pretty-print.c (ppscm_find_pretty_printer_from_progspace):
+	Implement.
+	* guile/scm-progspace.c: New file.
+
+2014-06-03  Alan Modra  <amodra@gmail.com>
+
+	* ppc64-tdep.c (ppc64_standard_linkage8): New.
+	(ppc64_skip_trampoline_code): Recognise ELFv2 stub supporting fusion.
+
+2014-06-02  Doug Evans  <dje@google.com>
+
+	Add support for skeletonless type units.
+	* dwarf2read.c (struct dwarf2_per_objfile): New member
+	n_allocated_type_units.
+	(struct dwarf2_per_objfile) <tu_stats>: New member
+	nr_all_type_units_reallocs.
+	(create_signatured_type_table_from_index): Initialize
+	n_allocated_type_units
+	(create_all_type_units): Ditto.
+	(add_type_unit): Move up in file.  New arg slot.
+	All callers updated.  Increase space for all_type_units more
+	efficiently.
+	(fill_in_sig_entry_from_dwo_entry): Handle psymtabs.
+	(lookup_dwo_signatured_type): Handle skeletonless TUs.
+	(lookup_dwp_signatured_type): Ditto.
+	(init_tu_and_read_dwo_dies): New arg use_existing_cu.
+	All callers updated.
+	(build_type_psymtabs_1): Leave type_unit_groups as
+	NULL if no TUs present.
+	(print_tu_stats): New function.
+	(process_skeletonless_type_unit): New function.
+	(process_dwo_file_for_skeletonless_type_units): New
+	function.
+	(process_skeletonless_type_units): New function.
+	(dwarf2_build_psymtabs_hard): Handle skeletonless TUs.
+	Call print tu_stats if debugging enabled.
+
+2014-06-02  Pedro Alves  <palves@redhat.com>
+
+	* breakpoint.c (build_target_command_list): Don't build a command
+	list if we have any duplicate location that isn't a dprintf.
+
+2014-06-02  Pedro Alves  <palves@redhat.com>
+
+	* breakpoint.c (dprintf_breakpoint_hit): New function.
+	(initialize_breakpoint_ops): Install it as dprintf's
+	breakpoint_hit method.
+
+2014-06-02  Joel Brobecker  <brobecker@adacore.com>
+
+	* source.c (substitute_path_rule_matches): Simplify using
+	filename_ncmp instead of FILENAME_CMP.
+
+2014-06-02  Joel Brobecker  <brobecker@adacore.com>
+
+	* source.c (substitute_path_rule_matches): Remove trailing spaces.
+
+2014-06-01  Ludovic Courtès  <ludo@gnu.org>
+
+	* configure.ac: When Guile is available, check for the
+	availability of 'scm_new_smob'.
+	* configure, config.h.in: Regenerate.
+	* guile/guile-internal.h (scm_new_smob) [!HAVE_SCM_NEW_SMOB]: New
+	function.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* frame.c (struct frame_info): Add stop_string field.
+	(get_prev_frame_always_1): Renamed from get_prev_frame_always.
+	(get_prev_frame_always): Old content moved into
+	get_prev_frame_always_1.  Call get_prev_frame_always_1 inside
+	TRY_CATCH, handle MEMORY_ERROR exceptions.
+	(frame_stop_reason_string): New function definition.
+	* frame.h (unwind_stop_reason_to_string): Extend comment to
+	mention frame_stop_reason_string.
+	(frame_stop_reason_string): New function declaration.
+	* stack.c (frame_info): Switch to frame_stop_reason_string.
+	(backtrace_command_1): Switch to frame_stop_reason_string.
+	* unwind_stop_reason.def: Add UNWIND_MEMORY_ERROR.
+	(LAST_ENTRY): Changed to UNWIND_MEMORY_ERROR.
+	* guile/lib/gdb.scm: Add FRAME_UNWIND_MEMORY_ERROR to export list.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* frame.c (frame_stop_reason_string): Rename to ...
+	(unwind_stop_reason_to_string): this.
+	* frame.h (frame_stop_reason_string): Rename to ...
+	(unwind_stop_reason_to_string): this.
+	* stack.c (frame_info): Update call to frame_stop_reason_string.
+	(backtrace_command_1): Likewise.
+	* guile/scm-frame.c (gdbscm_unwind_stop_reason_string): Likewise.
+	* python/py-frame.c (gdbpy_frame_stop_reason_string): Likewise.
+
+2014-05-30  Andrew Burgess  <aburgess@broadcom.com>
+
+	* frame.c (remove_prev_frame): New function.
+	(get_prev_frame_if_no_cycle): Create / discard cleanup using
+	remove_prev_frame.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* infrun.c (resume): Rename local 'hw_step' to 'entry_step'
+	and make it const.  When a single-step decays to a continue,
+	clear 'step', not 'hw_step'.  Pass whether the caller wanted
+	to step to user_visible_resume_ptid, not what we ask the
+	target to do.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* infrun.c (process_event_stop_test, handle_step_into_function)
+	(handle_step_into_function_backward): Adjust.
+	Don't set the even thread's stop_step and call stop_waiting before
+	calling end_stepping_range.  Instead do that ...
+	(end_stepping_range): ... here.  Take an ecs pointer parameter.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* infrun.c (stop_stepping): Rename to ...
+	(stop_waiting): ... this.
+	(proceed): Update comment.
+	(process_event_stop_test, handle_inferior_event)
+	(handle_signal_stop, handle_step_into_function)
+	(handle_step_into_function_backward): Update.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* infcall.c (run_inferior_call): Don't check whether the current
+	thread is running after the proceed call.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+	    Tom Tromey  <tromey@redhat.com>
+
+	* NEWS: Mention "maint set target-async", "set mi-async", and that
+	background execution commands are now always available.
+	* target.h (target_async_permitted): Update comment.
+	* target.c (target_async_permitted, target_async_permitted_1):
+	Default to 1.
+	(set_target_async_command): Rename to ...
+	(maint_set_target_async_command): ... this.
+	(show_target_async_command): Rename to ...
+	(maint_show_target_async_command): ... this.
+	(_initialize_target): Adjust.
+	* infcmd.c (prepare_execution_command): Make extern.
+	* inferior.h (prepare_execution_command): Declare.
+	* infrun.c (set_observer_mode): Leave target async alone.
+	* mi/mi-interp.c (mi_interpreter_init): Install
+	mi_on_sync_execution_done as sync_execution_done observer.
+	(mi_on_sync_execution_done): New function.
+	(mi_execute_command_input_handler): Don't print the prompt if we
+	just started a synchronous command with an async target.
+	(mi_on_resume): Check sync_execution before printing prompt.
+	* mi/mi-main.h (mi_async_p): Declare.
+	* mi/mi-main.c: Include gdbcmd.h.
+	(mi_async_p): New function.
+	(mi_async, mi_async_1): New globals.
+	(set_mi_async_command, show_mi_async_command, mi_async): New
+	functions.
+	(exec_continue): Call prepare_execution_command.
+	(run_one_inferior, mi_cmd_exec_run, mi_cmd_list_target_features)
+	(mi_execute_async_cli_command): Use mi_async_p.
+	(_initialize_mi_main): Install "set mi-async".  Make
+	"target-async" a deprecated alias.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	* cli/cli-interp.c (cli_interpreter_display_prompt_p): Delete.
+	(_initialize_cli_interp): Adjust.
+	* event-loop.c: Include "observer.h".
+	(start_event_loop): Notify 'command_error' observers instead of
+	calling display_gdb_prompt.  Remove FIXME comment.
+	* event-top.c (display_gdb_prompt): Remove call into the
+	interpreters.
+	* inf-loop.c: Include "observer.h".
+	(inferior_event_handler): Notify 'command_error' observers instead
+	of calling display_gdb_prompt.
+	* infrun.c (fetch_inferior_event): Notify 'sync_execution_done'
+	observers instead of calling display_gdb_prompt.
+	* interps.c (interp_set): Don't call display_gdb_prompt.
+	(current_interp_display_prompt_p): Delete.
+	* interps.h (interp_prompt_p): Delete declaration.
+	(interp_prompt_p_ftype): Delete.
+	(struct interp_procs) <prompt_proc_p>: Delete field.
+	(current_interp_display_prompt_p): Delete declaration.
+	* mi-interp.c (mi_interpreter_prompt_p): Delete.
+	(_initialize_mi_interp): Adjust.
+	* tui-interp.c (tui_init): Install 'sync_execution_done' and
+	'command_error' observers.
+	(tui_on_sync_execution_done, tui_on_command_error): New
+	functions.
+	(tui_display_prompt_p): Delete.
+	(_initialize_tui_interp): Adjust.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/13860
+	* cli/cli-interp.c: Include infrun.h and observer.h.
+	(cli_uiout, cli_interp): New globals.
+	(cli_on_signal_received, cli_on_end_stepping_range)
+	(cli_on_signal_exited, cli_on_exited, cli_on_no_history): New
+	functions.
+	(cli_interpreter_init): Install them as 'end_stepping_range',
+	'signal_received' 'signal_exited', 'exited' and 'no_history'
+	observers.
+	(_initialize_cli_interp): Remove cli_interp local.
+	* infrun.c (handle_inferior_event): Call the several stop reason
+	observers instead of printing the stop reason directly.
+	(end_stepping_range): New function.
+	(print_end_stepping_range_reason, print_signal_exited_reason)
+	(print_exited_reason, print_signal_received_reason)
+	(print_no_history_reason): Make static, and add an uiout
+	parameter.  Print to that instead of to CURRENT_UIOUT.
+	* infrun.h (print_end_stepping_range_reason)
+	(print_signal_exited_reason, print_exited_reason)
+	(print_signal_received_reason print_no_history_reason): New
+	declarations.
+	* mi/mi-common.h (struct mi_interp): Rename 'uiout' field to
+	'mi_uiout'.
+	<cli_uiout>: New field.
+	* mi/mi-interp.c (mi_interpreter_init): Adjust.  Create the new
+	uiout for CLI output.  Install 'signal_received',
+	'end_stepping_range', 'signal_exited', 'exited' and 'no_history'
+	observers.
+	(find_mi_interpreter, mi_interp_data, mi_on_signal_received)
+	(mi_on_end_stepping_range, mi_on_signal_exited, mi_on_exited)
+	(mi_on_no_history): New functions.
+	(ui_out_free_cleanup): Delete function.
+	(mi_on_normal_stop): Don't allocate a new uiout for CLI output,
+	instead use the one already stored in the MI interpreter data.
+	(mi_ui_out): Adjust.
+	* tui/tui-interp.c: Include infrun.h and observer.h.
+	(tui_interp): New global.
+	(tui_on_signal_received, tui_on_end_stepping_range)
+	(tui_on_signal_exited, tui_on_exited)
+	(tui_on_no_history): New functions.
+	(tui_init): Install them as 'end_stepping_range',
+	'signal_received' 'signal_exited', 'exited' and 'no_history'
+	observers.
+	(_initialize_tui_interp): Delete tui_interp local.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/15713
+	* linux-nat.c (linux_nat_resume_callback): Rename the second
+	parameter to 'except'.  Skip LP if it points to EXCEPT.
+	(linux_nat_resume): Don't mark the event lwp as not stopped
+	before resuming sibling lwps.  Instead ask
+	linux_nat_resume_callback to skip the event lwp.  Mark it as not
+	stopped after actually resuming it.
+	(linux_handle_syscall_trap): Mark the lwp as not stopped after
+	resuming it.
+	(wait_lwp): Mark the lwp as stopped here.
+	(stop_wait_callback): Mark the lwp as not stopped right after
+	resuming it.  Don't mark lwps as stopped here.
+	(linux_nat_filter_event): Mark the lwp as stopped earlier.
+	(linux_nat_wait_1): Don't mark dead lwps as stopped here.
+
+2014-05-29  Pedro Alves  <palves@redhat.com>
+
+	PR PR15693
+	* infrun.c (resume): Determine how much to resume depending on
+	whether the caller wanted a step, not whether we can hardware step
+	the target.  Mark all threads that we intend to run as running,
+	unless we're calling an inferior function.
+	(normal_stop): If the thread is running an infcall, don't finish
+	thread state.
+	* target.c (target_resume): Don't mark threads as running here.
+
+2014-05-28  Joel Brobecker  <brobecker@adacore.com>
+
+	* serial.c (_initialize_serial): Remove support for
+	the "set remotebaud" and "show remotebaud" commands.
+	* NEWS: Add entry documenting the removal of that command.
+
+2014-05-28  Yao Qi  <yao@codesourcery.com>
+
+	* charset.c: Fix typo in comments.
+
 2014-05-27  Gary Benson  <gbenson@redhat.com>
 
 	* utils.c (internal_vproblem): Prompt for a bug report.

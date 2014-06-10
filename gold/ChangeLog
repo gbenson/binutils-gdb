@@ -1,3 +1,59 @@
+2014-06-09  Cary Coutant  <ccoutant@google.com>
+
+	* dwarf_reader.cc (Dwarf_pubnames_table::read_header): Check that
+	unit_length is within section bounds.
+
+2014-06-09  Cary Coutant  <ccoutant@google.com>
+
+	PR gold/16980
+	* layout.cc (Layout::print_to_mapfile): Print unattached sections in
+	map.
+
+2014-06-07  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (relocate): Treat field of cmpli insn as a bitfield.
+
+2014-06-06  Cary Coutant  <ccoutant@google.com>
+
+	* dwarf_reader.h (Dwarf_pubnames_table): Remove output_section_offset_.
+	* dwarf_reader.cc (Dwarf_pubnames_table::read_section): Likewise.
+	(Dwarf_pubnames_table::read_header): Likewise.
+	* layout.cc (gdb_fast_lookup_sections): Add .debug_gnu_pubnames and
+	.debug_gnu_pubtypes.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): New.
+	* Makefile.in, configure: Regenerate.
+
+2014-06-03  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (addis_12_2): Define.
+	(Stub_table::do_write): Support fusion on ELFv2 stubs.
+
+2014-06-03  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/plugin_test.c (parse_readelf_line): Skip non-visibility
+	st_other output.
+
+2014-06-02  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Target_powerpc::local_reloc_may_be_function_pointer):
+	Only ignore relocs on ELFv1.
+	(Target_powerpc::global_reloc_may_be_function_pointer): Likewise.
+
+2014-05-30  Cary Coutant  <ccoutant@google.com>
+
+	* testsuite/Makefile.am (ehdr_start_test_4): Fix typo in -B option.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/ehdr_start_test_4.sh: Look for "U" instead of "w".
+
+2014-05-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gold/16945
+	* x86_64.cc (Target_x86_64::Relocate::relocate): Use signed int
+	for got_offset.  Properly get GOT address for R_X86_64_PLTOFF64.
+
 2014-05-15  Alan Modra  <amodra@gmail.com>
 
 	* powerpc.cc (do_plt_fde_location): Handle zero length .glink.

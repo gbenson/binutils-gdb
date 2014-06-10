@@ -1,3 +1,25 @@
+2014-06-07  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-ppc.c (ppc_insert_operand): Handle PPC_OPERAND_SIGNOPT
+	on unsigned fields.  Comment on PPC_OPERAND_SIGNOPT signed fields
+	in 64-bit mode.
+
+2014-06-02  Martin Storsjo  <martin@martin.st>
+
+	* doc/c-aarch64.texi: Fix the documentation on :pg_hi21:.
+
+2014-06-05  Joel Brobecker  <brobecker@adacore.com>
+
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): Add dependency on
+	bfd's development.sh.
+	* Makefile.in, configure: Regenerate.
+
+2014-06-03  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-msp430.c (OPTION_WARN_INTR_NOPS): Use y instead of z.
+	(OPTION_NO_WARN_INTR_NOPS): Use Y instead of Z.
+	* doc/c-msp430.texi: Update command line option description.
+
 2014-05-22  Alan Modra  <amodra@gmail.com>
 
 	* listing.c (listing_warning, listing_error): Add space after colon.

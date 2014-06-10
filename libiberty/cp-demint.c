@@ -110,7 +110,6 @@ cplus_demangle_fill_component (struct demangle_component *p,
     case DEMANGLE_COMPONENT_IMAGINARY:
     case DEMANGLE_COMPONENT_VENDOR_TYPE:
     case DEMANGLE_COMPONENT_CAST:
-    case DEMANGLE_COMPONENT_CONVERSION:
       if (right != NULL)
 	return 0;
       break;

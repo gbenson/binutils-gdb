@@ -932,27 +932,20 @@ substitute_path_rule_matches (const struct substitute_path_rule *rule,
 {
   const int from_len = strlen (rule->from);
   const int path_len = strlen (path);
-  char *path_start;
 
   if (path_len < from_len)
     return 0;
 
   /* The substitution rules are anchored at the start of the path,
-     so the path should start with rule->from.  There is no filename
-     comparison routine, so we need to extract the first FROM_LEN
-     characters from PATH first and use that to do the comparison.  */
+     so the path should start with rule->from.  */
 
-  path_start = alloca (from_len + 1);
-  strncpy (path_start, path, from_len);
-  path_start[from_len] = '\0';
-
-  if (FILENAME_CMP (path_start, rule->from) != 0)
+  if (filename_ncmp (path, rule->from, from_len) != 0)
     return 0;
 
   /* Make sure that the region in the path that matches the substitution
      rule is immediately followed by a directory separator (or the end of
      string character).  */
-  
+
   if (path[from_len] != '\0' && !IS_DIR_SEPARATOR (path[from_len]))
     return 0;
 
@@ -1897,7 +1890,7 @@ show_substitute_path_command (char *args, int from_tty)
 
   while (rule != NULL)
     {
-      if (from == NULL || FILENAME_CMP (rule->from, from) == 0)
+      if (from == NULL || substitute_path_rule_matches (rule, from) != 0)
         printf_filtered ("  `%s' -> `%s'.\n", rule->from, rule->to);
       rule = rule->next;
     }
