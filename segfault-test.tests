@@ -43,4 +43,5 @@ _Z3fooI1FEN1XIXszdtcl1PclcvT__EEE5arrayEE4TypeEv
 
 # https://sourceware.org/bugzilla/show_bug.cgi?id=17043
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61460
+# https://bugzilla.redhat.com/show_bug.cgi?id=1109983
 _ZNK6clover6detail11basic_rangeINS_13adaptor_rangeINS_9addressesEINS2_IRFRNS_5eventEP9_cl_eventEINS_14iterator_rangeIPKS7_EEEEEEEENS0_16iterator_adaptorIS3_INSG_IS9_ISC_EEEEEESI_EcvT_ISt6vectorIPS4_SaISN_EEvEEv
