@@ -17,12 +17,15 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifdef GDBSERVER
-#include "server.h"
-#else
-#include "defs.h"
-#include "inferior.h"
-#endif
+#include "config.h"
+#include "common-utils.h"
+#include "common-types.h"
+#include "break-common.h"
+#include "common-debug.h"
+#include "print-utils.h"
+#include "errors.h"
+#include "gdb_locale.h"
+#include "gdb_assert.h"
 #include "i386-dregs.h"
 
 /* Support for hardware watchpoints and breakpoints using the i386
@@ -175,10 +178,8 @@
 /* Types of operations supported by i386_handle_nonaligned_watchpoint.  */
 typedef enum { WP_INSERT, WP_REMOVE, WP_COUNT } i386_wp_op_t;
 
-#ifndef GDBSERVER
 /* Whether or not to print the mirrored debug registers.  */
 extern int debug_hw_points;
-#endif
 
 /* Print the values of the mirrored debug registers.  */
 

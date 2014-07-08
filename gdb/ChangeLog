@@ -1,3 +1,9 @@
+2014-07-24  Gary Benson  <gbenson@redhat.com>
+
+	* gdb/nat/i386-dregs.c: Don't include server.h or defs.h; update
+	includes.
+	(debug_hw_points): Declare regardless of GDBSERVER.
+
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 	    Gary Benson  <gbenson@redhat.com>
 
