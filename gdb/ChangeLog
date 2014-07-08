@@ -1,3 +1,8 @@
+2014-07-24  Gary Benson  <gbenson@redhat.com>
+
+	* nat/linux-waitpid.c: Don't include server.h or defs.h.
+	(linux_debug): Declare debug_threads.
+
 2014-07-24  Tom Tromey  <tromey@redhat.com>
 
 	* btrace.c: Include defs.h.

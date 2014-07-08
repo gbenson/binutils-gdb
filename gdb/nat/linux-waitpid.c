@@ -17,12 +17,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifdef GDBSERVER
-#include "server.h"
-#else
-#include "defs.h"
-#include "signal.h"
-#endif
+#include "config.h"
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <errno.h>
 
 #include "linux-nat.h"
 #include "linux-waitpid.h"
@@ -37,6 +36,8 @@ static inline void
 linux_debug (const char *format, ...)
 {
 #ifdef GDBSERVER
+  extern int debug_threads;
+
   if (debug_threads)
     {
       va_list args;
