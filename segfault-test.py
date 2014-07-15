@@ -16,9 +16,11 @@ for line in open(TESTFILE).xreadlines():
                               "--data-directory", datadir,
                               "-ex", "set lang c++",
                               "-ex", "maint demangle %s" % symbol))
-    success = {0: True, -11: False}[result]
+    if result == -11:
+        print "Segmentation fault"
+    success = {0: True, 1: False, -11: False}[result]
     print {True: "\x1B[32mpass\x1b[0m",
-           False: "Segmentation fault\n\x1B[31mFAIL\x1b[0m"}[success]
+           False: "\x1B[31mFAIL\x1b[0m"}[success]
     if success:
         passes += 1
     else:
