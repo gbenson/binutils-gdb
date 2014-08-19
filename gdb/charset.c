@@ -20,7 +20,6 @@
 #include "defs.h"
 #include "charset.h"
 #include "gdbcmd.h"
-#include "gdb_assert.h"
 #include "gdb_obstack.h"
 #include "gdb_wait.h"
 #include "charset-list.h"
@@ -28,9 +27,6 @@
 #include "environ.h"
 #include "arch-utils.h"
 #include "gdb_vecs.h"
-
-#include <stddef.h>
-#include <string.h>
 #include <ctype.h>
 
 #ifdef USE_WIN32API
@@ -503,7 +499,7 @@ convert_between_encodings (const char *from, const char *to,
       old_size = obstack_object_size (output);
       obstack_blank (output, space_request);
 
-      outp = obstack_base (output) + old_size;
+      outp = (char *) obstack_base (output) + old_size;
       outleft = space_request;
 
       r = iconv (desc, &inp, &inleft, &outp, &outleft);

@@ -140,6 +140,7 @@ SUBSECTION
 #include "safe-ctype.h"
 #include "hashtab.h"
 #include "filenames.h"
+#include "bfdlink.h"
 
 #ifndef errno
 extern int errno;
@@ -2356,6 +2357,10 @@ _bfd_compute_and_write_armap (bfd *arch, unsigned int elength)
 			  map = new_map;
 			}
 
+		      if (strcmp (syms[src_count]->name, "__gnu_lto_slim") == 0)
+			(*_bfd_error_handler)
+			  (_("%s: plugin needed to handle lto object"),
+			   bfd_get_filename (current));
 		      namelen = strlen (syms[src_count]->name);
 		      amt = sizeof (char *);
 		      map[orl_count].name = (char **) bfd_alloc (arch, amt);
@@ -2751,5 +2756,8 @@ _bfd_archive_close_and_cleanup (bfd *abfd)
 	    }
 	}
     }
+  if (abfd->is_linker_output)
+    (*abfd->link.hash->hash_table_free) (abfd);
+
   return TRUE;
 }

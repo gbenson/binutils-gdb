@@ -29,6 +29,7 @@ fragment <<EOF
 #include "elf-bfd.h"
 #include "elf64-ppc.h"
 #include "ldlex.h"
+#include "elf/ppc64.h"
 
 static asection *ppc_add_stub_section (const char *, asection *);
 static void ppc_layout_sections_again (void);
@@ -42,7 +43,6 @@ static struct ppc64_elf_params params = { NULL,
 
 /* Fake input file for stubs.  */
 static lang_input_statement_type *stub_file;
-static int stub_added = 0;
 
 /* Whether we need to call ppc_layout_sections_again.  */
 static int need_laying_out = 0;
@@ -390,7 +390,6 @@ ppc_add_stub_section (const char *stub_sec_name, asection *input_section)
   if (info.add.head == NULL)
     goto err_ret;
 
-  stub_added = 1;
   if (hook_in_stub (&info, &os->children.head))
     return stub_sec;
 
@@ -459,18 +458,26 @@ build_section_lists (lang_statement_union_type *statement)
 static void
 gld${EMULATION_NAME}_after_allocation (void)
 {
+  int ret;
+
   /* bfd_elf_discard_info just plays with data and debugging sections,
      ie. doesn't affect code size, so we can delay resizing the
      sections.  It's likely we'll resize everything in the process of
      adding stubs.  */
-  if (bfd_elf_discard_info (link_info.output_bfd, &link_info))
+  ret = bfd_elf_discard_info (link_info.output_bfd, &link_info);
+  if (ret < 0)
+    {
+      einfo ("%X%P: .eh_frame/.stab edit: %E\n");
+      return;
+    }
+  else if (ret > 0)
     need_laying_out = 1;
 
   /* If generating a relocatable output file, then we don't have any
      stubs.  */
   if (stub_file != NULL && !link_info.relocatable)
     {
-      int ret = ppc64_elf_setup_section_lists (&link_info);
+      ret = ppc64_elf_setup_section_lists (&link_info);
       if (ret < 0)
 	einfo ("%X%P: can not size stub section: %E\n");
       else if (ret > 0)
@@ -518,33 +525,33 @@ gld${EMULATION_NAME}_after_allocation (void)
 static void
 gld${EMULATION_NAME}_finish (void)
 {
+  char *msg = NULL;
+  char *line, *endline;
+
   /* e_entry on PowerPC64 points to the function descriptor for
      _start.  If _start is missing, default to the first function
      descriptor in the .opd section.  */
-  entry_section = ".opd";
+  if ((elf_elfheader (link_info.output_bfd)->e_flags & EF_PPC64_ABI) == 1)
+    entry_section = ".opd";
 
-  if (stub_added)
+  if (params.emit_stub_syms < 0)
+    params.emit_stub_syms = 1;
+  if (stub_file != NULL
+      && !link_info.relocatable
+      && !ppc64_elf_build_stubs (&link_info, config.stats ? &msg : NULL))
+    einfo ("%X%P: can not build stubs: %E\n");
+
+  fflush (stdout);
+  for (line = msg; line != NULL; line = endline)
     {
-      char *msg = NULL;
-      char *line, *endline;
-
-      if (params.emit_stub_syms < 0)
-	params.emit_stub_syms = 1;
-      if (!ppc64_elf_build_stubs (&link_info, config.stats ? &msg : NULL))
-	einfo ("%X%P: can not build stubs: %E\n");
-
-      fflush (stdout);
-      for (line = msg; line != NULL; line = endline)
-	{
-	  endline = strchr (line, '\n');
-	  if (endline != NULL)
-	    *endline++ = '\0';
-	  fprintf (stderr, "%s: %s\n", program_name, line);
-	}
-      fflush (stderr);
-      if (msg != NULL)
-	free (msg);
+      endline = strchr (line, '\n');
+      if (endline != NULL)
+	*endline++ = '\0';
+      fprintf (stderr, "%s: %s\n", program_name, line);
     }
+  fflush (stderr);
+  if (msg != NULL)
+    free (msg);
 
   ppc64_elf_restore_symbols (&link_info);
   finish_default ();

@@ -1,3 +1,17 @@
+2014-08-08  Han Shen  <shenhan@google.com>
+
+	* aarch64.h (withdrawn): Replaced with R_AARCH64_withdrawn.
+
+2014-07-29  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* elfcpp.h (PT_MIPS_ABIFLAGS): New program header type.
+
+2014-07-02  Jing Yu  <jingyu@google.com>
+
+	* aarch64.h: New file. New enums for aarch64-elf64 relocations.
+	* elfcpp.h (EM_AARCH64, SHT_AARCH64_ATTRIBUTES, PT_AARCH64_ARCHEXT,
+	PT_AARCH64_UNWIND): New enum constant.
+
 2014-04-22  Christian Svensson  <blue@cmd.nu>
 
 	* elfcpp.h: Remove openrisc and or32 support.

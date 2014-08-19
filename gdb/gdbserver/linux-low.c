@@ -18,23 +18,19 @@
 
 #include "server.h"
 #include "linux-low.h"
-#include "linux-osdata.h"
+#include "nat/linux-osdata.h"
 #include "agent.h"
 
 #include "nat/linux-nat.h"
 #include "nat/linux-waitpid.h"
 #include "gdb_wait.h"
-#include <stdio.h>
 #include <sys/ptrace.h>
-#include "linux-ptrace.h"
-#include "linux-procfs.h"
+#include "nat/linux-ptrace.h"
+#include "nat/linux-procfs.h"
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
-#include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/syscall.h>
 #include <sched.h>
 #include <ctype.h>
@@ -105,7 +101,7 @@
 #endif
 
 #ifdef HAVE_LINUX_BTRACE
-# include "linux-btrace.h"
+# include "nat/linux-btrace.h"
 #endif
 
 #ifndef HAVE_ELF32_AUXV_T
@@ -895,18 +891,66 @@ linux_kill_one_lwp (struct lwp_info *lwp)
      everywhere.  */
 
   errno = 0;
-  kill (pid, SIGKILL);
+  kill_lwp (pid, SIGKILL);
   if (debug_threads)
-    debug_printf ("LKL:  kill (SIGKILL) %s, 0, 0 (%s)\n",
-		  target_pid_to_str (ptid_of (thr)),
-		  errno ? strerror (errno) : "OK");
+    {
+      int save_errno = errno;
+
+      debug_printf ("LKL:  kill_lwp (SIGKILL) %s, 0, 0 (%s)\n",
+		    target_pid_to_str (ptid_of (thr)),
+		    save_errno ? strerror (save_errno) : "OK");
+    }
 
   errno = 0;
   ptrace (PTRACE_KILL, pid, (PTRACE_TYPE_ARG3) 0, (PTRACE_TYPE_ARG4) 0);
   if (debug_threads)
-    debug_printf ("LKL:  PTRACE_KILL %s, 0, 0 (%s)\n",
-		  target_pid_to_str (ptid_of (thr)),
-		  errno ? strerror (errno) : "OK");
+    {
+      int save_errno = errno;
+
+      debug_printf ("LKL:  PTRACE_KILL %s, 0, 0 (%s)\n",
+		    target_pid_to_str (ptid_of (thr)),
+		    save_errno ? strerror (save_errno) : "OK");
+    }
+}
+
+/* Kill LWP and wait for it to die.  */
+
+static void
+kill_wait_lwp (struct lwp_info *lwp)
+{
+  struct thread_info *thr = get_lwp_thread (lwp);
+  int pid = ptid_get_pid (ptid_of (thr));
+  int lwpid = ptid_get_lwp (ptid_of (thr));
+  int wstat;
+  int res;
+
+  if (debug_threads)
+    debug_printf ("kwl: killing lwp %d, for pid: %d\n", lwpid, pid);
+
+  do
+    {
+      linux_kill_one_lwp (lwp);
+
+      /* Make sure it died.  Notes:
+
+	 - The loop is most likely unnecessary.
+
+	 - We don't use linux_wait_for_event as that could delete lwps
+	   while we're iterating over them.  We're not interested in
+	   any pending status at this point, only in making sure all
+	   wait status on the kernel side are collected until the
+	   process is reaped.
+
+	 - We don't use __WALL here as the __WALL emulation relies on
+	   SIGCHLD, and killing a stopped process doesn't generate
+	   one, nor an exit status.
+      */
+      res = my_waitpid (lwpid, &wstat, 0);
+      if (res == -1 && errno == ECHILD)
+	res = my_waitpid (lwpid, &wstat, __WCLONE);
+    } while (res > 0 && WIFSTOPPED (wstat));
+
+  gdb_assert (res > 0);
 }
 
 /* Callback for `find_inferior'.  Kills an lwp of a given process,
@@ -917,7 +961,6 @@ kill_one_lwp_callback (struct inferior_list_entry *entry, void *args)
 {
   struct thread_info *thread = (struct thread_info *) entry;
   struct lwp_info *lwp = get_thread_lwp (thread);
-  int wstat;
   int pid = * (int *) args;
 
   if (ptid_get_pid (entry->id) != pid)
@@ -936,14 +979,7 @@ kill_one_lwp_callback (struct inferior_list_entry *entry, void *args)
       return 0;
     }
 
-  do
-    {
-      linux_kill_one_lwp (lwp);
-
-      /* Make sure it died.  The loop is most likely unnecessary.  */
-      pid = linux_wait_for_event (thread->entry.id, &wstat, __WALL);
-    } while (pid > 0 && WIFSTOPPED (wstat));
-
+  kill_wait_lwp (lwp);
   return 0;
 }
 
@@ -952,8 +988,6 @@ linux_kill (int pid)
 {
   struct process_info *process;
   struct lwp_info *lwp;
-  int wstat;
-  int lwpid;
 
   process = find_process_pid (pid);
   if (process == NULL)
@@ -976,21 +1010,7 @@ linux_kill (int pid)
 		      pid);
     }
   else
-    {
-      struct thread_info *thr = get_lwp_thread (lwp);
-
-      if (debug_threads)
-	debug_printf ("lk_1: killing lwp %ld, for pid: %d\n",
-		      lwpid_of (thr), pid);
-
-      do
-	{
-	  linux_kill_one_lwp (lwp);
-
-	  /* Make sure it died.  The loop is most likely unnecessary.  */
-	  lwpid = linux_wait_for_event (thr->entry.id, &wstat, __WALL);
-	} while (lwpid > 0 && WIFSTOPPED (wstat));
-    }
+    kill_wait_lwp (lwp);
 
   the_target->mourn (process);
 
@@ -5063,7 +5083,7 @@ linux_supports_non_stop (void)
 static int
 linux_async (int enable)
 {
-  int previous = (linux_event_pipe[0] != -1);
+  int previous = target_is_async_p ();
 
   if (debug_threads)
     debug_printf ("linux_async (%d), previous=%d\n",

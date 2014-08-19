@@ -30,8 +30,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ctype.h>
-
-#include <string.h>
 #include "event-loop.h"
 #include "ui-out.h"
 
@@ -45,6 +43,8 @@
 
 #include "filenames.h"
 #include "filestuff.h"
+#include <signal.h>
+#include "event-top.h"
 
 /* The selected interpreter.  This will be used as a set command
    variable, so it should always be malloc'ed - since
@@ -288,6 +288,27 @@ get_init_files (const char **system_gdbinit,
   *local_gdbinit = localinit;
 }
 
+/* Try to set up an alternate signal stack for SIGSEGV handlers.
+   This allows us to handle SIGSEGV signals generated when the
+   normal process stack is exhausted.  If this stack is not set
+   up (sigaltstack is unavailable or fails) and a SIGSEGV is
+   generated when the normal stack is exhausted then the program
+   will behave as though no SIGSEGV handler was installed.  */
+
+static void
+setup_alternate_signal_stack (void)
+{
+#ifdef HAVE_SIGALTSTACK
+  stack_t ss;
+
+  ss.ss_sp = xmalloc (SIGSTKSZ);
+  ss.ss_size = SIGSTKSZ;
+  ss.ss_flags = 0;
+
+  sigaltstack(&ss, NULL);
+#endif
+}
+
 /* Call command_loop.  If it happens to return, pass that through as a
    non-zero return status.  */
 
@@ -313,6 +334,63 @@ captured_command_loop (void *data)
      loop.  */
   quit_command (NULL, instream == stdin);
   return 1;
+}
+
+/* Handle command errors thrown from within
+   catch_command_errors/catch_command_errors_const.  */
+
+static int
+handle_command_errors (volatile struct gdb_exception e)
+{
+  if (e.reason < 0)
+    {
+      exception_print (gdb_stderr, e);
+
+      /* If any exception escaped to here, we better enable stdin.
+	 Otherwise, any command that calls async_disable_stdin, and
+	 then throws, will leave stdin inoperable.  */
+      async_enable_stdin ();
+      return 0;
+    }
+  return 1;
+}
+
+/* Type of the command callback passed to catch_command_errors.  */
+
+typedef void (catch_command_errors_ftype) (char *, int);
+
+/* Wrap calls to commands run before the event loop is started.  */
+
+static int
+catch_command_errors (catch_command_errors_ftype *command,
+		      char *arg, int from_tty, return_mask mask)
+{
+  volatile struct gdb_exception e;
+
+  TRY_CATCH (e, mask)
+    {
+      command (arg, from_tty);
+    }
+  return handle_command_errors (e);
+}
+
+/* Type of the command callback passed to catch_command_errors_const.  */
+
+typedef void (catch_command_errors_const_ftype) (const char *, int);
+
+/* Like catch_command_errors, but works with const command and args.  */
+
+static int
+catch_command_errors_const (catch_command_errors_const_ftype *command,
+			    const char *arg, int from_tty, return_mask mask)
+{
+  volatile struct gdb_exception e;
+
+  TRY_CATCH (e, mask)
+    {
+      command (arg, from_tty);
+    }
+  return handle_command_errors (e);
 }
 
 /* Arguments of --command option and its counterpart.  */
@@ -785,6 +863,9 @@ captured_main (void *data)
       quiet = 1;
   }
 
+  /* Try to set up an alternate signal stack for SIGSEGV handlers.  */
+  setup_alternate_signal_stack ();
+
   /* Initialize all files.  Give the interpreter a chance to take
      control of the console via the deprecated_init_ui_hook ().  */
   gdb_init (gdb_program_name);
@@ -985,16 +1066,16 @@ captured_main (void *data)
       /* The exec file and the symbol-file are the same.  If we can't
          open it, better only print one error message.
          catch_command_errors returns non-zero on success!  */
-      if (catch_command_errors (exec_file_attach, execarg,
-				!batch_flag, RETURN_MASK_ALL))
+      if (catch_command_errors_const (exec_file_attach, execarg,
+				      !batch_flag, RETURN_MASK_ALL))
 	catch_command_errors_const (symbol_file_add_main, symarg,
 				    !batch_flag, RETURN_MASK_ALL);
     }
   else
     {
       if (execarg != NULL)
-	catch_command_errors (exec_file_attach, execarg,
-			      !batch_flag, RETURN_MASK_ALL);
+	catch_command_errors_const (exec_file_attach, execarg,
+				    !batch_flag, RETURN_MASK_ALL);
       if (symarg != NULL)
 	catch_command_errors_const (symbol_file_add_main, symarg,
 				    !batch_flag, RETURN_MASK_ALL);

@@ -3187,7 +3187,7 @@ assign_symbol (char *name, int mode)
 	  symbol_set_frag (symbolP, dummy_frag);
 	}
 #endif
-#ifdef OBJ_COFF
+#if defined (OBJ_COFF) && !defined (TE_PE)
       /* "set" symbols are local unless otherwise specified.  */
       SF_SET_LOCAL (symbolP);
 #endif
@@ -4605,7 +4605,7 @@ parse_mri_cons (expressionS *exp, unsigned int nbytes)
       && (input_line_pointer[1] != '\''
 	  || (*input_line_pointer != 'A'
 	      && *input_line_pointer != 'E')))
-    TC_PARSE_CONS_EXPRESSION (exp, nbytes);
+    (void) TC_PARSE_CONS_EXPRESSION (exp, nbytes);
   else
     {
       unsigned int scan;

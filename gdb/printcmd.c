@@ -18,7 +18,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-#include <string.h>
 #include "frame.h"
 #include "symtab.h"
 #include "gdbtypes.h"
@@ -37,7 +36,6 @@
 #include "objfiles.h"		/* ditto */
 #include "completer.h"		/* for completion functions */
 #include "ui-out.h"
-#include "gdb_assert.h"
 #include "block.h"
 #include "disasm.h"
 #include "dfp.h"
@@ -1618,7 +1616,7 @@ map_display_numbers (char *args,
 
   while (!state.finished)
     {
-      char *p = state.string;
+      const char *p = state.string;
 
       num = get_number_or_range (&state);
       if (num == 0)

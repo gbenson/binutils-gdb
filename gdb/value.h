@@ -322,7 +322,6 @@ extern const gdb_byte *
   value_contents_for_printing_const (const struct value *value);
 
 extern int value_fetch_lazy (struct value *val);
-extern int value_contents_equal (struct value *val1, struct value *val2);
 
 /* If nonzero, this is the value of a variable which does not actually
    exist in the program, at least partially.  If the value is lazy,
@@ -570,7 +569,7 @@ extern struct value *value_from_pointer (struct type *type, CORE_ADDR addr);
 extern struct value *value_from_double (struct type *type, DOUBLEST num);
 extern struct value *value_from_decfloat (struct type *type,
 					  const gdb_byte *decbytes);
-extern struct value *value_from_history_ref (char *, char **);
+extern struct value *value_from_history_ref (const char *, const char **);
 
 extern struct value *value_at (struct type *type, CORE_ADDR addr);
 extern struct value *value_at_lazy (struct type *type, CORE_ADDR addr);
@@ -694,7 +693,8 @@ extern int find_overload_match (struct value **args, int nargs,
 				enum oload_search_type method,
 				struct value **objp, struct symbol *fsym,
 				struct value **valp, struct symbol **symp,
-				int *staticp, const int no_adl);
+				int *staticp, const int no_adl,
+				enum noside noside);
 
 extern struct value *value_field (struct value *arg1, int fieldno);
 

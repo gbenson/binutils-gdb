@@ -28,7 +28,6 @@
 #include "symtab.h"
 #include "target.h"
 #include "inferior.h"
-#include <string.h>
 #include <sys/stat.h>
 #include "inf-child.h"
 #include "gdb/fileio.h"
@@ -122,7 +121,8 @@ static int inf_child_explicitly_opened;
 /* See inf-child.h.  */
 
 void
-inf_child_open_target (struct target_ops *target, char *arg, int from_tty)
+inf_child_open_target (struct target_ops *target, const char *arg,
+		       int from_tty)
 {
   target_preopen (from_tty);
   push_target (target);
@@ -132,7 +132,7 @@ inf_child_open_target (struct target_ops *target, char *arg, int from_tty)
 }
 
 static void
-inf_child_open (char *arg, int from_tty)
+inf_child_open (const char *arg, int from_tty)
 {
   inf_child_open_target (inf_child_ops, arg, from_tty);
 }
@@ -140,7 +140,7 @@ inf_child_open (char *arg, int from_tty)
 /* Implement the to_disconnect target_ops method.  */
 
 static void
-inf_child_disconnect (struct target_ops *target, char *args, int from_tty)
+inf_child_disconnect (struct target_ops *target, const char *args, int from_tty)
 {
   if (args != NULL)
     error (_("Argument given to \"disconnect\"."));

@@ -28,7 +28,6 @@
 #include "target.h"
 #include "target-dcache.h"
 #include "language.h"
-#include <string.h>
 #include "inferior.h"
 #include "breakpoint.h"
 #include "tracepoint.h"
@@ -1155,7 +1154,7 @@ add_local_symbols (struct collection_list *collect,
 		   long frame_regno, long frame_offset, int type,
 		   int trace_string)
 {
-  struct block *block;
+  const struct block *block;
   struct add_local_symbols_data cb_data;
 
   cb_data.collect = collect;
@@ -2705,7 +2704,7 @@ scope_info (char *args, int from_tty)
   struct symtabs_and_lines sals;
   struct symbol *sym;
   struct bound_minimal_symbol msym;
-  struct block *block;
+  const struct block *block;
   const char *symname;
   char *save_args = args;
   struct block_iterator iter;

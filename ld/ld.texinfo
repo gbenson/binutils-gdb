@@ -827,6 +827,34 @@ the linker may make more use of this option.  Also currently there is
 no difference in the linker's behaviour for different non-zero values
 of this option.  Again this may change with future releases.
 
+@kindex --push-state
+@cindex push state governing input file handling
+@item --push-state
+The @option{--push-state} allows to preserve the current state of the
+flags which govern the input file handling so that they can all be
+restored with one corresponding @option{--pop-state} option.
+
+The option which are covered are: @option{-Bdynamic}, @option{-Bstatic},
+@option{-dn}, @option{-dy}, @option{-call_shared}, @option{-non_shared},
+@option{-static}, @option{-N}, @option{-n}, @option{--whole-archive},
+@option{--no-whole-archive}, @option{-r}, @option{-Ur},
+@option{--copy-dt-needed-entries}, @option{--no-copy-dt-needed-entries},
+@option{--as-needed}, @option{--no-as-needed}, and @option{-a}.
+
+One target for this option are specifications for @file{pkg-config}.  When
+used with the @option{--libs} option all possibly needed libraries are
+listed and then possibly linked with all the time.  It is better to return
+something as follows:
+
+@smallexample
+-Wl,--push-state,--as-needed -libone -libtwo -Wl,--pop-state
+@end smallexample
+
+@kindex --pop-state
+@cindex pop state governing input file handling
+Undoes the effect of --push-state, restores the previous values of the
+flags governing input file handling.
+
 @kindex -q
 @kindex --emit-relocs
 @cindex retain relocations in final executable
@@ -1151,8 +1179,8 @@ on the command line, regardless of whether the library is actually
 needed or not.  @option{--as-needed} causes a DT_NEEDED tag to only be
 emitted for a library that @emph{at that point in the link} satisfies a
 non-weak undefined symbol reference from a regular object file or, if
-the library is not found in the DT_NEEDED lists of other libraries, a
-non-weak undefined symbol reference from another dynamic library.
+the library is not found in the DT_NEEDED lists of other needed libraries, a
+non-weak undefined symbol reference from another needed dynamic library.
 Object files or libraries appearing on the command line @emph{after}
 the library in question do not affect whether the library is seen as
 needed.  This is similar to the rules for extraction of object files
@@ -2665,9 +2693,15 @@ The image is Terminal Server aware.
 
 @kindex --insert-timestamp
 @item --insert-timestamp
-Insert a real timestamp into the image, rather than the default value
-of zero.  This will result in a slightly different results with each
-invocation, which could be helpful for distributing unique images.
+@itemx --no-insert-timestamp
+Insert a real timestamp into the image.  This is the default behaviour
+as it matches legacy code and it means that the image will work with
+other, proprietary tools.  The problem with this default is that it
+will result in slightly different images being produced each tiem the
+same sources are linked.  The option @option{--no-insert-timestamp}
+can be used to insert a zero value for the timestamp, this ensuring
+that binaries produced from indentical sources will compare
+identically.
 @end table
 
 @c man end

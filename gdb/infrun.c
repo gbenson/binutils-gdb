@@ -20,7 +20,6 @@
 
 #include "defs.h"
 #include "infrun.h"
-#include <string.h>
 #include <ctype.h>
 #include "symtab.h"
 #include "frame.h"
@@ -46,7 +45,6 @@
 #include "main.h"
 #include "dictionary.h"
 #include "block.h"
-#include "gdb_assert.h"
 #include "mi/mi-common.h"
 #include "event-top.h"
 #include "record.h"
@@ -569,7 +567,9 @@ follow_inferior_reset_breakpoints (void)
 
   /* Was there a step_resume breakpoint?  (There was if the user
      did a "next" at the fork() call.)  If so, explicitly reset its
-     thread number.
+     thread number.  Cloned step_resume breakpoints are disabled on
+     creation, so enable it here now that it is associated with the
+     correct thread.
 
      step_resumes are a form of bp that are made to be per-thread.
      Since we created the step_resume bp when the parent process
@@ -579,10 +579,17 @@ follow_inferior_reset_breakpoints (void)
      it is for, or it'll be ignored when it triggers.  */
 
   if (tp->control.step_resume_breakpoint)
-    breakpoint_re_set_thread (tp->control.step_resume_breakpoint);
+    {
+      breakpoint_re_set_thread (tp->control.step_resume_breakpoint);
+      tp->control.step_resume_breakpoint->loc->enabled = 1;
+    }
 
+  /* Treat exception_resume breakpoints like step_resume breakpoints.  */
   if (tp->control.exception_resume_breakpoint)
-    breakpoint_re_set_thread (tp->control.exception_resume_breakpoint);
+    {
+      breakpoint_re_set_thread (tp->control.exception_resume_breakpoint);
+      tp->control.exception_resume_breakpoint->loc->enabled = 1;
+    }
 
   /* Reinsert all breakpoints in the child.  The user may have set
      breakpoints after catching the fork, in which case those
@@ -614,7 +621,7 @@ proceed_after_vfork_done (struct thread_info *thread,
 			    target_pid_to_str (thread->ptid));
 
       switch_to_thread (thread->ptid);
-      clear_proceed_status ();
+      clear_proceed_status (0);
       proceed ((CORE_ADDR) -1, GDB_SIGNAL_DEFAULT, 0);
     }
 
@@ -1712,15 +1719,6 @@ maybe_software_singlestep (struct gdbarch *gdbarch, CORE_ADDR pc)
   return hw_step;
 }
 
-/* Return a ptid representing the set of threads that we will proceed,
-   in the perspective of the user/frontend.  We may actually resume
-   fewer threads at first, e.g., if a thread is stopped at a
-   breakpoint that needs stepping-off, but that should not be visible
-   to the user/frontend, and neither should the frontend/user be
-   allowed to proceed any of the threads that happen to be stopped for
-   internal run control handling, if a previous command wanted them
-   resumed.  */
-
 ptid_t
 user_visible_resume_ptid (int step)
 {
@@ -1748,6 +1746,12 @@ user_visible_resume_ptid (int step)
       resume_ptid = inferior_ptid;
     }
 
+  /* We may actually resume fewer threads at first, e.g., if a thread
+     is stopped at a breakpoint that needs stepping-off, but that
+     should not be visible to the user/frontend, and neither should
+     the frontend/user be allowed to proceed any of the threads that
+     happen to be stopped for internal run control handling, if a
+     previous command wanted them resumed.  */
   return resume_ptid;
 }
 
@@ -2023,6 +2027,11 @@ clear_proceed_status_thread (struct thread_info *tp)
 			"infrun: clear_proceed_status_thread (%s)\n",
 			target_pid_to_str (tp->ptid));
 
+  /* If this signal should not be seen by program, give it zero.
+     Used for debugging signals.  */
+  if (!signal_pass_state (tp->suspend.stop_signal))
+    tp->suspend.stop_signal = GDB_SIGNAL_0;
+
   tp->control.trap_expected = 0;
   tp->control.step_range_start = 0;
   tp->control.step_range_end = 0;
@@ -2042,26 +2051,24 @@ clear_proceed_status_thread (struct thread_info *tp)
   bpstat_clear (&tp->control.stop_bpstat);
 }
 
-static int
-clear_proceed_status_callback (struct thread_info *tp, void *data)
-{
-  if (is_exited (tp->ptid))
-    return 0;
-
-  clear_proceed_status_thread (tp);
-  return 0;
-}
-
 void
-clear_proceed_status (void)
+clear_proceed_status (int step)
 {
   if (!non_stop)
     {
-      /* In all-stop mode, delete the per-thread status of all
-	 threads, even if inferior_ptid is null_ptid, there may be
-	 threads on the list.  E.g., we may be launching a new
-	 process, while selecting the executable.  */
-      iterate_over_threads (clear_proceed_status_callback, NULL);
+      struct thread_info *tp;
+      ptid_t resume_ptid;
+
+      resume_ptid = user_visible_resume_ptid (step);
+
+      /* In all-stop mode, delete the per-thread status of all threads
+	 we're about to resume, implicitly and explicitly.  */
+      ALL_NON_EXITED_THREADS (tp)
+        {
+	  if (!ptid_match (tp->ptid, resume_ptid))
+	    continue;
+	  clear_proceed_status_thread (tp);
+	}
     }
 
   if (!ptid_equal (inferior_ptid, null_ptid))
@@ -2151,7 +2158,7 @@ find_thread_needs_step_over (int step, struct thread_info *except)
       return NULL;
     }
 
-  ALL_THREADS (tp)
+  ALL_NON_EXITED_THREADS (tp)
     {
       /* Ignore the EXCEPT thread.  */
       if (tp == except)
@@ -2243,6 +2250,9 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal, int step)
       regcache_write_pc (regcache, addr);
     }
 
+  if (siggnal != GDB_SIGNAL_DEFAULT)
+    tp->suspend.stop_signal = siggnal;
+
   /* Record the interpreter that issued the execution command that
      caused this thread to resume.  If the top level interpreter is
      MI/async, and the execution command was a CLI command
@@ -2308,38 +2318,6 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal, int step)
   insert_breakpoints ();
 
   tp->control.trap_expected = tp->stepping_over_breakpoint;
-
-  if (!non_stop)
-    {
-      /* Pass the last stop signal to the thread we're resuming,
-	 irrespective of whether the current thread is the thread that
-	 got the last event or not.  This was historically GDB's
-	 behaviour before keeping a stop_signal per thread.  */
-
-      struct thread_info *last_thread;
-      ptid_t last_ptid;
-      struct target_waitstatus last_status;
-
-      get_last_target_status (&last_ptid, &last_status);
-      if (!ptid_equal (inferior_ptid, last_ptid)
-	  && !ptid_equal (last_ptid, null_ptid)
-	  && !ptid_equal (last_ptid, minus_one_ptid))
-	{
-	  last_thread = find_thread_ptid (last_ptid);
-	  if (last_thread)
-	    {
-	      tp->suspend.stop_signal = last_thread->suspend.stop_signal;
-	      last_thread->suspend.stop_signal = GDB_SIGNAL_0;
-	    }
-	}
-    }
-
-  if (siggnal != GDB_SIGNAL_DEFAULT)
-    tp->suspend.stop_signal = siggnal;
-  /* If this signal should not be seen by program,
-     give it zero.  Used for debugging signals.  */
-  else if (!signal_program[tp->suspend.stop_signal])
-    tp->suspend.stop_signal = GDB_SIGNAL_0;
 
   annotate_starting ();
 
@@ -2434,7 +2412,7 @@ init_wait_for_inferior (void)
 
   breakpoint_init_inferior (inf_starting);
 
-  clear_proceed_status ();
+  clear_proceed_status (0);
 
   target_last_wait_ptid = minus_one_ptid;
 
@@ -4434,7 +4412,7 @@ process_event_stop_test (struct execution_control_state *ecs)
 
 	if (what.is_longjmp)
 	  {
-	    check_longjmp_breakpoint_for_call_dummy (ecs->event_thread->num);
+	    check_longjmp_breakpoint_for_call_dummy (ecs->event_thread);
 
 	    if (!frame_id_p (ecs->event_thread->initiating_frame))
 	      {
@@ -5181,6 +5159,10 @@ switch_back_to_stepped_thread (struct execution_control_state *ecs)
 	 what keep_going does as well, if we call it.  */
       ecs->event_thread->control.trap_expected = 0;
 
+      /* Likewise, clear the signal if it should not be passed.  */
+      if (!signal_program[ecs->event_thread->suspend.stop_signal])
+	ecs->event_thread->suspend.stop_signal = GDB_SIGNAL_0;
+
       /* If scheduler locking applies even if not stepping, there's no
 	 need to walk over threads.  Above we've checked whether the
 	 current thread is stepping.  If some other thread not the
@@ -5195,7 +5177,7 @@ switch_back_to_stepped_thread (struct execution_control_state *ecs)
 	 step/next/etc.  */
       stepping_thread = NULL;
       step_over = NULL;
-      ALL_THREADS (tp)
+      ALL_NON_EXITED_THREADS (tp)
         {
 	  /* Ignore threads of processes we're not resuming.  */
 	  if (!sched_multi
@@ -5611,7 +5593,7 @@ insert_longjmp_resume_breakpoint (struct gdbarch *gdbarch, CORE_ADDR pc)
 
 static void
 insert_exception_resume_breakpoint (struct thread_info *tp,
-				    struct block *b,
+				    const struct block *b,
 				    struct frame_info *frame,
 				    struct symbol *sym)
 {
@@ -5708,7 +5690,7 @@ check_exception_resume (struct execution_control_state *ecs,
 
   TRY_CATCH (e, RETURN_MASK_ERROR)
     {
-      struct block *b;
+      const struct block *b;
       struct block_iterator iter;
       struct symbol *sym;
       int argno = 0;
@@ -7334,7 +7316,7 @@ leave it stopped or free to run as needed."),
   signal_catch = (unsigned char *)
     xmalloc (sizeof (signal_catch[0]) * numsigs);
   signal_pass = (unsigned char *)
-    xmalloc (sizeof (signal_program[0]) * numsigs);
+    xmalloc (sizeof (signal_pass[0]) * numsigs);
   for (i = 0; i < numsigs; i++)
     {
       signal_stop[i] = 1;

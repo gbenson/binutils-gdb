@@ -19,10 +19,7 @@
 
 
 #include "defs.h"
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <stdarg.h>
 #include "demangle.h"
 #include "gdb_regex.h"
 #include "frame.h"
@@ -357,7 +354,8 @@ static struct cmd_list_element *maint_show_ada_cmdlist;
 static void
 maint_set_ada_cmd (char *args, int from_tty)
 {
-  help_list (maint_set_ada_cmdlist, "maintenance set ada ", -1, gdb_stdout);
+  help_list (maint_set_ada_cmdlist, "maintenance set ada ", all_commands,
+	     gdb_stdout);
 }
 
 /* Implement the "maintenance show ada" (prefix) command.  */
@@ -4167,7 +4165,7 @@ parse_old_style_renaming (struct type *type,
 
 static struct value *
 ada_read_renaming_var_value (struct symbol *renaming_sym,
-			     struct block *block)
+			     const struct block *block)
 {
   const char *sym_name;
   struct expression *expr;
@@ -6132,7 +6130,7 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
   struct symtab *s;
   struct minimal_symbol *msymbol;
   struct objfile *objfile;
-  struct block *b, *surrounding_static_block = 0;
+  const struct block *b, *surrounding_static_block = 0;
   int i;
   struct block_iterator iter;
   struct cleanup *old_chain = make_cleanup (null_cleanup, NULL);
@@ -10123,13 +10121,15 @@ ada_evaluate_subexp (struct type *expect_type, struct expression *exp,
           *pos += 4;
           goto nosideret;
         }
-      else if (SYMBOL_DOMAIN (exp->elts[pc + 2].symbol) == UNDEF_DOMAIN)
+
+      if (SYMBOL_DOMAIN (exp->elts[pc + 2].symbol) == UNDEF_DOMAIN)
         /* Only encountered when an unresolved symbol occurs in a
            context other than a function call, in which case, it is
            invalid.  */
         error (_("Unexpected unresolved symbol, %s, during evaluation"),
                SYMBOL_PRINT_NAME (exp->elts[pc + 2].symbol));
-      else if (noside == EVAL_AVOID_SIDE_EFFECTS)
+
+      if (noside == EVAL_AVOID_SIDE_EFFECTS)
         {
           type = static_unwrap_type (SYMBOL_TYPE (exp->elts[pc + 2].symbol));
           /* Check to see if this is a tagged type.  We also need to handle
@@ -10140,59 +10140,71 @@ ada_evaluate_subexp (struct type *expect_type, struct expression *exp,
           if (ada_is_tagged_type (type, 0)
               || (TYPE_CODE (type) == TYPE_CODE_REF
                   && ada_is_tagged_type (TYPE_TARGET_TYPE (type), 0)))
-          {
-            /* Tagged types are a little special in the fact that the real
-               type is dynamic and can only be determined by inspecting the
-               object's tag.  This means that we need to get the object's
-               value first (EVAL_NORMAL) and then extract the actual object
-               type from its tag.
+	    {
+	      /* Tagged types are a little special in the fact that the real
+		 type is dynamic and can only be determined by inspecting the
+		 object's tag.  This means that we need to get the object's
+		 value first (EVAL_NORMAL) and then extract the actual object
+		 type from its tag.
 
-               Note that we cannot skip the final step where we extract
-               the object type from its tag, because the EVAL_NORMAL phase
-               results in dynamic components being resolved into fixed ones.
-               This can cause problems when trying to print the type
-               description of tagged types whose parent has a dynamic size:
-               We use the type name of the "_parent" component in order
-               to print the name of the ancestor type in the type description.
-               If that component had a dynamic size, the resolution into
-               a fixed type would result in the loss of that type name,
-               thus preventing us from printing the name of the ancestor
-               type in the type description.  */
-            arg1 = evaluate_subexp (NULL_TYPE, exp, pos, EVAL_NORMAL);
+		 Note that we cannot skip the final step where we extract
+		 the object type from its tag, because the EVAL_NORMAL phase
+		 results in dynamic components being resolved into fixed ones.
+		 This can cause problems when trying to print the type
+		 description of tagged types whose parent has a dynamic size:
+		 We use the type name of the "_parent" component in order
+		 to print the name of the ancestor type in the type description.
+		 If that component had a dynamic size, the resolution into
+		 a fixed type would result in the loss of that type name,
+		 thus preventing us from printing the name of the ancestor
+		 type in the type description.  */
+	      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, EVAL_NORMAL);
 
-	    if (TYPE_CODE (type) != TYPE_CODE_REF)
-	      {
-		struct type *actual_type;
+	      if (TYPE_CODE (type) != TYPE_CODE_REF)
+		{
+		  struct type *actual_type;
 
-		actual_type = type_from_tag (ada_value_tag (arg1));
-		if (actual_type == NULL)
-		  /* If, for some reason, we were unable to determine
-		     the actual type from the tag, then use the static
-		     approximation that we just computed as a fallback.
-		     This can happen if the debugging information is
-		     incomplete, for instance.  */
-		  actual_type = type;
-		return value_zero (actual_type, not_lval);
-	      }
-	    else
-	      {
-		/* In the case of a ref, ada_coerce_ref takes care
-		   of determining the actual type.  But the evaluation
-		   should return a ref as it should be valid to ask
-		   for its address; so rebuild a ref after coerce.  */
-		arg1 = ada_coerce_ref (arg1);
-		return value_ref (arg1);
-	      }
-          }
+		  actual_type = type_from_tag (ada_value_tag (arg1));
+		  if (actual_type == NULL)
+		    /* If, for some reason, we were unable to determine
+		       the actual type from the tag, then use the static
+		       approximation that we just computed as a fallback.
+		       This can happen if the debugging information is
+		       incomplete, for instance.  */
+		    actual_type = type;
+		  return value_zero (actual_type, not_lval);
+		}
+	      else
+		{
+		  /* In the case of a ref, ada_coerce_ref takes care
+		     of determining the actual type.  But the evaluation
+		     should return a ref as it should be valid to ask
+		     for its address; so rebuild a ref after coerce.  */
+		  arg1 = ada_coerce_ref (arg1);
+		  return value_ref (arg1);
+		}
+	    }
 
-          *pos += 4;
-          return value_zero (to_static_fixed_type (type), not_lval);
+	  /* Records and unions for which GNAT encodings have been
+	     generated need to be statically fixed as well.
+	     Otherwise, non-static fixing produces a type where
+	     all dynamic properties are removed, which prevents "ptype"
+	     from being able to completely describe the type.
+	     For instance, a case statement in a variant record would be
+	     replaced by the relevant components based on the actual
+	     value of the discriminants.  */
+	  if ((TYPE_CODE (type) == TYPE_CODE_STRUCT
+	       && dynamic_template_type (type) != NULL)
+	      || (TYPE_CODE (type) == TYPE_CODE_UNION
+		  && ada_find_parallel_type (type, "___XVU") != NULL))
+	    {
+	      *pos += 4;
+	      return value_zero (to_static_fixed_type (type), not_lval);
+	    }
         }
-      else
-        {
-          arg1 = evaluate_subexp_standard (expect_type, exp, pos, noside);
-          return ada_to_fixed_value (arg1);
-        }
+
+      arg1 = evaluate_subexp_standard (expect_type, exp, pos, noside);
+      return ada_to_fixed_value (arg1);
 
     case OP_FUNCALL:
       (*pos) += 2;
@@ -12757,7 +12769,7 @@ static void
 ada_add_exceptions_from_frame (regex_t *preg, struct frame_info *frame,
 			       VEC(ada_exc_info) **exceptions)
 {
-  struct block *block = get_frame_block (frame, 0);
+  const struct block *block = get_frame_block (frame, 0);
 
   while (block != 0)
     {
@@ -12818,7 +12830,7 @@ ada_add_global_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
 
   ALL_PRIMARY_SYMTABS (objfile, s)
     {
-      struct blockvector *bv = BLOCKVECTOR (s);
+      const struct blockvector *bv = BLOCKVECTOR (s);
       int i;
 
       for (i = GLOBAL_BLOCK; i <= STATIC_BLOCK; i++)
@@ -13443,7 +13455,7 @@ ada_get_symbol_name_cmp (const char *lookup_name)
 static struct value *
 ada_read_var_value (struct symbol *var, struct frame_info *frame)
 {
-  struct block *frame_block = NULL;
+  const struct block *frame_block = NULL;
   struct symbol *renaming_sym = NULL;
 
   /* The only case where default_read_var_value is not sufficient
@@ -13517,7 +13529,7 @@ set_ada_command (char *arg, int from_tty)
 {
   printf_unfiltered (_(\
 "\"set ada\" must be followed by the name of a setting.\n"));
-  help_list (set_ada_list, "set ada ", -1, gdb_stdout);
+  help_list (set_ada_list, "set ada ", all_commands, gdb_stdout);
 }
 
 /* Implement the "show ada" prefix command.  */

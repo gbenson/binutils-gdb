@@ -191,10 +191,12 @@ extern void throw_exception (struct gdb_exception exception)
      ATTRIBUTE_NORETURN;
 extern void throw_verror (enum errors, const char *fmt, va_list ap)
      ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF (2, 0);
-extern void throw_vfatal (const char *fmt, va_list ap)
+extern void throw_vquit (const char *fmt, va_list ap)
      ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF (1, 0);
 extern void throw_error (enum errors error, const char *fmt, ...)
      ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF (2, 3);
+extern void throw_quit (const char *fmt, ...)
+     ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF (1, 2);
 
 /* Call FUNC(UIOUT, FUNC_ARGS) but wrapped within an exception
    handler.  If an exception (enum return_reason) is thrown using
@@ -254,18 +256,5 @@ extern int catch_exceptions_with_msg (struct ui_out *uiout,
 
 typedef int (catch_errors_ftype) (void *);
 extern int catch_errors (catch_errors_ftype *, void *, char *, return_mask);
-
-/* Template to catch_errors() that wraps calls to command
-   functions.  */
-
-typedef void (catch_command_errors_ftype) (char *, int);
-extern int catch_command_errors (catch_command_errors_ftype *func,
-				 char *arg, int from_tty, return_mask);
-
-/* Like catch_command_errors, but works with const command and args.  */
-
-typedef void (catch_command_errors_const_ftype) (const char *, int);
-extern int catch_command_errors_const (catch_command_errors_const_ftype *func,
-				       const char *arg, int from_tty, return_mask);
 
 #endif

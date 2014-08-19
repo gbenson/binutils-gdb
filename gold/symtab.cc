@@ -334,7 +334,7 @@ Sized_symbol<size>::allocate_common(Output_data* od, Value_type value)
 // Return true if this symbol should be added to the dynamic symbol
 // table.
 
-inline bool
+bool
 Symbol::should_add_dynsym_entry(Symbol_table* symtab) const
 {
   // If the symbol is only present on plugin files, the plugin decided we
@@ -1132,6 +1132,10 @@ Symbol_table::add_from_relobj(
 	}
 
       const char* name = sym_names + st_name;
+
+      if (strcmp (name, "__gnu_lto_slim") == 0)
+        gold_info(_("%s: plugin needed to handle lto object"),
+		  relobj->name().c_str());
 
       bool is_ordinary;
       unsigned int st_shndx = relobj->adjust_sym_shndx(i + symndx_offset,

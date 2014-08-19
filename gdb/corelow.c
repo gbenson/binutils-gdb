@@ -19,8 +19,6 @@
 
 #include "defs.h"
 #include "arch-utils.h"
-#include <string.h>
-#include <errno.h>
 #include <signal.h>
 #include <fcntl.h>
 #ifdef HAVE_SYS_FILE_H
@@ -40,7 +38,6 @@
 #include "symfile.h"
 #include "exec.h"
 #include "readline/readline.h"
-#include "gdb_assert.h"
 #include "exceptions.h"
 #include "solib.h"
 #include "filenames.h"
@@ -83,8 +80,6 @@ static void core_files_info (struct target_ops *);
 static struct core_fns *sniff_core_bfd (bfd *);
 
 static int gdb_check_format (bfd *);
-
-static void core_open (char *, int);
 
 static void core_close (struct target_ops *self);
 
@@ -275,7 +270,7 @@ add_to_thread_list (bfd *abfd, asection *asect, void *reg_sect_arg)
 /* This routine opens and sets up the core file bfd.  */
 
 static void
-core_open (char *filename, int from_tty)
+core_open (const char *arg, int from_tty)
 {
   const char *p;
   int siggy;
@@ -285,9 +280,10 @@ core_open (char *filename, int from_tty)
   int scratch_chan;
   int flags;
   volatile struct gdb_exception except;
+  char *filename;
 
   target_preopen (from_tty);
-  if (!filename)
+  if (!arg)
     {
       if (core_bfd)
 	error (_("No core file specified.  (Use `detach' "
@@ -296,7 +292,7 @@ core_open (char *filename, int from_tty)
 	error (_("No core file specified."));
     }
 
-  filename = tilde_expand (filename);
+  filename = tilde_expand (arg);
   if (!IS_ABSOLUTE_PATH (filename))
     {
       temp = concat (current_directory, "/",
@@ -738,7 +734,7 @@ core_xfer_partial (struct target_ops *ops, enum target_object object,
 
 	  size = bfd_section_size (core_bfd, section);
 	  if (offset >= size)
-	    return 0;
+	    return TARGET_XFER_EOF;
 	  size -= offset;
 	  if (size > len)
 	    size = len;
@@ -871,12 +867,10 @@ core_xfer_partial (struct target_ops *ops, enum target_object object,
       return TARGET_XFER_E_IO;
 
     default:
-      if (ops->beneath != NULL)
-	return ops->beneath->to_xfer_partial (ops->beneath, object,
-					      annex, readbuf,
-					      writebuf, offset, len,
-					      xfered_len);
-      return TARGET_XFER_E_IO;
+      return ops->beneath->to_xfer_partial (ops->beneath, object,
+					    annex, readbuf,
+					    writebuf, offset, len,
+					    xfered_len);
     }
 }
 
@@ -979,7 +973,8 @@ core_has_registers (struct target_ops *ops)
 /* Implement the to_info_proc method.  */
 
 static void
-core_info_proc (struct target_ops *ops, char *args, enum info_proc_what request)
+core_info_proc (struct target_ops *ops, const char *args,
+		enum info_proc_what request)
 {
   struct gdbarch *gdbarch = get_current_arch ();
 

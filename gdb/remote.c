@@ -20,7 +20,6 @@
 /* See the GDB User Guide for details of the GDB remote protocol.  */
 
 #include "defs.h"
-#include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include "inferior.h"
@@ -38,7 +37,6 @@
 #include "remote-notif.h"
 #include "regcache.h"
 #include "value.h"
-#include "gdb_assert.h"
 #include "observer.h"
 #include "solib.h"
 #include "cli/cli-decode.h"
@@ -102,11 +100,8 @@ static void remote_files_info (struct target_ops *ignore);
 static void remote_prepare_to_store (struct target_ops *self,
 				     struct regcache *regcache);
 
-static void remote_open (char *name, int from_tty);
-
-static void extended_remote_open (char *name, int from_tty);
-
-static void remote_open_1 (char *, int, struct target_ops *, int extended_p);
+static void remote_open_1 (const char *, int, struct target_ops *,
+			   int extended_p);
 
 static void remote_close (struct target_ops *self);
 
@@ -164,7 +159,7 @@ static int hexnumnstr (char *, ULONGEST, int);
 
 static CORE_ADDR remote_address_masked (CORE_ADDR);
 
-static void print_packet (char *);
+static void print_packet (const char *);
 
 static void compare_sections_command (char *, int);
 
@@ -176,7 +171,7 @@ static ptid_t remote_current_thread (ptid_t oldptid);
 
 static void remote_find_new_threads (void);
 
-static int putpkt_binary (char *buf, int cnt);
+static int putpkt_binary (const char *buf, int cnt);
 
 static void check_binary_download (CORE_ADDR addr);
 
@@ -3619,7 +3614,7 @@ remote_start_remote (int from_tty, struct target_ops *target, int extended_p)
    NAME is the filename used for communication.  */
 
 static void
-remote_open (char *name, int from_tty)
+remote_open (const char *name, int from_tty)
 {
   remote_open_1 (name, from_tty, &remote_ops, 0);
 }
@@ -3628,7 +3623,7 @@ remote_open (char *name, int from_tty)
    remote gdb protocol.  NAME is the filename used for communication.  */
 
 static void
-extended_remote_open (char *name, int from_tty)
+extended_remote_open (const char *name, int from_tty)
 {
   remote_open_1 (name, from_tty, &extended_remote_ops, 1 /*extended_p */);
 }
@@ -3727,7 +3722,7 @@ remote_check_symbols (void)
 }
 
 static struct serial *
-remote_serial_open (char *name)
+remote_serial_open (const char *name)
 {
   static int udp_warning = 0;
 
@@ -4128,7 +4123,7 @@ remote_unpush_target (void)
 }
 
 static void
-remote_open_1 (char *name, int from_tty,
+remote_open_1 (const char *name, int from_tty,
 	       struct target_ops *target, int extended_p)
 {
   struct remote_state *rs = get_remote_state ();
@@ -4347,7 +4342,7 @@ extended_remote_detach (struct target_ops *ops, const char *args, int from_tty)
 /* Same as remote_detach, but don't send the "D" packet; just disconnect.  */
 
 static void
-remote_disconnect (struct target_ops *target, char *args, int from_tty)
+remote_disconnect (struct target_ops *target, const char *args, int from_tty)
 {
   if (args)
     error (_("Argument given to \"disconnect\" when remotely debugging."));
@@ -4482,6 +4477,20 @@ static void
 extended_remote_attach (struct target_ops *ops, const char *args, int from_tty)
 {
   extended_remote_attach_1 (ops, args, from_tty);
+}
+
+/* Implementation of the to_post_attach method.  */
+
+static void
+extended_remote_post_attach (struct target_ops *ops, int pid)
+{
+  /* In certain cases GDB might not have had the chance to start
+     symbol lookup up until now.  This could happen if the debugged
+     binary is not using shared libraries, the vsyscall page is not
+     present (on Linux) and the binary itself hadn't changed since the
+     debugging process was started.  */
+  if (symfile_objfile != NULL)
+    remote_check_symbols();
 }
 
 
@@ -4626,11 +4635,10 @@ append_pending_thread_resumptions (char *p, char *endp, ptid_t ptid)
 {
   struct thread_info *thread;
 
-  ALL_THREADS (thread)
+  ALL_NON_EXITED_THREADS (thread)
     if (ptid_match (thread->ptid, ptid)
 	&& !ptid_equal (inferior_ptid, thread->ptid)
-	&& thread->suspend.stop_signal != GDB_SIGNAL_0
-	&& signal_pass_state (thread->suspend.stop_signal))
+	&& thread->suspend.stop_signal != GDB_SIGNAL_0)
       {
 	p = append_resumption (p, endp, thread->ptid,
 			       0, thread->suspend.stop_signal);
@@ -4818,7 +4826,9 @@ static void
 async_handle_remote_sigint (int sig)
 {
   signal (sig, async_handle_remote_sigint_twice);
-  mark_async_signal_handler (async_sigint_remote_token);
+  /* Note we need to go through gdb_call_async_signal_handler in order
+     to wake up the event loop on Windows.  */
+  gdb_call_async_signal_handler (async_sigint_remote_token, 0);
 }
 
 /* Signal handler for SIGINT, installed after SIGINT has already been
@@ -4828,7 +4838,8 @@ static void
 async_handle_remote_sigint_twice (int sig)
 {
   signal (sig, async_handle_remote_sigint);
-  mark_async_signal_handler (async_sigint_remote_twice_token);
+  /* See note in async_handle_remote_sigint.  */
+  gdb_call_async_signal_handler (async_sigint_remote_twice_token, 0);
 }
 
 /* Perform the real interruption of the target execution, in response
@@ -6812,7 +6823,7 @@ remote_read_bytes (struct target_ops *ops, CORE_ADDR memaddr,
 		   gdb_byte *myaddr, ULONGEST len, ULONGEST *xfered_len)
 {
   if (len == 0)
-    return 0;
+    return TARGET_XFER_EOF;
 
   if (get_traceframe_number () != -1)
     {
@@ -7092,7 +7103,7 @@ escape_buffer (const char *buf, int n)
    string notation.  */
 
 static void
-print_packet (char *buf)
+print_packet (const char *buf)
 {
   puts_filtered ("\"");
   fputstr_filtered (buf, '"', gdb_stdout);
@@ -7100,7 +7111,7 @@ print_packet (char *buf)
 }
 
 int
-putpkt (char *buf)
+putpkt (const char *buf)
 {
   return putpkt_binary (buf, strlen (buf));
 }
@@ -7112,7 +7123,7 @@ putpkt (char *buf)
    to print the sent packet as a string.  */
 
 static int
-putpkt_binary (char *buf, int cnt)
+putpkt_binary (const char *buf, int cnt)
 {
   struct remote_state *rs = get_remote_state ();
   int i;
@@ -7132,7 +7143,11 @@ putpkt_binary (char *buf, int cnt)
      running.  This is not a problem in non-stop mode, because in that
      case, the stub is always ready to process serial input.  */
   if (!non_stop && target_can_async_p () && rs->waiting_for_stop_reply)
-    error (_("Cannot execute this command while the target is running."));
+    {
+      error (_("Cannot execute this command while the target is running.\n"
+	       "Use the \"interrupt\" command to stop the target\n"
+	       "and then try again."));
+    }
 
   /* We're sending out a new packet.  Make sure we don't look at a
      stale cached response.  */
@@ -7888,7 +7903,7 @@ extended_remote_run (char *args)
       char **argv;
 
       argv = gdb_buildargv (args);
-      back_to = make_cleanup ((void (*) (void *)) freeargv, argv);
+      back_to = make_cleanup_freeargv (argv);
       for (i = 0; argv[i] != NULL; i++)
 	{
 	  if (strlen (argv[i]) * 2 + 1 + len >= get_remote_packet_size ())
@@ -8848,10 +8863,6 @@ remote_xfer_partial (struct target_ops *ops, enum target_object object,
       return TARGET_XFER_E_IO;
     }
 
-  /* Note: a zero OFFSET and LEN can be used to query the minimum
-     buffer size.  */
-  if (offset == 0 && len == 0)
-    return (get_remote_packet_size ());
   /* Minimum outbuf size is get_remote_packet_size ().  If LEN is not
      large enough let the caller deal with it.  */
   if (len < get_remote_packet_size ())
@@ -8988,7 +8999,7 @@ remote_search_memory (struct target_ops* ops,
 }
 
 static void
-remote_rcmd (struct target_ops *self, char *command,
+remote_rcmd (struct target_ops *self, const char *command,
 	     struct ui_file *outbuf)
 {
   struct remote_state *rs = get_remote_state ();
@@ -9010,7 +9021,7 @@ remote_rcmd (struct target_ops *self, char *command,
     error (_("\"monitor\" command ``%s'' is too long."), command);
 
   /* Encode the actual command.  */
-  bin2hex ((gdb_byte *) command, p, strlen (command));
+  bin2hex ((const gdb_byte *) command, p, strlen (command));
 
   if (putpkt (rs->buf) < 0)
     error (_("Communication problem with target."));
@@ -10249,7 +10260,7 @@ remote_delete_command (char *args, int from_tty)
 static void
 remote_command (char *args, int from_tty)
 {
-  help_list (remote_cmdlist, "remote ", -1, gdb_stdout);
+  help_list (remote_cmdlist, "remote ", all_commands, gdb_stdout);
 }
 
 static int
@@ -11378,7 +11389,7 @@ remote_augmented_libraries_svr4_read (struct target_ops *self)
 /* Implementation of to_load.  */
 
 static void
-remote_load (struct target_ops *self, char *name, int from_tty)
+remote_load (struct target_ops *self, const char *name, int from_tty)
 {
   generic_load (name, from_tty);
 }
@@ -11527,6 +11538,7 @@ Specify the serial device it is connected to (e.g. /dev/ttya).";
   extended_remote_ops.to_mourn_inferior = extended_remote_mourn;
   extended_remote_ops.to_detach = extended_remote_detach;
   extended_remote_ops.to_attach = extended_remote_attach;
+  extended_remote_ops.to_post_attach = extended_remote_post_attach;
   extended_remote_ops.to_kill = extended_remote_kill;
   extended_remote_ops.to_supports_disable_randomization
     = extended_remote_supports_disable_randomization;
@@ -11601,7 +11613,7 @@ remote_async (struct target_ops *ops,
 static void
 set_remote_cmd (char *args, int from_tty)
 {
-  help_list (remote_set_cmdlist, "set remote ", -1, gdb_stdout);
+  help_list (remote_set_cmdlist, "set remote ", all_commands, gdb_stdout);
 }
 
 static void

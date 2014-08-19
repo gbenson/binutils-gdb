@@ -18,7 +18,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-#include "gdb_assert.h"
 #include "charset.h"
 #include "value.h"
 #include "exceptions.h"
@@ -554,8 +553,7 @@ static int
 get_field_flag (PyObject *field, const char *flag_name)
 {
   int flag_value;
-  /* Python 2.4 did not have a 'const' here.  */
-  PyObject *flag_object = PyObject_GetAttrString (field, (char *) flag_name);
+  PyObject *flag_object = PyObject_GetAttrString (field, flag_name);
 
   if (flag_object == NULL)
     return -1;

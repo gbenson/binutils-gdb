@@ -1,3 +1,374 @@
+2014-08-18  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-rl78.c (md_apply_fix): Correct handling of small sized
+	RELOC_RL78_DIFF fixups.
+
+2014-08-18  Alan Modra  <amodra@gmail.com>
+
+	* read.c (parse_mri_cons): Warning fix.
+
+2014-08-14  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac: Move ACX_LARGEFILE after LT_INIT.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+
+2014-08-06  Ilya Tocar  <ilya.tocar@intel.com>
+
+	* config/tc-i386.c (omit_lock_prefix): New.
+	(output_insn): Omit lock prefix if omit_lock_prefix is true.
+	(OPTION_omit_lock_prefix): New.
+	(md_longopts): Add momit-lock-prefix.
+	(md_parse_option): Handle momit-lock-prefix.
+	(md_show_usage): Add momit-lock-prefix=[no|yes].
+	* doc/c-i386.texi (momit-lock-prefix): Document.
+
+2014-08-01  Takashi Yoshii  <yoshii.takashi@renesas.com>
+
+	PR 10378
+	* config/tc-sh.c (tc_gen_reloc): Fix initialization of addend in
+	SWITCH_TABLE case.
+
+2014-07-29  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c: Rename INSN_LOAD_COPROC_DELAY to INSN_LOAD_COPROC
+	and INSN_COPROC_MOVE_DELAY to INSN_COPROC_MOVE throughout.
+
+2014-07-29  Matthew Fortune  <matthew.fortune@imgtec.com>
+
+	* config/tc-mips.c (mips_flags_frag): New static global.
+	(struct mips_set_options): Add oddspreg field.
+	(file_mips_opts, mips_opts): Initialize oddspreg.
+	(ISA_HAS_ODD_SINGLE_FPR): Add CPU argument and update for R5900 and
+	Loongson-3a.
+	(enum options, md_longopts, md_parse_option): Add -mfpxx, -modd-spreg
+	and -mno-odd-spreg options.
+	(md_begin): Create .MIPS.abiflags section.
+	(fpabi_incompatible_with, fpabi_requires): New static function.
+	(check_fpabi): Likewise.
+	(mips_check_options): Handle fp=xx and oddspreg restrictions.
+	(file_mips_check_options): Set oddspreg by default for fp=xx.
+	(mips_oddfpreg_ok): Re-write function.
+	(check_regno): Check odd numbered registers regardless of FPR size.
+	For fp != 32 use as_bad instead of as_warn.
+	(match_float_constant): Rewrite check regarding FP register width.  Add
+	support for generating constants when MXHC1 is present.  Handle fp=xx
+	to comply with the ABI.
+	(macro): Update M_LI_DD similarly to match_float_constant.  Generate
+	MTHC1 when available.  Check that correct code can be generated for
+	fp=xx and fp=64 ABIs.
+	(parse_code_option, s_mipsset): Add fp=xx, oddspreg and nooddspreg
+	options.
+	(mips_convert_ase_flags): New static function.
+	(mips_elf_final_processing): Use fpabi == Val_GNU_MIPS_ABI_FP_OLD_64
+	to determine when to add the EF_MIPS_FP64 flag.  Populate the
+	.MIPS.abiflags section.
+	(md_mips_end): Update .gnu_attribute based on command line and .module
+	as applicable.  Use check_fpabi to ensure .gnu.attribute and command
+	line/.module options are consistent.
+	* doc/as.texinfo: Add missing -mgp64/-mfp64 options and document new
+	-mfpxx, -modd-spreg and -mno-odd-spreg options.
+	* doc/c-mips.texi: Document -mfpxx, -modd-spreg, -mno-odd-spreg,
+	gnu_attribute values and FP ABIs.
+
+2014-07-27  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	Add RTEMS target support and simplify matching
+
+	* gas/configure.tgt (or1k*-*-rtems*): Ensure a match.
+	(or1k*-*-*): Use or1k* to match or1knd and or1kZ.
+
+2014-07-27  Anthony Green  <green@moxielogic.com>
+
+	* configure.tgt (generic_target): Add moxie-*-moxiebox*
+	* config/tc-moxie.c: Remove moxie_target_format.
+	(md_begin): Set default target_big_endian.
+	* config/tc-moxie.h: Only set TARGET_BYTES_BIG_ENDIAN if unset.
+	(TARGET_FORMAT): Set based on target_big_endian.
+
+2014-07-26  Alan Modra  <amodra@gmail.com>
+
+	* config/bfin-parse.y: Don't include obstack.h.
+	* config/obj-aout.c: Likewise.
+	* config/obj-coff.c: Likewise.
+	* config/obj-som.c: Likewise.
+	* config/tc-bfin.c: Likewise.
+	* config/tc-i960.c: Likewise.
+	* config/tc-rl78.c: Likewise.
+	* config/tc-rx.c: Likewise.
+	* config/tc-tic4x.c: Likewise.
+	* expr.c: Likewise.
+	* listing.c: Likewise.
+	* config/obj-elf.c (elf_file_symbol): Make name_length a size_t.
+	* config/tc-aarch64.c (symbol_locate): Likewise.
+	* config/tc-arm.c (symbol_locate): Likewise.
+	* config/tc-mmix.c (mmix_handle_mmixal): Make len_0 a size_t.
+	* config/tc-score.c (s3_build_score_ops_hsh): Make len a size_t.
+	(s3_build_dependency_insn_hsh): Likewise.
+	* config/tc-score7.c (s7_build_score_ops_hsh): Likewise.
+	(s7_build_dependency_insn_hsh): Likewise.
+	* frags.c (frag_grow): Make parameter a size_t, and use size_t locals.
+	(frag_new): Make parameter a size_t.
+	(frag_var_init): Make max_chars and var parameters size_t.
+	(frag_var, frag_variant): Likewise.
+	(frag_room): Return a size_t.
+	(frag_align_pattern): Make n_fill parameter a size_t.
+	* frags.h: Update function prototypes.
+	* symbols.c (save_symbol_name): Make name_length a size_t.
+
+2014-07-22  Sergey Guriev  <sergey.s.guriev@intel.com>
+	    Alexander Ivchenko  <alexander.ivchenko@intel.com>
+	    Maxim Kuznetsov  <maxim.kuznetsov@intel.com>
+	    Sergey Lega  <sergey.s.lega@intel.com>
+	    Anna Tikhonova  <anna.tikhonova@intel.com>
+	    Ilya Tocar  <ilya.tocar@intel.com>
+	    Andrey Turetskiy  <andrey.turetskiy@intel.com>
+	    Ilya Verbin  <ilya.verbin@intel.com>
+	    Kirill Yukhin  <kirill.yukhin@intel.com>
+	    Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512dq, CPU_AVX512DQ_FLAGS.
+	* doc/c-i386.texi: Document avx512dq/.avx512dq.
+
+2014-07-22  Sergey Guriev  <sergey.s.guriev@intel.com>
+	    Alexander Ivchenko  <alexander.ivchenko@intel.com>
+	    Maxim Kuznetsov  <maxim.kuznetsov@intel.com>
+	    Sergey Lega  <sergey.s.lega@intel.com>
+	    Anna Tikhonova  <anna.tikhonova@intel.com>
+	    Ilya Tocar  <ilya.tocar@intel.com>
+	    Andrey Turetskiy  <andrey.turetskiy@intel.com>
+	    Ilya Verbin  <ilya.verbin@intel.com>
+	    Kirill Yukhin  <kirill.yukhin@intel.com>
+	    Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512bw, CPU_AVX512BW_FLAGS.
+	* doc/c-i386.texi: Document avx512bw/.avx512bw.
+
+2014-07-22  Sergey Guriev  <sergey.s.guriev@intel.com>
+	    Alexander Ivchenko  <alexander.ivchenko@intel.com>
+	    Maxim Kuznetsov  <maxim.kuznetsov@intel.com>
+	    Sergey Lega  <sergey.s.lega@intel.com>
+	    Anna Tikhonova  <anna.tikhonova@intel.com>
+	    Ilya Tocar  <ilya.tocar@intel.com>
+	    Andrey Turetskiy  <andrey.turetskiy@intel.com>
+	    Ilya Verbin  <ilya.verbin@intel.com>
+	    Kirill Yukhin  <kirill.yukhin@intel.com>
+	    Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512vl, CPU_AVX512VL_FLAGS.
+	(build_vex_prefix): Don't abort on VEX.W.
+	(check_VecOperands): Support BROADCAST_1TO4 and BROADCAST_1TO2.
+	(check_VecOperations): Ditto.
+	* doc/c-i386.texi: Document avx512vl/.avx512vl.
+
+2014-07-21  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	Add or reactivate or1k-*-rtems*
+	* gas/configure.tgt (or1k-*-rtems*): Add.
+
+2014-07-17  Ilya Tocar  <ilya.tocar@intel.com>
+
+	* config/tc-i386.c (parse_register): Set need_vrex.
+
+2014-07-15  Jiong Wang  <jiong.wang@arm.com>
+
+	* config/tc-arm.c (add_to_lit_pool): Use "inst.operands[1].imm" for
+	sign extension.  Casting the type of imm1 and imm2 to offsetT.  Fix
+	one logic error when checking X_op.
+
+2014-07-14  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/tc-m68k.c (md_convert_frag_1): Don't complain with
+	--pcrel about TAB (DBCCLBR, LONG) conversion.
+
+2014-07-12  David Majnemer  <david.majnemer@gmail.com>
+
+	* read.c (assign_symbol): Don't force "set" symbols local for PE.
+
+2014-07-08  Jiong Wang  <jiong.wang@arm.com>
+
+	* config/tc-arm.c (literal_pool): New field "alignment".
+	(find_or_make_literal_pool): Initialize "alignment" to 2.
+	(s_ltorg): Align the pool using value of "alignment"
+	(parse_big_immediate): New parameter "in_exp". Return
+	parsed expression if "in_exp" is not null.
+	(parse_address_main): Invoke "parse_big_immediate" for
+	constant parameter.
+	(add_to_lit_pool): Add one parameter 'nbytes'.
+	Split 8 byte entry into two 4 byte entry.
+	Add padding to align 8 byte entry to 8 byte boundary.
+	(encode_arm_cp_address): Generate literal pool entry if possible.
+	(move_or_literal_pool): Generate entry for vldr case.
+	(enum lit_type): New enum type.
+	(do_ldst): Use new enum type.
+	(do_ldstv4): Likewise.
+	(do_t_ldst): Likewise.
+	(neon_write_immbits): Support Thumb-2 mode.
+
+2014-07-07  Barney Stratford  <barney_stratford@fastmail.fm>
+
+	* config/tc-avr.c (avr_operand): Permit referring to r26-r31 by
+	name as [xyz][hl].  Permit using a symbol whoes name begins with
+	‘r’ to refer to a register.
+	Allow arbitrary expressions for the P and p operators.
+	(md_apply_fix): Check the BFD_RELOC_AVR_PORT5 and
+	BFD_RELOC_AVR_PORT6 relocations.
+
+2014-07-04  Alan Modra  <amodra@gmail.com>
+
+	* doc/internals.texi: Update "configure.in" comments.
+	* acinclude.m4: Likewise.
+	* config/tc-sparc.c: Likewise.
+
+2014-07-04  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac: Rename from configure.in.
+	* Makefile.in: Regenerate.
+	* config.in: Regenerate.
+	* doc/Makefile.in: Regenerate.
+
+2014-07-04  Alan Modra  <amodra@gmail.com>
+
+	* doc/Makefile.am (CONFIG_STATUS_DEPENDENCIES): Delete.
+	* doc/Makefile.in: Regenerate.
+
+2014-07-04  Alan Modra  <amodra@gmail.com>
+
+	* configure.in: Include bfd/version.m4.
+	(AC_INIT, AM_INIT_AUTOMAKE): Use modern form.
+	(BFD_VERSION): Delete.
+	* configure.com: Get bfd version from bfd/version.m4.
+	* Makefile.am (CONFIG_STATUS_DEPENDENCIES): Remove bfd/configure.in.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* doc/Makefile.in: Regenerate.
+
+2014-07-01  Barney Stratford   <barney_stratford@fastmail.fm>
+            Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+            Pitchumani Sivanupandi  <pitchumani.s@atmel.com>
+            Soundararajan  <Sounderarajan.D@atmel.com>
+
+	* config/tc-avr.c (mcu_types): Add avrtiny arch.
+	Add avrtiny arch devices attiny4, attiny5, attiny9, attiny10, attiny20
+	and attiny40.
+	(md_show_usage): Add avrtiny arch in usage message.
+	(avr_operand): validate and issue error for invalid register for
+	avrtiny.
+	add new reloc exp for 16 bit lds/sts instruction.
+	(md_apply_fix): check 16 bit lds/sts operand for out of range and
+	encode.
+	(md_assemble): check ISA for arch and issue diagnostic.
+	* NEWS: Mention new support.
+	* doc/c-avr.texi: Document support for avrtiny architecture.
+
+2014-06-27  Alan Modra  <amodra@gmail.com>
+
+	* config/obj-macho.c (obj_mach_o_set_symbol_qualifier): Don't set
+	SYM_MACHO_FIELDS_NOT_VALIDATED after reporting an error.
+	(obj_mach_o_frob_label): Avoid cascading errors.
+	(obj_mach_o_frob_symbol): Don't set SYM_MACHO_FIELDS_NOT_VALIDATED.
+
+2014-06-18  DJ Delorie  <dj@redhat.com>
+
+	* config/rx-parse.y (BSET, BCLR, BTST, BNOT, BMCMD): Make .B
+	suffix optional.
+
+2014-06-17  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* config/tc-mmix.c (loc_assert_s): New member frag.
+	(s_loc): Set it.
+	(mmix_md_end): If an error is reported for a LOC expression, patch
+	up the related frag.
+
+2014-06-17  Chris Metcalf  <cmetcalf@tilera.com>
+
+	PR gas/16908
+	* macro.c (buffer_and_nest): Honour #line directives inside
+	macros.
+
+2014-06-17 Jiong Wang <jiong.wang@arm.com>
+
+	* config/tc-arm.c (depr_it_insns): New check for inc/dec sp.
+
+2014-06-17  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config/tc-cris.c (cris_bad): New function.
+	(cris_process_instruction): Where applicable, use it instead of
+	as_bad.
+
+2014-06-16  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-aarch64.c (md_apply_fix): Ignore unused relocs.
+
+2014-06-16  Jiong Wang  <jiong.wang@arm.com>
+
+	* config/tc-aarch64.c (END_OF_INSN): New macro.
+	(parse_operands): Handle operand given and in wrong format when
+	operand is optional.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* write.h (subsegs_finish): Delete declaration.
+	* write.c (subsegs_finish): Make static.
+	(write_object_file): Call subsegs_finish from here.  Don't print
+	warning and error count here..
+	* as.c (main): ..do so here instead.  Remove dead code for "no
+	object file generated".  Split out count strings to better support
+	internationalisation.  Don't call subsegs_finish. Tidy setting of
+	"keep_it".  Run write_object_file even after errors.
+	(keep_it): Make static.
+	* config/obj-elf.c (elf_frob_symbol): Remove assert.
+	(elf_frob_file_before_adjust): Likewise.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-dlx.c (machine_ip): Move initialisation of the_insn
+	earlier.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-i386.c (reloc): Don't avoid pcrel check for
+	BFD_RELOC_SIZE64.  Return NO_RELOC on failing pcrel check.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-tic6x.c (s_tic6x_ehtype): Clear after frag_more.
+	(tic6x_output_exidx_entry): Likewise.
+	(md_apply_fix): Simplify 1 byte md_number_to_chars.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-tic54x.c (tic54x_mlib): Don't write garbage past
+	end of archive to temp file.
+	(tic54x_start_line_hook): Start scan for parallel on next line,
+	not one char into next line (which may overrun the buffer).
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-vax.c (md_apply_fix): Rewrite.
+	(tc_gen_reloc, vax_cons, vax_cons_fix_new): Style: Use NO_RELOC
+	define rather than the equivalent BFD_RELOC_NONE.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-arm.c (s_arm_elf_cons): Initialise after frag_more.
+	(md_apply_fix): Delete now unnecessary zeroing for BFD_RELOC_ARM_GOT*
+	and BFD_RELOC_ARM_TLS* relocs.  Simplify BFD_RELOC_8 case.
+
+2014-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-cris.c (md_create_long_jump): Follow "short" jump
+	with a nop rather than leaving uninitialised.
+
+2014-06-13  Chen Gang  <gang.chen.5i5j@gmail.com>
+
+	* config/tc-score7.c: Replace sprintf with strcpy where
+	appropriate.
+	(s7_b32_relax_to_b16): Use symbol_get_frag() to access a symbol's
+	frag.
+	* config/tc-score.c (s3_relax_branch_inst16): Likewise.
+	(s3_relax_cmpbranch_inst32): Likewise.
+
 2014-06-07  Alan Modra  <amodra@gmail.com>
 
 	* config/tc-ppc.c (ppc_insert_operand): Handle PPC_OPERAND_SIGNOPT

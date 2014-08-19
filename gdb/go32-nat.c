@@ -97,18 +97,14 @@
 #include "buildsym.h"
 #include "i387-tdep.h"
 #include "i386-tdep.h"
-#include "i386-cpuid.h"
+#include "nat/i386-cpuid.h"
 #include "value.h"
 #include "regcache.h"
-#include <string.h>
 #include "top.h"
 #include "cli/cli-utils.h"
 #include "inf-child.h"
 
-#include <stdio.h>		/* might be required for __DJGPP_MINOR__ */
-#include <stdlib.h>
 #include <ctype.h>
-#include <errno.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <io.h>
@@ -716,7 +712,7 @@ go32_create_inferior (struct target_ops *ops, char *exec_file,
 
   add_thread_silent (inferior_ptid);
 
-  clear_proceed_status ();
+  clear_proceed_status (0);
   insert_breakpoints ();
   prog_has_started = 1;
 }

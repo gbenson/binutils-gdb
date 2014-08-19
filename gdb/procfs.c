@@ -42,13 +42,10 @@
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif
-#include <sys/errno.h>
 #include "gdb_wait.h"
 #include <signal.h>
 #include <ctype.h>
 #include "gdb_bfd.h"
-#include <string.h>
-#include "gdb_assert.h"
 #include "inflow.h"
 #include "auxv.h"
 #include "procfs.h"
@@ -148,7 +145,7 @@ static char * procfs_make_note_section (struct target_ops *self,
 static int procfs_can_use_hw_breakpoint (struct target_ops *self,
 					 int, int, int);
 
-static void procfs_info_proc (struct target_ops *, char *,
+static void procfs_info_proc (struct target_ops *, const char *,
 			      enum info_proc_what);
 
 #if defined (PR_MODEL_NATIVE) && (PR_MODEL_NATIVE == PR_MODEL_LP64)
@@ -3993,11 +3990,9 @@ procfs_xfer_partial (struct target_ops *ops, enum target_object object,
 #endif
 
     default:
-      if (ops->beneath != NULL)
-	return ops->beneath->to_xfer_partial (ops->beneath, object, annex,
-					      readbuf, writebuf, offset, len,
-					      xfered_len);
-      return TARGET_XFER_E_IO;
+      return ops->beneath->to_xfer_partial (ops->beneath, object, annex,
+					    readbuf, writebuf, offset, len,
+					    xfered_len);
     }
 }
 
@@ -5141,7 +5136,7 @@ info_proc_mappings (procinfo *pi, int summary)
 /* Implement the "info proc" command.  */
 
 static void
-procfs_info_proc (struct target_ops *ops, char *args,
+procfs_info_proc (struct target_ops *ops, const char *args,
 		  enum info_proc_what what)
 {
   struct cleanup *old_chain;
@@ -5522,7 +5517,6 @@ procfs_make_note_section (struct target_ops *self, bfd *obfd, int *note_size)
       xfree (auxv);
     }
 
-  make_cleanup (xfree, note_data);
   return note_data;
 }
 #else /* !Solaris */

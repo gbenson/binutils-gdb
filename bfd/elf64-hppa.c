@@ -1580,7 +1580,7 @@ elf64_hppa_size_dynamic_sections (bfd *output_bfd, struct bfd_link_info *info)
 
   /* Set up DLT, PLT and OPD offsets for local syms, and space for local
      dynamic relocs.  */
-  for (ibfd = info->input_bfds; ibfd != NULL; ibfd = ibfd->link_next)
+  for (ibfd = info->input_bfds; ibfd != NULL; ibfd = ibfd->link.next)
     {
       bfd_signed_vma *local_dlt;
       bfd_signed_vma *end_local_dlt;
@@ -3867,6 +3867,11 @@ elf64_hppa_relocate_section (bfd *output_bfd,
 	    return FALSE;
 
 	  eh = sym_hashes[r_symndx - symtab_hdr->sh_info];
+
+	  if (info->wrap_hash != NULL
+	      && (input_section->flags & SEC_DEBUGGING) != 0)
+	    eh = ((struct elf_link_hash_entry *)
+		  unwrap_hash_lookup (info, input_bfd, &eh->root));
 
 	  while (eh->root.type == bfd_link_hash_indirect
 		 || eh->root.type == bfd_link_hash_warning)

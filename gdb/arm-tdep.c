@@ -26,7 +26,6 @@
 #include "infrun.h"
 #include "gdbcmd.h"
 #include "gdbcore.h"
-#include <string.h>
 #include "dis-asm.h"		/* For register styles.  */
 #include "regcache.h"
 #include "reggroups.h"
@@ -53,7 +52,6 @@
 #include "coff/internal.h"
 #include "elf/arm.h"
 
-#include "gdb_assert.h"
 #include "vec.h"
 
 #include "record.h"
@@ -685,6 +683,17 @@ thumb2_instruction_changes_pc (unsigned short inst1, unsigned short inst2)
   return 0;
 }
 
+/* Return 1 if the 16-bit Thumb instruction INSN restores SP in
+   epilogue, 0 otherwise.  */
+
+static int
+thumb_instruction_restores_sp (unsigned short insn)
+{
+  return (insn == 0x46bd  /* mov sp, r7 */
+	  || (insn & 0xff80) == 0xb000  /* add sp, imm */
+	  || (insn & 0xfe00) == 0xbc00);  /* pop <registers> */
+}
+
 /* Analyze a Thumb prologue, looking for a recognizable stack frame
    and frame pointer.  Scan until we encounter a store that could
    clobber the stack frame unexpectedly, or an unknown instruction.
@@ -737,16 +746,16 @@ thumb_analyze_prologue (struct gdbarch *gdbarch,
 		pv_area_store (stack, regs[ARM_SP_REGNUM], 4, regs[regno]);
 	      }
 	}
-      else if ((insn & 0xff00) == 0xb000)	/* add sp, #simm  OR  
-						   sub sp, #simm */
+      else if ((insn & 0xff80) == 0xb080)	/* sub sp, #imm */
 	{
 	  offset = (insn & 0x7f) << 2;		/* get scaled offset */
-	  if (insn & 0x80)			/* Check for SUB.  */
-	    regs[ARM_SP_REGNUM] = pv_add_constant (regs[ARM_SP_REGNUM],
-						   -offset);
-	  else
-	    regs[ARM_SP_REGNUM] = pv_add_constant (regs[ARM_SP_REGNUM],
-						   offset);
+	  regs[ARM_SP_REGNUM] = pv_add_constant (regs[ARM_SP_REGNUM],
+						 -offset);
+	}
+      else if (thumb_instruction_restores_sp (insn))
+	{
+	  /* Don't scan past the epilogue.  */
+	  break;
 	}
       else if ((insn & 0xf800) == 0xa800)	/* add Rd, sp, #imm */
 	regs[bits (insn, 8, 10)] = pv_add_constant (regs[ARM_SP_REGNUM],
@@ -2870,6 +2879,64 @@ struct frame_unwind arm_exidx_unwind = {
   arm_exidx_unwind_sniffer
 };
 
+/* Recognize GCC's trampoline for thumb call-indirect.  If we are in a
+   trampoline, return the target PC.  Otherwise return 0.
+
+   void call0a (char c, short s, int i, long l) {}
+
+   int main (void)
+   {
+     (*pointer_to_call0a) (c, s, i, l);
+   }
+
+   Instead of calling a stub library function  _call_via_xx (xx is
+   the register name), GCC may inline the trampoline in the object
+   file as below (register r2 has the address of call0a).
+
+   .global main
+   .type main, %function
+   ...
+   bl .L1
+   ...
+   .size main, .-main
+
+   .L1:
+   bx r2
+
+   The trampoline 'bx r2' doesn't belong to main.  */
+
+static CORE_ADDR
+arm_skip_bx_reg (struct frame_info *frame, CORE_ADDR pc)
+{
+  /* The heuristics of recognizing such trampoline is that FRAME is
+     executing in Thumb mode and the instruction on PC is 'bx Rm'.  */
+  if (arm_frame_is_thumb (frame))
+    {
+      gdb_byte buf[2];
+
+      if (target_read_memory (pc, buf, 2) == 0)
+	{
+	  struct gdbarch *gdbarch = get_frame_arch (frame);
+	  enum bfd_endian byte_order_for_code
+	    = gdbarch_byte_order_for_code (gdbarch);
+	  uint16_t insn
+	    = extract_unsigned_integer (buf, 2, byte_order_for_code);
+
+	  if ((insn & 0xff80) == 0x4700)  /* bx <Rm> */
+	    {
+	      CORE_ADDR dest
+		= get_frame_register_unsigned (frame, bits (insn, 3, 6));
+
+	      /* Clear the LSB so that gdb core sets step-resume
+		 breakpoint at the right address.  */
+	      return UNMAKE_THUMB_ADDR (dest);
+	    }
+	}
+    }
+
+  return 0;
+}
+
 static struct arm_prologue_cache *
 arm_make_stub_cache (struct frame_info *this_frame)
 {
@@ -2906,12 +2973,19 @@ arm_stub_unwind_sniffer (const struct frame_unwind *self,
 {
   CORE_ADDR addr_in_block;
   gdb_byte dummy[4];
+  CORE_ADDR pc, start_addr;
+  const char *name;
 
   addr_in_block = get_frame_address_in_block (this_frame);
+  pc = get_frame_pc (this_frame);
   if (in_plt_section (addr_in_block)
       /* We also use the stub winder if the target memory is unreadable
 	 to avoid having the prologue unwinder trying to read it.  */
-      || target_read_memory (get_frame_pc (this_frame), dummy, 4) != 0)
+      || target_read_memory (pc, dummy, 4) != 0)
+    return 1;
+
+  if (find_pc_partial_function (pc, &name, &start_addr, NULL) == 0
+      && arm_skip_bx_reg (this_frame, pc) != 0)
     return 1;
 
   return 0;
@@ -3197,14 +3271,10 @@ thumb_in_function_epilogue_p (struct gdbarch *gdbarch, CORE_ADDR pc)
 	found_return = 1;
       else if (insn == 0x46f7)  /* mov pc, lr */
 	found_return = 1;
-      else if (insn == 0x46bd)  /* mov sp, r7 */
-	found_stack_adjust = 1;
-      else if ((insn & 0xff00) == 0xb000)  /* add sp, imm or sub sp, imm  */
-	found_stack_adjust = 1;
-      else if ((insn & 0xfe00) == 0xbc00)  /* pop <registers> */
+      else if (thumb_instruction_restores_sp (insn))
 	{
 	  found_stack_adjust = 1;
-	  if (insn & 0x0100)  /* <registers> include PC.  */
+	  if ((insn & 0xfe00) == 0xbd00)  /* pop <registers, PC> */
 	    found_return = 1;
 	}
       else if (thumb_insn_size (insn) == 4)  /* 32-bit Thumb-2 instruction */
@@ -3257,11 +3327,7 @@ thumb_in_function_epilogue_p (struct gdbarch *gdbarch, CORE_ADDR pc)
       insn = extract_unsigned_integer (buf, 2, byte_order_for_code);
       insn2 = extract_unsigned_integer (buf + 2, 2, byte_order_for_code);
 
-      if (insn2 == 0x46bd)  /* mov sp, r7 */
-	found_stack_adjust = 1;
-      else if ((insn2 & 0xff00) == 0xb000)  /* add sp, imm or sub sp, imm  */
-	found_stack_adjust = 1;
-      else if ((insn2 & 0xff00) == 0xbc00)  /* pop <registers> without PC */
+      if (thumb_instruction_restores_sp (insn2))
 	found_stack_adjust = 1;
       else if (insn == 0xe8bd)  /* ldm.w sp!, <registers> */
 	found_stack_adjust = 1;
@@ -9226,7 +9292,15 @@ arm_skip_stub (struct frame_info *frame, CORE_ADDR pc)
 
   /* Find the starting address and name of the function containing the PC.  */
   if (find_pc_partial_function (pc, &name, &start_addr, NULL) == 0)
-    return 0;
+    {
+      /* Trampoline 'bx reg' doesn't belong to any functions.  Do the
+	 check here.  */
+      start_addr = arm_skip_bx_reg (frame, pc);
+      if (start_addr != 0)
+	return start_addr;
+
+      return 0;
+    }
 
   /* If PC is in a Thumb call or return stub, return the address of the
      target PC, which is in a register.  The thunk functions are called

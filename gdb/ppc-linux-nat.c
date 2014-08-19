@@ -18,14 +18,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-#include <string.h>
 #include "observer.h"
 #include "frame.h"
 #include "inferior.h"
 #include "gdbthread.h"
 #include "gdbcore.h"
 #include "regcache.h"
-#include "gdb_assert.h"
 #include "target.h"
 #include "linux-nat.h"
 
@@ -1473,6 +1471,11 @@ ppc_linux_can_use_hw_breakpoint (struct target_ops *self,
     }
   else if (type == bp_hardware_breakpoint)
     {
+      if (total_hw_bp == 0)
+	{
+	  /* No hardware breakpoint support. */
+	  return 0;
+	}
       if (cnt > total_hw_bp)
 	return -1;
     }

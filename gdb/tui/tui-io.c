@@ -36,7 +36,6 @@
 #include "cli-out.h"
 #include <fcntl.h>
 #include <signal.h>
-#include <stdio.h>
 #include "filestuff.h"
 
 #include "gdb_curses.h"
@@ -129,10 +128,10 @@ static struct ui_file *tui_old_stderr;
 struct ui_out *tui_old_uiout;
 
 /* Readline previous hooks.  */
-static Function *tui_old_rl_getc_function;
-static VFunction *tui_old_rl_redisplay_function;
-static VFunction *tui_old_rl_prep_terminal;
-static VFunction *tui_old_rl_deprep_terminal;
+static rl_getc_func_t *tui_old_rl_getc_function;
+static rl_voidfunc_t *tui_old_rl_redisplay_function;
+static rl_vintfunc_t *tui_old_rl_prep_terminal;
+static rl_voidfunc_t *tui_old_rl_deprep_terminal;
 static int tui_old_rl_echoing_p;
 
 /* Readline output stream.
@@ -293,7 +292,7 @@ tui_prep_terminal (int notused1)
      (we can't use gdb_prompt() due to secondary prompts and can't use
      rl_prompt because it points to an alloca buffer).  */
   xfree (tui_rl_saved_prompt);
-  tui_rl_saved_prompt = xstrdup (rl_prompt);
+  tui_rl_saved_prompt = rl_prompt != NULL ? xstrdup (rl_prompt) : NULL;
 }
 
 /* Readline callback to restore the terminal.  It is called once each

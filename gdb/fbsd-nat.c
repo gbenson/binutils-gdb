@@ -23,9 +23,6 @@
 #include "regcache.h"
 #include "regset.h"
 #include "gdbthread.h"
-
-#include "gdb_assert.h"
-#include <string.h>
 #include <sys/types.h>
 #include <sys/procfs.h>
 #include <sys/sysctl.h>
@@ -214,6 +211,5 @@ fbsd_make_corefile_notes (struct target_ops *self, bfd *obfd, int *note_size)
 					  fname, psargs);
     }
 
-  make_cleanup (xfree, note_data);
   return note_data;
 }

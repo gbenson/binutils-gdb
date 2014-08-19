@@ -31,10 +31,8 @@
 #include "language.h"
 #include "cp-abi.h"
 #include "typeprint.h"
-#include <string.h>
 #include "exceptions.h"
 #include "valprint.h"
-#include <errno.h>
 #include <ctype.h>
 #include "cli/cli-utils.h"
 #include "extension.h"
@@ -636,7 +634,7 @@ set_print_type (char *arg, int from_tty)
 {
   printf_unfiltered (
      "\"set print type\" must be followed by the name of a subcommand.\n");
-  help_list (setprintlist, "set print type ", -1, gdb_stdout);
+  help_list (setprintlist, "set print type ", all_commands, gdb_stdout);
 }
 
 static void

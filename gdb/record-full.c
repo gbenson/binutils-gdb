@@ -792,7 +792,7 @@ record_full_async_inferior_event_handler (gdb_client_data data)
 /* Open the process record target.  */
 
 static void
-record_full_core_open_1 (char *name, int from_tty)
+record_full_core_open_1 (const char *name, int from_tty)
 {
   struct regcache *regcache = get_current_regcache ();
   int regnum = gdbarch_num_regs (get_regcache_arch (regcache));
@@ -822,7 +822,7 @@ record_full_core_open_1 (char *name, int from_tty)
 /* "to_open" target method for 'live' processes.  */
 
 static void
-record_full_open_1 (char *name, int from_tty)
+record_full_open_1 (const char *name, int from_tty)
 {
   if (record_debug)
     fprintf_unfiltered (gdb_stdlog, "Process record: record_full_open\n");
@@ -846,7 +846,7 @@ static void record_full_init_record_breakpoints (void);
 /* "to_open" target method.  Open the process record target.  */
 
 static void
-record_full_open (char *name, int from_tty)
+record_full_open (const char *name, int from_tty)
 {
   struct target_ops *t;
 
@@ -1703,7 +1703,8 @@ record_full_can_execute_reverse (struct target_ops *self)
 /* "to_get_bookmark" method for process record and prec over core.  */
 
 static gdb_byte *
-record_full_get_bookmark (struct target_ops *self, char *args, int from_tty)
+record_full_get_bookmark (struct target_ops *self, const char *args,
+			  int from_tty)
 {
   char *ret = NULL;
 
@@ -1727,9 +1728,10 @@ record_full_get_bookmark (struct target_ops *self, char *args, int from_tty)
 
 static void
 record_full_goto_bookmark (struct target_ops *self,
-			   gdb_byte *raw_bookmark, int from_tty)
+			   const gdb_byte *raw_bookmark, int from_tty)
 {
-  char *bookmark = (char *) raw_bookmark;
+  const char *bookmark = (const char *) raw_bookmark;
+  struct cleanup *cleanup = make_cleanup (null_cleanup, NULL);
 
   if (record_debug)
     fprintf_unfiltered (gdb_stdlog,
@@ -1737,18 +1739,20 @@ record_full_goto_bookmark (struct target_ops *self,
 
   if (bookmark[0] == '\'' || bookmark[0] == '\"')
     {
+      char *copy;
+
       if (bookmark[strlen (bookmark) - 1] != bookmark[0])
 	error (_("Unbalanced quotes: %s"), bookmark);
 
-      /* Strip trailing quote.  */
-      bookmark[strlen (bookmark) - 1] = '\0';
-      /* Strip leading quote.  */
-      bookmark++;
-      /* Pass along to cmd_record_full_goto.  */
+
+      copy = savestring (bookmark + 1, strlen (bookmark) - 2);
+      make_cleanup (xfree, copy);
+      bookmark = copy;
     }
 
-  cmd_record_goto (bookmark, from_tty);
-  return;
+  record_goto (bookmark);
+
+  do_cleanups (cleanup);
 }
 
 static enum exec_direction_kind

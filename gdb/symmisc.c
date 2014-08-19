@@ -37,8 +37,6 @@
 #include "typeprint.h"
 #include "gdbcmd.h"
 #include "source.h"
-
-#include <string.h>
 #include "readline/readline.h"
 
 #include "psymtab.h"
@@ -143,10 +141,12 @@ print_objfile_statistics (void)
     if (OBJSTAT (objfile, sz_strtab) > 0)
       printf_filtered (_("  Space used by a.out string tables: %d\n"),
 		       OBJSTAT (objfile, sz_strtab));
-    printf_filtered (_("  Total memory used for objfile obstack: %d\n"),
-		     obstack_memory_used (&objfile->objfile_obstack));
-    printf_filtered (_("  Total memory used for BFD obstack: %d\n"),
-		     obstack_memory_used (&objfile->per_bfd->storage_obstack));
+    printf_filtered (_("  Total memory used for objfile obstack: %s\n"),
+		     pulongest (obstack_memory_used (&objfile
+						     ->objfile_obstack)));
+    printf_filtered (_("  Total memory used for BFD obstack: %s\n"),
+		     pulongest (obstack_memory_used (&objfile->per_bfd
+						     ->storage_obstack)));
     printf_filtered (_("  Total memory used for psymbol cache: %d\n"),
 		     bcache_memory_used (psymbol_bcache_get_bcache
 		                          (objfile->psymbol_cache)));
@@ -291,7 +291,7 @@ dump_symtab_1 (struct objfile *objfile, struct symtab *symtab,
   struct dict_iterator iter;
   int len;
   struct linetable *l;
-  struct blockvector *bv;
+  const struct blockvector *bv;
   struct symbol *sym;
   struct block *b;
   int depth;

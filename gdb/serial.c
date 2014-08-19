@@ -20,7 +20,6 @@
 #include "defs.h"
 #include <ctype.h>
 #include "serial.h"
-#include <string.h>
 #include "gdbcmd.h"
 #include "cli/cli-utils.h"
 
@@ -423,7 +422,7 @@ serial_write (struct serial *scb, const void *buf, size_t count)
       for (c = 0; c < count; c++)
 	{
 	  fprintf_unfiltered (gdb_stdlog, "[");
-	  serial_logchar (gdb_stdlog, 'w', str[count] & 0xff, 0);
+	  serial_logchar (gdb_stdlog, 'w', str[c] & 0xff, 0);
 	  fprintf_unfiltered (gdb_stdlog, "]");
 	}
       gdb_flush (gdb_stdlog);
@@ -615,7 +614,7 @@ serial_set_cmd (char *args, int from_tty)
 {
   printf_unfiltered ("\"set serial\" must be followed "
 		     "by the name of a command.\n");
-  help_list (serial_set_cmdlist, "set serial ", -1, gdb_stdout);
+  help_list (serial_set_cmdlist, "set serial ", all_commands, gdb_stdout);
 }
 
 static void

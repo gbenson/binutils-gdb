@@ -18,11 +18,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-
-#include "gdb_assert.h"
 #include <dlfcn.h>
 #include "gdb_proc_service.h"
-#include "gdb_thread_db.h"
+#include "nat/gdb_thread_db.h"
 #include "gdb_vecs.h"
 #include "bfd.h"
 #include "command.h"
@@ -40,8 +38,8 @@
 #include "gdbcore.h"
 #include "observer.h"
 #include "linux-nat.h"
-#include "linux-procfs.h"
-#include "linux-osdata.h"
+#include "nat/linux-procfs.h"
+#include "nat/linux-osdata.h"
 #include "auto-load.h"
 #include "cli/cli-utils.h"
 
@@ -1767,10 +1765,7 @@ thread_db_pid_to_str (struct target_ops *ops, ptid_t ptid)
     }
 
   beneath = find_target_beneath (ops);
-  if (beneath->to_pid_to_str (beneath, ptid))
-    return beneath->to_pid_to_str (beneath, ptid);
-
-  return normal_pid_to_str (ptid);
+  return beneath->to_pid_to_str (beneath, ptid);
 }
 
 /* Return a string describing the state of the thread specified by
@@ -1874,11 +1869,7 @@ thread_db_get_thread_local_address (struct target_ops *ops,
     }
 
   beneath = find_target_beneath (ops);
-  if (beneath->to_get_thread_local_address)
-    return beneath->to_get_thread_local_address (beneath, ptid, lm, offset);
-  else
-    throw_error (TLS_GENERIC_ERROR,
-	         _("TLS not supported on this target"));
+  return beneath->to_get_thread_local_address (beneath, ptid, lm, offset);
 }
 
 /* Callback routine used to find a thread based on the TID part of

@@ -24,11 +24,9 @@
 #include "signal.h"
 #endif
 
-#include "nat/linux-nat.h"
-#include "nat/linux-waitpid.h"
+#include "linux-nat.h"
+#include "linux-waitpid.h"
 #include "gdb_wait.h"
-
-#include <string.h>
 
 /* Print debugging output based on the format string FORMAT and
    its parameters.  */

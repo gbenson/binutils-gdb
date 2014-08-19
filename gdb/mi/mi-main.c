@@ -24,7 +24,6 @@
 #include "target.h"
 #include "inferior.h"
 #include "infrun.h"
-#include <string.h>
 #include "exceptions.h"
 #include "top.h"
 #include "gdbthread.h"
@@ -253,7 +252,7 @@ proceed_thread (struct thread_info *thread, int pid)
     return;
 
   switch_to_thread (thread->ptid);
-  clear_proceed_status ();
+  clear_proceed_status (0);
   proceed ((CORE_ADDR) -1, GDB_SIGNAL_DEFAULT, 0);
 }
 

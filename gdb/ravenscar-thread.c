@@ -26,7 +26,6 @@
 #include "command.h"
 #include "ravenscar-thread.h"
 #include "observer.h"
-#include <string.h>
 #include "gdbcmd.h"
 #include "top.h"
 #include "regcache.h"
@@ -308,7 +307,7 @@ static void
 ravenscar_prepare_to_store (struct target_ops *self,
 			    struct regcache *regcache)
 {
-  struct target_ops *beneath = find_target_beneath (&ravenscar_ops);
+  struct target_ops *beneath = find_target_beneath (self);
 
   if (!ravenscar_runtime_initialized ()
       || ptid_equal (inferior_ptid, base_magic_null_ptid)
@@ -327,7 +326,7 @@ ravenscar_prepare_to_store (struct target_ops *self,
 static void
 ravenscar_mourn_inferior (struct target_ops *ops)
 {
-  struct target_ops *beneath = find_target_beneath (&ravenscar_ops);
+  struct target_ops *beneath = find_target_beneath (ops);
 
   base_ptid = null_ptid;
   beneath->to_mourn_inferior (beneath);
@@ -394,7 +393,7 @@ set_ravenscar_command (char *arg, int from_tty)
 {
   printf_unfiltered (_(\
 "\"set ravenscar\" must be followed by the name of a setting.\n"));
-  help_list (set_ravenscar_list, "set ravenscar ", -1, gdb_stdout);
+  help_list (set_ravenscar_list, "set ravenscar ", all_commands, gdb_stdout);
 }
 
 /* Implement the "show ravenscar" prefix command.  */

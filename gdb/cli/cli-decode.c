@@ -19,12 +19,10 @@
 #include "symtab.h"
 #include <ctype.h>
 #include "gdb_regex.h"
-#include <string.h>
 #include "completer.h"
 #include "ui-out.h"
 #include "cli/cli-cmds.h"
 #include "cli/cli-decode.h"
-#include "gdb_assert.h"
 
 /* Prototypes for local functions.  */
 
@@ -93,8 +91,8 @@ set_cmd_prefix (struct cmd_list_element *c, struct cmd_list_element **list)
 }
 
 static void
-print_help_for_command (struct cmd_list_element *c, char *prefix, int recurse,
-			struct ui_file *stream);
+print_help_for_command (struct cmd_list_element *c, const char *prefix,
+			int recurse, struct ui_file *stream);
 
 
 /* Set the callback function for the specified command.  For each both
@@ -134,8 +132,7 @@ set_cmd_sfunc (struct cmd_list_element *cmd, cmd_sfunc_ftype *sfunc)
 }
 
 int
-cmd_cfunc_eq (struct cmd_list_element *cmd,
-	      void (*cfunc) (char *args, int from_tty))
+cmd_cfunc_eq (struct cmd_list_element *cmd, cmd_cfunc_ftype *cfunc)
 {
   return cmd->func == do_cfunc && cmd->function.cfunc == cfunc;
 }
@@ -183,8 +180,8 @@ set_cmd_completer (struct cmd_list_element *cmd, completer_ftype *completer)
    of *LIST).  */
 
 struct cmd_list_element *
-add_cmd (const char *name, enum command_class class, void (*fun) (char *, int),
-	 char *doc, struct cmd_list_element **list)
+add_cmd (const char *name, enum command_class class, cmd_cfunc_ftype *fun,
+	 const char *doc, struct cmd_list_element **list)
 {
   struct cmd_list_element *c
     = (struct cmd_list_element *) xmalloc (sizeof (struct cmd_list_element));
@@ -262,7 +259,7 @@ add_cmd (const char *name, enum command_class class, void (*fun) (char *, int),
    Returns a pointer to the deprecated command.  */
 
 struct cmd_list_element *
-deprecate_cmd (struct cmd_list_element *cmd, char *replacement)
+deprecate_cmd (struct cmd_list_element *cmd, const char *replacement)
 {
   cmd->cmd_deprecated = 1;
   cmd->deprecated_warn_user = 1;
@@ -329,9 +326,9 @@ add_alias_cmd (const char *name, const char *oldname, enum command_class class,
 
 struct cmd_list_element *
 add_prefix_cmd (const char *name, enum command_class class,
-		void (*fun) (char *, int),
-		char *doc, struct cmd_list_element **prefixlist,
-		char *prefixname, int allow_unknown,
+		cmd_cfunc_ftype *fun,
+		const char *doc, struct cmd_list_element **prefixlist,
+		const char *prefixname, int allow_unknown,
 		struct cmd_list_element **list)
 {
   struct cmd_list_element *c = add_cmd (name, class, fun, doc, list);
@@ -357,8 +354,9 @@ add_prefix_cmd (const char *name, enum command_class class,
 
 struct cmd_list_element *
 add_abbrev_prefix_cmd (const char *name, enum command_class class,
-		       void (*fun) (char *, int), char *doc,
-		       struct cmd_list_element **prefixlist, char *prefixname,
+		       cmd_cfunc_ftype *fun, const char *doc,
+		       struct cmd_list_element **prefixlist,
+		       const char *prefixname,
 		       int allow_unknown, struct cmd_list_element **list)
 {
   struct cmd_list_element *c = add_cmd (name, class, fun, doc, list);
@@ -398,7 +396,7 @@ add_set_or_show_cmd (const char *name,
 		     enum command_class class,
 		     var_types var_type,
 		     void *var,
-		     char *doc,
+		     const char *doc,
 		     struct cmd_list_element **list)
 {
   struct cmd_list_element *c = add_cmd (name, class, NULL, doc, list);
@@ -805,7 +803,7 @@ delete_cmd (const char *name, struct cmd_list_element **list,
 	  if (iter->hookee_post)
 	    iter->hookee_post->hook_post = 0;
 	  if (iter->doc && iter->doc_allocated)
-	    xfree (iter->doc);
+	    xfree ((char *) iter->doc);
 	  *posthook = iter->hook_post;
 	  *posthookee = iter->hookee_post;
 
@@ -846,7 +844,7 @@ delete_cmd (const char *name, struct cmd_list_element **list,
 /* Add an element to the list of info subcommands.  */
 
 struct cmd_list_element *
-add_info (const char *name, void (*fun) (char *, int), char *doc)
+add_info (const char *name, cmd_cfunc_ftype *fun, const char *doc)
 {
   return add_cmd (name, no_class, fun, doc, &infolist);
 }
@@ -854,7 +852,7 @@ add_info (const char *name, void (*fun) (char *, int), char *doc)
 /* Add an alias to the list of info subcommands.  */
 
 struct cmd_list_element *
-add_info_alias (const char *name, char *oldname, int abbrev_flag)
+add_info_alias (const char *name, const char *oldname, int abbrev_flag)
 {
   return add_alias_cmd (name, oldname, 0, abbrev_flag, &infolist);
 }
@@ -862,8 +860,8 @@ add_info_alias (const char *name, char *oldname, int abbrev_flag)
 /* Add an element to the list of commands.  */
 
 struct cmd_list_element *
-add_com (const char *name, enum command_class class, void (*fun) (char *, int),
-	 char *doc)
+add_com (const char *name, enum command_class class, cmd_cfunc_ftype *fun,
+	 const char *doc)
 {
   return add_cmd (name, class, fun, doc, &cmdlist);
 }
@@ -884,7 +882,7 @@ add_com_alias (const char *name, const char *oldname, enum command_class class,
 void 
 apropos_cmd (struct ui_file *stream, 
 	     struct cmd_list_element *commandlist,
-	     struct re_pattern_buffer *regex, char *prefix)
+	     struct re_pattern_buffer *regex, const char *prefix)
 {
   struct cmd_list_element *c;
   int returnvalue;
@@ -937,10 +935,9 @@ apropos_cmd (struct ui_file *stream,
    help_list.  */
 
 void
-help_cmd (char *arg, struct ui_file *stream)
+help_cmd (const char *command, struct ui_file *stream)
 {
   struct cmd_list_element *c;
-  const char *command = arg;
 
   if (!command)
     {
@@ -1013,7 +1010,7 @@ help_cmd (char *arg, struct ui_file *stream)
  * If you call this routine with a class >= 0, it recurses.
  */
 void
-help_list (struct cmd_list_element *list, char *cmdtype,
+help_list (struct cmd_list_element *list, const char *cmdtype,
 	   enum command_class class, struct ui_file *stream)
 {
   int len;
@@ -1112,11 +1109,11 @@ help_all (struct ui_file *stream)
 
 /* Print only the first line of STR on STREAM.  */
 void
-print_doc_line (struct ui_file *stream, char *str)
+print_doc_line (struct ui_file *stream, const char *str)
 {
   static char *line_buffer = 0;
   static int line_size;
-  char *p;
+  const char *p;
 
   if (!line_buffer)
     {
@@ -1147,8 +1144,8 @@ print_doc_line (struct ui_file *stream, char *str)
    If RECURSE is non-zero, also print one-line descriptions
    of all prefixed subcommands.  */
 static void
-print_help_for_command (struct cmd_list_element *c, char *prefix, int recurse,
-			struct ui_file *stream)
+print_help_for_command (struct cmd_list_element *c, const char *prefix,
+			int recurse, struct ui_file *stream)
 {
   fprintf_filtered (stream, "%s%s -- ", prefix, c->name);
   print_doc_line (stream, c->doc);
@@ -1181,7 +1178,7 @@ print_help_for_command (struct cmd_list_element *c, char *prefix, int recurse,
  */
 void
 help_cmd_list (struct cmd_list_element *list, enum command_class class,
-	       char *prefix, int recurse, struct ui_file *stream)
+	       const char *prefix, int recurse, struct ui_file *stream)
 {
   struct cmd_list_element *c;
 
@@ -1507,7 +1504,7 @@ lookup_cmd (const char **line, struct cmd_list_element *list, char *cmdtype,
          values.  */
       int local_allow_unknown = (last_list ? last_list->allow_unknown :
 				 allow_unknown);
-      char *local_cmdtype = last_list ? last_list->prefixname : cmdtype;
+      const char *local_cmdtype = last_list ? last_list->prefixname : cmdtype;
       struct cmd_list_element *local_list =
 	(last_list ? *(last_list->prefixlist) : list);
 

@@ -54,8 +54,6 @@
 #include "user-regs.h"
 #include <ctype.h>
 #include "elf/common.h"
-#include <string.h>
-
 extern int arm_apcs_32;
 
 /* Under ARM GNU/Linux the traditional way of performing a breakpoint
@@ -245,6 +243,13 @@ static const gdb_byte arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa
 #define ARM_SET_R7_SIGRETURN		0xe3a07077
 #define ARM_SET_R7_RT_SIGRETURN		0xe3a070ad
 #define ARM_EABI_SYSCALL		0xef000000
+
+/* Equivalent patterns for Thumb2.  */
+#define THUMB2_SET_R7_SIGRETURN1	0xf04f
+#define THUMB2_SET_R7_SIGRETURN2	0x0777
+#define THUMB2_SET_R7_RT_SIGRETURN1	0xf04f
+#define THUMB2_SET_R7_RT_SIGRETURN2	0x07ad
+#define THUMB2_EABI_SYSCALL		0xdf00
 
 /* OABI syscall restart trampoline, used for EABI executables too
    whenever OABI support has been enabled in the kernel.  */
@@ -439,6 +444,30 @@ static struct tramp_frame arm_eabi_linux_rt_sigreturn_tramp_frame = {
   {
     { ARM_SET_R7_RT_SIGRETURN, -1 },
     { ARM_EABI_SYSCALL, -1 },
+    { TRAMP_SENTINEL_INSN }
+  },
+  arm_linux_rt_sigreturn_init
+};
+
+static struct tramp_frame thumb2_eabi_linux_sigreturn_tramp_frame = {
+  SIGTRAMP_FRAME,
+  2,
+  {
+    { THUMB2_SET_R7_SIGRETURN1, -1 },
+    { THUMB2_SET_R7_SIGRETURN2, -1 },
+    { THUMB2_EABI_SYSCALL, -1 },
+    { TRAMP_SENTINEL_INSN }
+  },
+  arm_linux_sigreturn_init
+};
+
+static struct tramp_frame thumb2_eabi_linux_rt_sigreturn_tramp_frame = {
+  SIGTRAMP_FRAME,
+  2,
+  {
+    { THUMB2_SET_R7_RT_SIGRETURN1, -1 },
+    { THUMB2_SET_R7_RT_SIGRETURN2, -1 },
+    { THUMB2_EABI_SYSCALL, -1 },
     { TRAMP_SENTINEL_INSN }
   },
   arm_linux_rt_sigreturn_init
@@ -1322,6 +1351,19 @@ arm_linux_syscall_record (struct regcache *regcache, unsigned long svc_number)
   return 0;
 }
 
+/* Implement the skip_trampoline_code gdbarch method.  */
+
+static CORE_ADDR
+arm_linux_skip_trampoline_code (struct frame_info *frame, CORE_ADDR pc)
+{
+  CORE_ADDR target_pc = arm_skip_stub (frame, pc);
+
+  if (target_pc != 0)
+    return target_pc;
+
+  return find_solib_trampoline_target (frame, pc);
+}
+
 static void
 arm_linux_init_abi (struct gdbarch_info info,
 		    struct gdbarch *gdbarch)
@@ -1387,7 +1429,7 @@ arm_linux_init_abi (struct gdbarch_info info,
   set_gdbarch_software_single_step (gdbarch, arm_linux_software_single_step);
 
   /* Shared library handling.  */
-  set_gdbarch_skip_trampoline_code (gdbarch, find_solib_trampoline_target);
+  set_gdbarch_skip_trampoline_code (gdbarch, arm_linux_skip_trampoline_code);
   set_gdbarch_skip_solib_resolver (gdbarch, glibc_skip_solib_resolver);
 
   /* Enable TLS support.  */
@@ -1402,6 +1444,10 @@ arm_linux_init_abi (struct gdbarch_info info,
 				&arm_eabi_linux_sigreturn_tramp_frame);
   tramp_frame_prepend_unwinder (gdbarch,
 				&arm_eabi_linux_rt_sigreturn_tramp_frame);
+  tramp_frame_prepend_unwinder (gdbarch,
+				&thumb2_eabi_linux_sigreturn_tramp_frame);
+  tramp_frame_prepend_unwinder (gdbarch,
+				&thumb2_eabi_linux_rt_sigreturn_tramp_frame);
   tramp_frame_prepend_unwinder (gdbarch,
 				&arm_linux_restart_syscall_tramp_frame);
   tramp_frame_prepend_unwinder (gdbarch,

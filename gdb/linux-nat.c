@@ -23,17 +23,15 @@
 #include "target.h"
 #include "nat/linux-nat.h"
 #include "nat/linux-waitpid.h"
-#include <string.h>
 #include "gdb_wait.h"
-#include "gdb_assert.h"
 #ifdef HAVE_TKILL_SYSCALL
 #include <unistd.h>
 #include <sys/syscall.h>
 #endif
 #include <sys/ptrace.h>
 #include "linux-nat.h"
-#include "linux-ptrace.h"
-#include "linux-procfs.h"
+#include "nat/linux-ptrace.h"
+#include "nat/linux-procfs.h"
 #include "linux-fork.h"
 #include "gdbthread.h"
 #include "gdbcmd.h"
@@ -59,7 +57,7 @@
 #include "terminal.h"
 #include <sys/vfs.h>
 #include "solib.h"
-#include "linux-osdata.h"
+#include "nat/linux-osdata.h"
 #include "linux-tdep.h"
 #include "symfile.h"
 #include "agent.h"
@@ -1694,8 +1692,7 @@ linux_nat_resume_callback (struct lwp_info *lp, void *except)
       thread = find_thread_ptid (lp->ptid);
       if (thread != NULL)
 	{
-	  if (signal_pass_state (thread->suspend.stop_signal))
-	    signo = thread->suspend.stop_signal;
+	  signo = thread->suspend.stop_signal;
 	  thread->suspend.stop_signal = GDB_SIGNAL_0;
 	}
     }
@@ -3704,22 +3701,30 @@ kill_callback (struct lwp_info *lp, void *data)
   /* PTRACE_KILL may resume the inferior.  Send SIGKILL first.  */
 
   errno = 0;
-  kill (ptid_get_lwp (lp->ptid), SIGKILL);
+  kill_lwp (ptid_get_lwp (lp->ptid), SIGKILL);
   if (debug_linux_nat)
-    fprintf_unfiltered (gdb_stdlog,
-			"KC:  kill (SIGKILL) %s, 0, 0 (%s)\n",
-			target_pid_to_str (lp->ptid),
-			errno ? safe_strerror (errno) : "OK");
+    {
+      int save_errno = errno;
+
+      fprintf_unfiltered (gdb_stdlog,
+			  "KC:  kill (SIGKILL) %s, 0, 0 (%s)\n",
+			  target_pid_to_str (lp->ptid),
+			  save_errno ? safe_strerror (save_errno) : "OK");
+    }
 
   /* Some kernels ignore even SIGKILL for processes under ptrace.  */
 
   errno = 0;
   ptrace (PTRACE_KILL, ptid_get_lwp (lp->ptid), 0, 0);
   if (debug_linux_nat)
-    fprintf_unfiltered (gdb_stdlog,
-			"KC:  PTRACE_KILL %s, 0, 0 (%s)\n",
-			target_pid_to_str (lp->ptid),
-			errno ? safe_strerror (errno) : "OK");
+    {
+      int save_errno = errno;
+
+      fprintf_unfiltered (gdb_stdlog,
+			  "KC:  PTRACE_KILL %s, 0, 0 (%s)\n",
+			  target_pid_to_str (lp->ptid),
+			  save_errno ? safe_strerror (save_errno) : "OK");
+    }
 
   return 0;
 }
@@ -4588,7 +4593,9 @@ linux_nat_supports_disable_randomization (struct target_ops *self)
 
 static int async_terminal_is_ours = 1;
 
-/* target_terminal_inferior implementation.  */
+/* target_terminal_inferior implementation.
+
+   This is a wrapper around child_terminal_inferior to add async support.  */
 
 static void
 linux_nat_terminal_inferior (struct target_ops *self)
@@ -4611,7 +4618,14 @@ linux_nat_terminal_inferior (struct target_ops *self)
   set_sigint_trap ();
 }
 
-/* target_terminal_ours implementation.  */
+/* target_terminal_ours implementation.
+
+   This is a wrapper around child_terminal_ours to add async support (and
+   implement the target_terminal_ours vs target_terminal_ours_for_output
+   distinction).  child_terminal_ours is currently no different than
+   child_terminal_ours_for_output.
+   We leave target_terminal_ours_for_output alone, leaving it to
+   child_terminal_ours_for_output.  */
 
 static void
 linux_nat_terminal_ours (struct target_ops *self)
@@ -4822,7 +4836,6 @@ linux_nat_thread_address_space (struct target_ops *t, ptid_t ptid)
   struct inferior *inf;
   int pid;
 
-  pid = ptid_get_lwp (ptid);
   if (ptid_get_lwp (ptid) == 0)
     {
       /* An (lwpid,0,0) ptid.  Look up the lwp object to get at the
@@ -5025,6 +5038,14 @@ Enables printf debugging output."),
   sigdelset (&suspend_mask, SIGCHLD);
 
   sigemptyset (&blocked_mask);
+
+  /* Do not enable PTRACE_O_TRACEEXIT until GDB is more prepared to
+     support read-only process state.  */
+  linux_ptrace_set_additional_flags (PTRACE_O_TRACESYSGOOD
+				     | PTRACE_O_TRACEVFORKDONE
+				     | PTRACE_O_TRACEVFORK
+				     | PTRACE_O_TRACEFORK
+				     | PTRACE_O_TRACEEXEC);
 }
 
 

@@ -114,7 +114,7 @@ struct general_symbol_info
   {
     LONGEST ivalue;
 
-    struct block *block;
+    const struct block *block;
 
     const gdb_byte *bytes;
 
@@ -122,7 +122,7 @@ struct general_symbol_info
 
     /* A common block.  Used with LOC_COMMON_BLOCK.  */
 
-    struct common_block *common_block;
+    const struct common_block *common_block;
 
     /* For opaque typedef struct chain.  */
 
@@ -271,7 +271,7 @@ extern const char *symbol_demangled_name
 extern int demangle;
 
 /* Macro that returns the name to be used when sorting and searching symbols.
-   In  C++, Chill, and Java, we search for the demangled form of a name,
+   In  C++ and Java, we search for the demangled form of a name,
    and so sort symbols accordingly.  In Ada, however, we search by mangled
    name.  If there is no distinct demangled name, then SYMBOL_SEARCH_NAME
    returns the same value (same pointer) as SYMBOL_LINKAGE_NAME.  */
@@ -882,7 +882,7 @@ struct symtab
      between different symtabs (and normally is for all the symtabs
      in a given compilation unit).  */
 
-  struct blockvector *blockvector;
+  const struct blockvector *blockvector;
 
   /* Table mapping core addresses to line numbers for this file.
      Can be NULL if none.  Never shared between different symtabs.  */
@@ -1356,8 +1356,8 @@ struct symbol_search
   struct symbol_search *next;
 };
 
-extern void search_symbols (char *, enum search_domain, int, char **,
-			    struct symbol_search **);
+extern void search_symbols (const char *, enum search_domain, int,
+			    const char **, struct symbol_search **);
 extern void free_search_symbols (struct symbol_search *);
 extern struct cleanup *make_cleanup_free_search_symbols (struct symbol_search
 							 **);

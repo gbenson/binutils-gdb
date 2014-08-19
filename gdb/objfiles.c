@@ -33,12 +33,10 @@
 #include "expression.h"
 #include "parser-defs.h"
 
-#include "gdb_assert.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "gdb_obstack.h"
-#include <string.h>
 #include "hashtab.h"
 
 #include "breakpoint.h"
@@ -746,7 +744,7 @@ objfile_relocate1 (struct objfile *objfile,
     ALL_OBJFILE_SYMTABS (objfile, s)
     {
       struct linetable *l;
-      struct blockvector *bv;
+      const struct blockvector *bv;
       int i;
 
       /* First the line table.  */
@@ -1454,14 +1452,14 @@ is_addr_in_objfile (CORE_ADDR addr, const struct objfile *objfile)
 }
 
 int
-userloaded_objfile_contains_address_p (struct program_space *pspace,
-				       CORE_ADDR address)
+shared_objfile_contains_address_p (struct program_space *pspace,
+				   CORE_ADDR address)
 {
   struct objfile *objfile;
 
   ALL_PSPACE_OBJFILES (pspace, objfile)
     {
-      if ((objfile->flags & OBJF_USERLOADED) != 0
+      if ((objfile->flags & OBJF_SHARED) != 0
 	  && is_addr_in_objfile (address, objfile))
 	return 1;
     }

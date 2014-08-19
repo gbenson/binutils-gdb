@@ -395,7 +395,7 @@ ppc_linux_supply_gregset (const struct regset *regset,
 			  struct regcache *regcache,
 			  int regnum, const void *gregs, size_t len)
 {
-  const struct ppc_reg_offsets *offsets = regset->descr;
+  const struct ppc_reg_offsets *offsets = regset->regmap;
 
   ppc_supply_gregset (regset, regcache, regnum, gregs, len);
 
@@ -420,7 +420,7 @@ ppc_linux_collect_gregset (const struct regset *regset,
 			   const struct regcache *regcache,
 			   int regnum, void *gregs, size_t len)
 {
-  const struct ppc_reg_offsets *offsets = regset->descr;
+  const struct ppc_reg_offsets *offsets = regset->regmap;
 
   /* Clear areas in the linux gregset not written elsewhere.  */
   if (regnum == -1)
@@ -1077,11 +1077,6 @@ ppc_linux_spe_context (int wordsize, enum bfd_endian byte_order,
     {
       struct target_ops *target = &current_target;
       volatile struct gdb_exception ex;
-
-      while (target && !target->to_get_thread_local_address)
-	target = find_target_beneath (target);
-      if (!target)
-	return 0;
 
       TRY_CATCH (ex, RETURN_MASK_ERROR)
 	{

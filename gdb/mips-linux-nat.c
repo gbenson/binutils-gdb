@@ -20,7 +20,6 @@
 #include "defs.h"
 #include "command.h"
 #include "gdbcmd.h"
-#include "gdb_assert.h"
 #include "inferior.h"
 #include "mips-tdep.h"
 #include "target.h"
@@ -36,7 +35,7 @@
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
 
-#include "mips-linux-watch.h"
+#include "nat/mips-linux-watch.h"
 
 #include "features/mips-linux.c"
 #include "features/mips-dsp-linux.c"

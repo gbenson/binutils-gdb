@@ -25,23 +25,27 @@
 #include "infrun.h"
 #include "objfiles.h"
 #endif
-
-#include <string.h>
 #include <unistd.h>
 #include "agent.h"
 #include "filestuff.h"
 
 int debug_agent = 0;
 
-#ifdef GDBSERVER
-#define DEBUG_AGENT(fmt, args...)	\
-  if (debug_agent)			\
-    fprintf (stderr, fmt, ##args);
-#else
-#define DEBUG_AGENT(fmt, args...)	\
-  if (debug_agent)			\
-    fprintf_unfiltered (gdb_stdlog, fmt, ##args);
-#endif
+/* A stdarg wrapper for debug_vprintf.  */
+
+static void ATTRIBUTE_PRINTF (1, 2)
+debug_agent_printf (const char *fmt, ...)
+{
+  va_list ap;
+
+  if (!debug_agent)
+    return;
+  va_start (ap, fmt);
+  debug_vprintf (fmt, ap);
+  va_end (ap);
+}
+
+#define DEBUG_AGENT debug_agent_printf
 
 /* Global flag to determine using agent or not.  */
 int use_agent = 0;

@@ -42,7 +42,6 @@
 #include "version.h"
 #include "serial.h"
 #include "doublest.h"
-#include "gdb_assert.h"
 #include "main.h"
 #include "event-loop.h"
 #include "gdbthread.h"
@@ -62,12 +61,12 @@
 #include <sys/types.h>
 
 #include "event-top.h"
-#include <string.h>
 #include <sys/stat.h>
 #include <ctype.h>
 #include "ui-out.h"
 #include "cli-out.h"
 #include "tracepoint.h"
+#include "inf-loop.h"
 
 extern void initialize_all_files (void);
 
@@ -756,7 +755,8 @@ gdb_readline_wrapper_line (char *line)
   after_char_processing_hook = NULL;
 
   /* Prevent parts of the prompt from being redisplayed if annotations
-     are enabled, and readline's state getting out of sync.  */
+     are enabled, and readline's state getting out of sync.  We'll
+     restore it in gdb_readline_wrapper_cleanup.  */
   if (async_command_editing_p)
     rl_callback_handler_remove ();
 }
@@ -765,6 +765,9 @@ struct gdb_readline_wrapper_cleanup
   {
     void (*handler_orig) (char *);
     int already_prompted_orig;
+
+    /* Whether the target was async.  */
+    int target_is_async_orig;
   };
 
 static void
@@ -776,11 +779,20 @@ gdb_readline_wrapper_cleanup (void *arg)
 
   gdb_assert (input_handler == gdb_readline_wrapper_line);
   input_handler = cleanup->handler_orig;
+
+  /* Reinstall INPUT_HANDLER in readline, without displaying a
+     prompt.  */
+  if (async_command_editing_p)
+    rl_callback_handler_install (NULL, input_handler);
+
   gdb_readline_wrapper_result = NULL;
   gdb_readline_wrapper_done = 0;
 
   after_char_processing_hook = saved_after_char_processing_hook;
   saved_after_char_processing_hook = NULL;
+
+  if (cleanup->target_is_async_orig)
+    target_async (inferior_event_handler, 0);
 
   xfree (cleanup);
 }
@@ -798,7 +810,12 @@ gdb_readline_wrapper (char *prompt)
 
   cleanup->already_prompted_orig = rl_already_prompted;
 
+  cleanup->target_is_async_orig = target_is_async_p ();
+
   back_to = make_cleanup (gdb_readline_wrapper_cleanup, cleanup);
+
+  if (cleanup->target_is_async_orig)
+    target_async (NULL, NULL);
 
   /* Display our prompt and prevent double prompt display.  */
   display_gdb_prompt (prompt);
@@ -1188,6 +1205,15 @@ This GDB was configured as follows:\n\
              --with-python=%s%s\n\
 "), WITH_PYTHON_PATH, PYTHON_PATH_RELOCATABLE ? " (relocatable)" : "");
 #endif
+#if HAVE_GUILE
+  fprintf_filtered (stream, _("\
+             --with-guile\n\
+"));
+#else
+  fprintf_filtered (stream, _("\
+             --without-guile\n\
+"));
+#endif
 #ifdef RELOC_SRCDIR
   fprintf_filtered (stream, _("\
              --with-relocated-sources=%s\n\
@@ -1544,7 +1570,7 @@ set_history (char *args, int from_tty)
 {
   printf_unfiltered (_("\"set history\" must be followed "
 		       "by the name of a history subcommand.\n"));
-  help_list (sethistlist, "set history ", -1, gdb_stdout);
+  help_list (sethistlist, "set history ", all_commands, gdb_stdout);
 }
 
 void

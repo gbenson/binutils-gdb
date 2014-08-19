@@ -19,7 +19,6 @@
 
 #include "defs.h"
 #include "arch-utils.h"
-#include <string.h>
 #include "symtab.h"
 #include "gdbtypes.h"
 #include "value.h"
@@ -30,7 +29,6 @@
 #include "language.h"
 #include "demangle.h"
 #include "doublest.h"
-#include "gdb_assert.h"
 #include "regcache.h"
 #include "block.h"
 #include "dfp.h"
@@ -906,7 +904,10 @@ allocate_optimized_out_value (struct type *type)
   struct value *retval = allocate_value_lazy (type);
 
   set_value_optimized_out (retval, 1);
-  set_value_lazy (retval, 0);
+  /* FIXME: we should be able to avoid allocating the value's contents
+     buffer, but value_available_contents_bits_eq can't handle
+     that.  */
+  /* set_value_lazy (retval, 0); */
   return retval;
 }
 
@@ -1208,25 +1209,6 @@ value_contents_writeable (struct value *value)
   if (value->lazy)
     value_fetch_lazy (value);
   return value_contents_raw (value);
-}
-
-/* Return non-zero if VAL1 and VAL2 have the same contents.  Note that
-   this function is different from value_equal; in C the operator ==
-   can return 0 even if the two values being compared are equal.  */
-
-int
-value_contents_equal (struct value *val1, struct value *val2)
-{
-  struct type *type1;
-  struct type *type2;
-
-  type1 = check_typedef (value_type (val1));
-  type2 = check_typedef (value_type (val2));
-  if (TYPE_LENGTH (type1) != TYPE_LENGTH (type2))
-    return 0;
-
-  return (memcmp (value_contents (val1), value_contents (val2),
-		  TYPE_LENGTH (type1)) == 0);
 }
 
 int
@@ -2331,7 +2313,7 @@ static void
 function_destroyer (struct cmd_list_element *self, void *ignore)
 {
   xfree ((char *) self->name);
-  xfree (self->doc);
+  xfree ((char *) self->doc);
 }
 
 /* Add a new internal function.  NAME is the name of the function; DOC
@@ -3416,6 +3398,9 @@ value_from_contents_and_address (struct type *type,
     v = allocate_value_lazy (resolved_type);
   else
     v = value_from_contents (resolved_type, valaddr);
+  if (TYPE_DATA_LOCATION (resolved_type) != NULL
+      && TYPE_DATA_LOCATION_KIND (resolved_type) == PROP_CONST)
+    address = TYPE_DATA_LOCATION_ADDR (resolved_type);
   set_value_address (v, address);
   VALUE_LVAL (v) = lval_memory;
   return v;
@@ -3465,7 +3450,7 @@ value_from_decfloat (struct type *type, const gdb_byte *dec)
    for details.  */
 
 struct value *
-value_from_history_ref (char *h, char **endp)
+value_from_history_ref (const char *h, const char **endp)
 {
   int index, len;
 
@@ -3496,7 +3481,12 @@ value_from_history_ref (char *h, char **endp)
 	  *endp += len;
 	}
       else
-	index = -strtol (&h[2], endp, 10);
+	{
+	  char *local_end;
+
+	  index = -strtol (&h[2], &local_end, 10);
+	  *endp = local_end;
+	}
     }
   else
     {
@@ -3507,7 +3497,12 @@ value_from_history_ref (char *h, char **endp)
 	  *endp += len;
 	}
       else
-	index = strtol (&h[1], endp, 10);
+	{
+	  char *local_end;
+
+	  index = strtol (&h[1], &local_end, 10);
+	  *endp = local_end;
+	}
     }
 
   return access_value_history (index);

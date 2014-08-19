@@ -43,7 +43,6 @@
 #include "exceptions.h"
 #include <signal.h>
 #include <ctype.h>
-#include <string.h>
 #include <sys/types.h>
 #include "command.h"
 #include "serial.h"
@@ -713,9 +712,9 @@ compile_pattern (char *pattern, struct re_pattern_buffer *compiled_pattern,
    for communication.  */
 
 void
-monitor_open (char *args, struct monitor_ops *mon_ops, int from_tty)
+monitor_open (const char *args, struct monitor_ops *mon_ops, int from_tty)
 {
-  char *name;
+  const char *name;
   char **p;
   struct inferior *inf;
 
@@ -2080,7 +2079,7 @@ monitor_create_inferior (struct target_ops *ops, char *exec_file,
     error (_("Args are not supported by the monitor."));
 
   first_time = 1;
-  clear_proceed_status ();
+  clear_proceed_status (0);
   regcache_write_pc (get_current_regcache (),
 		     bfd_get_start_address (exec_bfd));
 }
@@ -2200,7 +2199,7 @@ monitor_wait_srec_ack (void)
 /* monitor_load -- download a file.  */
 
 static void
-monitor_load (struct target_ops *self, char *args, int from_tty)
+monitor_load (struct target_ops *self, const char *args, int from_tty)
 {
   CORE_ADDR load_offset = 0;
   char **argv;
@@ -2282,7 +2281,7 @@ monitor_stop (struct target_ops *self, ptid_t ptid)
    ourseleves here cause of a nasty echo.  */
 
 static void
-monitor_rcmd (struct target_ops *self, char *command,
+monitor_rcmd (struct target_ops *self, const char *command,
 	      struct ui_file *outbuf)
 {
   char *p;
