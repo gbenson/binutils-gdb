@@ -1,3 +1,21 @@
+2014-08-20  Alan Modra  <amodra@gmail.com>
+
+	* Makefile.am: Typo fix.
+	* Makefile.in: Regenerate.
+	* po/POTFILES.in: Regenerate.
+
+2014-08-19  Andreas Tobler  <andreast@fgznet.ch>
+
+	* Makefile.am: Add FreeBSD ARM support.
+	* Mafefile.in: Regenerate.
+	* configure.tgt: Add FreeBSD ARM support.
+	* config/te-armfbsdeabi.h: New file.
+	* config/te-armfbsdvfp.h: Likewise.
+
+2014-08-19  Alan Modra  <amodra@gmail.com>
+
+	* configure: Regenerate.
+
 2014-08-18  Nick Clifton  <nickc@redhat.com>
 
 	* config/tc-rl78.c (md_apply_fix): Correct handling of small sized
