@@ -53,5 +53,9 @@ _ZN5Utils9transformIPN15ProjectExplorer13BuildStepListEZNKS1_18BuildConfiguratio
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61805
 _ZNK5niven5ColorIfLi4EEdvIfEENSt9enable_ifIXsrSt13is_arithmeticIT_E5valueEKNS0_IDTmlcvS5__Ecvf_EELi4EEEE4typeES5_
 
-https://gcc.gnu.org/ml/gcc-patches/2014-05/msg02484.html
+# https://gcc.gnu.org/ml/gcc-patches/2014-05/msg02484.html
 _Z3xxxDFyuVb
+
+# https://sourceware.org/bugzilla/show_bug.cgi?id=14963#c33
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62279
+_ZN5Utils9transformIPN15ProjectExplorer13BuildStepListEZNKS1_18BuildConfiguration14knownStepListsEvEUlS3_E_EE5QListIDTclfp0_cvT__EEEERKS6_IS7_ET0_
