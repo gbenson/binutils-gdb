@@ -59,3 +59,7 @@ _Z3xxxDFyuVb
 # https://sourceware.org/bugzilla/show_bug.cgi?id=14963#c33
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62279
 _ZN5Utils9transformIPN15ProjectExplorer13BuildStepListEZNKS1_18BuildConfiguration14knownStepListsEvEUlS3_E_EE5QListIDTclfp0_cvT__EEEERKS6_IS7_ET0_
+
+# https://sourceware.org/bugzilla/show_bug.cgi?id=17455
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63465
+_ZSt1aIRPZN1bII1cIcEEE1dIZN1eIIS2_EE1fEOS3_EUlRT_E_EEvOT_E1gEOS8_RNSt1hIS8_E1iE
