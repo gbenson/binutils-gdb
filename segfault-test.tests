@@ -63,3 +63,6 @@ _ZN5Utils9transformIPN15ProjectExplorer13BuildStepListEZNKS1_18BuildConfiguratio
 # https://sourceware.org/bugzilla/show_bug.cgi?id=17455
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63465
 _ZSt1aIRPZN1bII1cIcEEE1dIZN1eIIS2_EE1fEOS3_EUlRT_E_EEvOT_E1gEOS8_RNSt1hIS8_E1iE
+
+# https://sourceware.org/bugzilla/show_bug.cgi?id=17513
+_ZNK6clover6detail11basic_rangeINS_13adaptor_rangeINS_9addressesEINS2_IRFRNS_7programEP11_cl_programEINS_14iterator_rangeIPKS7_EEEEEEEENS0_16iterator_adaptorIS3_INSG_IS9_ISC_EEEEEESI_EcvT_ISt6vectorIPS4_SaISN_EEvEEv
