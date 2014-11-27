@@ -1,3 +1,17 @@
+2014-11-27  Gary Benson  <gbenson@redhat.com>
+
+	* symfile.h (expand_symtabs_exp_notify_ftype): New typedef.
+	(struct quick_symbol_functions) <expand_symtabs_matching>:
+	New argument expansion_notify.  All uses updated.
+	(expand_symtabs_matching): New argument expansion_notify.
+	All uses updated.
+	* symfile-debug.c (debug_qf_expand_symtabs_matching):
+	Also print expansion notify.
+	* symtab.c (expand_symtabs_matching_via_partial): Call
+	expansion_notify whenever a partial symbol table is expanded.
+	* dwarf2read.c (dw2_expand_symtabs_matching): Call
+	expansion_notify whenever a symbol table is instantiated.
+
 2014-11-24  Mark Wielaard  <mjw@redhat.com>
 
 	* dwarf2read.c (set_cu_language): Recognize DW_LANG_C11,
