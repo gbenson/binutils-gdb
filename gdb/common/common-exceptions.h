@@ -99,6 +99,10 @@ enum errors {
   /* Requested feature, method, mechanism, etc. is not supported.  */
   NOT_SUPPORTED_ERROR,
 
+  /* The number of candidates generated during line completion has
+     exceeded the user's specified limit.  */
+  TOO_MANY_COMPLETIONS_ERROR,
+
   /* Add more errors here.  */
   NR_ERRORS
 };

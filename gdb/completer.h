@@ -63,4 +63,27 @@ extern const char *skip_quoted_chars (const char *, const char *,
 
 extern const char *skip_quoted (const char *);
 
+/* Object to track how many unique completions have been generated.
+   Used to limit the size of generated completion lists.  */
+
+typedef htab_t completion_tracker_t;
+
+/* Create a new completion tracker.  */
+
+extern completion_tracker_t new_completion_tracker (void);
+
+/* Make a cleanup to free a completion tracker.  */
+
+extern struct cleanup *make_cleanup_free_completion_tracker
+		      (completion_tracker_t tracker);
+
+/* Add the completion NAME to the list of generated completions if
+   it is not there already.  Throw TOO_MANY_COMPLETIONS_ERROR if
+   max_completions >= 0 and the number of generated completions is
+   greater than max_completions.  Do nothing if max_completions is
+   negative.  */
+
+extern void maybe_limit_completions (completion_tracker_t tracker,
+				     char *name);
+
 #endif /* defined (COMPLETER_H) */

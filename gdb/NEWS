@@ -22,10 +22,19 @@
   ** $_any_caller_is(name [, number_of_frames])
   ** $_any_caller_matches(regexp [, number_of_frames])
 
-* New commands
+* New commands (for set/show, see "New options" below)
 
 queue-signal signal-name-or-number
   Queue a signal to be delivered to the thread when it is resumed.
+
+* New options
+
+set max-completions
+show max-completions
+  Set the maximum number of candidates to be considered during
+  completion.  The default value is 200.  This limit allows GDB
+  to avoid generating large completion lists, the computation of
+  which can cause the debugger to become temporarily unresponsive.
 
 * On resume, GDB now always passes the signal the program had stopped
   for to the thread the signal was sent to, even if the user changed

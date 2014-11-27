@@ -1,3 +1,9 @@
+2014-11-27  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.base/completion.exp: Disable completion limiting for
+	existing tests.  Add new tests to check completion limiting.
+	* gdb.linespec/ls-errs.exp: Disable completion limiting.
+
 2014-11-26  Doug Evans  <dje@google.com>
 
 	* gdb.dwarf2/dw2-op-out-param.S: Fix comment.

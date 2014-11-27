@@ -1,5 +1,33 @@
 2014-11-27  Gary Benson  <gbenson@redhat.com>
 
+	PR cli/9007
+	PR cli/11920
+	PR cli/15548
+	* common/common-exceptions.h (enum errors)
+	<TOO_MANY_COMPLETIONS_ERROR>: New value.
+	* completer.h (completion_tracker_t): New typedef.
+	(new_completion_tracker): New declaration.
+	(make_cleanup_free_completion_tracker): Likewise.
+	(maybe_limit_completions): Likewise.
+	* completer.c [TUI]: Include tui/tui.h and tui/tui-io.h.
+	(max_completions): New static variable.
+	(new_completion_tracker): New function.
+	(make_cleanup_free_completion_tracker): Likewise.
+	(maybe_limit_completions): Likewise.
+	(complete_line_internal): Do not generate any completions if
+	max_completions = 0.  Limit the number of completions if
+	max_completions >= 0.
+	(line_completion_function): Handle TOO_MANY_COMPLETIONS_ERROR.
+	(_initialize_completer): New declaration and function.
+	* symtab.c: Include completer.h.
+	(completion_tracker): New static variable.
+	(completion_list_add_name): Call maybe_limit_completions.
+	(default_make_symbol_completion_list_break_on): Maintain
+	completion_tracker across calls to completion_list_add_name.
+	* NEWS (New Options): Mention set/show max-completions.
+
+2014-11-27  Gary Benson  <gbenson@redhat.com>
+
 	* symtab.c (struct add_name_data) <code>: New field.
 	Updated comments.
 	(add_symtab_completions): New function.

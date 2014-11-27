@@ -1600,6 +1600,30 @@ means @kbd{@key{META} ?}.  You can type this either by holding down a
 key designated as the @key{META} shift on your keyboard (if there is
 one) while typing @kbd{?}, or as @key{ESC} followed by @kbd{?}.
 
+If the number of possible completions is large, @value{GDBN} will
+print a message rather than displaying the list:
+
+@smallexample
+(@value{GDBP}) b @key{TAB}@key{TAB}
+Too many possibilities.
+(@value{GDBP}) b
+@end smallexample
+
+@noindent
+This behavior can be controlled with the following commands:
+
+@table @code
+@kindex set max-completions
+@item set max-completions @var{limit}
+@itemx set max-completions unlimited
+Set the maximum number of candidates to be shown during completion.
+The default value is 200.  Note that setting either no limit or a
+very large limit can make completion slow.
+@kindex show max-completions
+@item show max-completions
+Show the maximum number of candidates to be shown during completion.
+@end table
+
 @cindex quotes in commands
 @cindex completion of quoted strings
 Sometimes the string you need, while logically a ``word'', may contain

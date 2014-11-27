@@ -60,6 +60,7 @@
 #include "macroscope.h"
 
 #include "parser-defs.h"
+#include "completer.h"
 
 /* Forward declarations for local functions.  */
 
@@ -4155,6 +4156,15 @@ static VEC (char_ptr) *return_val;
       completion_list_add_name \
 	(MSYMBOL_NATURAL_NAME (symbol), (sym_text), (len), (text), (word))
 
+/* Tracker for how many unique completions have been generated.  Used
+   to terminate completion list generation early if the list has grown
+   to a size so large as to be useless.  This helps avoid GDB seeming
+   to lock up in the event the user requests to complete on something
+   vague that necessitates the time consuming expansion of many symbol
+   tables.  */
+
+completion_tracker_t completion_tracker;
+
 /*  Test to see if the symbol specified by SYMNAME (which is already
    demangled for C++ symbols) matches SYM_TEXT in the first SYM_TEXT_LEN
    characters.  If so, add it to the current completion list.  */
@@ -4195,6 +4205,12 @@ completion_list_add_name (const char *symname,
       }
 
     VEC_safe_push (char_ptr, return_val, new);
+
+    /* Throw TOO_MANY_COMPLETIONS_ERROR if we've generated too many
+       completions.  We check this after pushing NEW to RETURN_VAL so
+       it's freed by default_make_symbol_completion_list_break_on's
+       cleanup if the exception is thrown.  */
+    maybe_limit_completions (completion_tracker, new);
   }
 }
 
@@ -4429,7 +4445,7 @@ default_make_symbol_completion_list_break_on (const char *text,
   /* Length of sym_text.  */
   int sym_text_len;
   struct add_name_data datum;
-  struct cleanup *back_to;
+  struct cleanup *back_to, *limit_chain;
 
   /* Now look for the symbol we are supposed to complete on.  */
   {
@@ -4502,6 +4518,9 @@ default_make_symbol_completion_list_break_on (const char *text,
 
   return_val = NULL;
   back_to = make_cleanup (do_free_completion_list, &return_val);
+
+  completion_tracker = new_completion_tracker ();
+  limit_chain = make_cleanup_free_completion_tracker (completion_tracker);
 
   datum.sym_text = sym_text;
   datum.sym_text_len = sym_text_len;
@@ -4615,6 +4634,7 @@ default_make_symbol_completion_list_break_on (const char *text,
       macro_for_each (macro_user_macros, add_macro_name, &datum);
     }
 
+  do_cleanups (limit_chain);
   discard_cleanups (back_to);
   return (return_val);
 }

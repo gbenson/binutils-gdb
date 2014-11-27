@@ -39,6 +39,11 @@
 
 #include "completer.h"
 
+#ifdef TUI
+#include "tui/tui.h"
+#include "tui/tui-io.h"
+#endif
+
 /* Prototypes for local functions.  */
 static
 char *line_completion_function (const char *text, int matches, 
@@ -778,9 +783,67 @@ complete_line_internal (const char *text,
 
   return list;
 }
-/* Generate completions all at once.  Returns a vector of strings.
-   Each element is allocated with xmalloc.  It can also return NULL if
-   there are no completions.
+
+/* Maximum number of candidates to consider before the completer
+   bails by throwing TOO_MANY_COMPLETIONS_ERROR.  Negative values
+   disable limiting.  */
+static int max_completions = 200;
+
+/* See completer.h.  */
+
+completion_tracker_t
+new_completion_tracker (void)
+{
+  if (max_completions < 1)
+    return NULL;
+
+  return htab_create_alloc (max_completions,
+			    htab_hash_string, (htab_eq) streq,
+			    NULL, xcalloc, xfree);
+}
+
+/* See completer.h.  */
+
+struct cleanup *
+make_cleanup_free_completion_tracker (completion_tracker_t tracker)
+{
+  if (tracker == NULL)
+    return make_cleanup (null_cleanup, NULL);
+
+  return make_cleanup_htab_delete (tracker);
+}
+
+/* See completer.h.  */
+
+void
+maybe_limit_completions (completion_tracker_t tracker, char *name)
+{
+  if (max_completions < 0)
+    return;
+
+  if (tracker != NULL)
+    {
+      void **slot = htab_find_slot (tracker, name, INSERT);
+
+      if (*slot != HTAB_EMPTY_ENTRY)
+	return;
+
+      if (htab_elements (tracker) <= max_completions)
+	{
+	  *slot = name;
+	  return;
+	}
+    }
+
+  throw_error (TOO_MANY_COMPLETIONS_ERROR,
+	       _("Too many possibilities."));
+}
+
+/* Generate completions all at once.  Returns a vector of strings
+   allocated with xmalloc.  Returns NULL if there are no completions
+   or if max_completions is 0.  Throws TOO_MANY_COMPLETIONS_ERROR if
+   max_completions is greater than zero and the number of completions
+   is greater than max_completions.
 
    TEXT is the caller's idea of the "word" we are looking at.
 
@@ -793,8 +856,33 @@ complete_line_internal (const char *text,
 VEC (char_ptr) *
 complete_line (const char *text, const char *line_buffer, int point)
 {
-  return complete_line_internal (text, line_buffer, 
-				 point, handle_completions);
+  VEC (char_ptr) *list = NULL;
+  struct cleanup *old_chain;
+
+  list = complete_line_internal (text, line_buffer, point,
+				 handle_completions);
+  old_chain = make_cleanup_free_char_ptr_vec (list);
+
+  /* Possibly throw TOO_MANY_COMPLETIONS_ERROR.  Individual
+     completers may do this too, to avoid unnecessary work,
+     but this is the ultimate check that stops users seeing
+     more completions than they wanted.  */
+  if (max_completions >= 0)
+    {
+      completion_tracker_t tracker = new_completion_tracker ();
+      struct cleanup *limit_chain =
+	make_cleanup_free_completion_tracker (tracker);
+      char *candidate;
+      int ix;
+
+      for (ix = 0; VEC_iterate (char_ptr, list, ix, candidate); ++ix)
+	maybe_limit_completions (tracker, candidate);
+
+      do_cleanups (limit_chain);
+    }
+
+  discard_cleanups (old_chain);
+  return list;
 }
 
 /* Complete on command names.  Used by "help".  */
@@ -881,6 +969,8 @@ line_completion_function (const char *text, int matches,
 
   if (matches == 0)
     {
+      volatile struct gdb_exception ex;
+
       /* The caller is beginning to accumulate a new set of
          completions, so we need to find all of them now, and cache
          them for returning one at a time on future calls.  */
@@ -894,7 +984,35 @@ line_completion_function (const char *text, int matches,
 	  VEC_free (char_ptr, list);
 	}
       index = 0;
-      list = complete_line (text, line_buffer, point);
+
+      TRY_CATCH (ex, RETURN_MASK_ALL)
+	list = complete_line (text, line_buffer, point);
+
+      if (ex.reason < 0)
+	{
+	  if (ex.error != TOO_MANY_COMPLETIONS_ERROR)
+	    throw_exception (ex);
+
+	  if (rl_completion_type != TAB)
+	    {
+#if defined(TUI)
+	      if (tui_active)
+		{
+		  tui_puts ("\n");
+		  tui_puts (ex.message);
+		  tui_puts ("\n");
+		}
+	      else
+#endif
+		{
+		  rl_crlf ();
+		  fputs (ex.message, rl_outstream);
+		  rl_crlf ();
+		}
+
+	      rl_on_new_line ();
+	    }
+	}
     }
 
   /* If we found a list of potential completions during initialization
@@ -977,4 +1095,20 @@ const char *
 skip_quoted (const char *str)
 {
   return skip_quoted_chars (str, NULL, NULL);
+}
+
+extern initialize_file_ftype _initialize_completer; /* -Wmissing-prototypes */
+
+void
+_initialize_completer (void)
+{
+  add_setshow_zuinteger_unlimited_cmd ("max-completions", no_class,
+				       &max_completions, _("\
+Set maximum number of completion candidates."), _("\
+Show maximum number of completion candidates."), _("\
+Use this to limit the number of candidates considered\n\
+during completion.  Specifying \"unlimited\" or -1\n\
+disables limiting.  Note that setting either no limit or\n\
+a very large limit can make completion slow."),
+				       NULL, NULL, &setlist, &showlist);
 }

@@ -1,3 +1,8 @@
+2014-11-27  Gary Benson  <gbenson@redhat.com>
+
+	* gdb.texinfo (Command Completion): Document new
+	"set/show max-completions" option.
+
 2014-10-30  Doug Evans  <dje@google.com>
 
 	* python.texi (Progspaces In Python): Document ability to add
