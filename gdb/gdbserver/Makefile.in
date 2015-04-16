@@ -180,7 +180,8 @@ SFILES=	$(srcdir)/gdbreplay.c $(srcdir)/inferiors.c $(srcdir)/dll.c \
 	$(srcdir)/common/common-debug.c $(srcdir)/common/cleanups.c \
 	$(srcdir)/common/common-exceptions.c $(srcdir)/symbol.c \
 	$(srcdir)/common/btrace-common.c \
-	$(srcdir)/common/fileio.c $(srcdir)/common/cleanup-utils.c
+	$(srcdir)/common/fileio.c $(srcdir)/common/cleanup-utils.c \
+	$(srcdir)/nat/linux-namespaces.c
 
 DEPFILES = @GDBSERVER_DEPFILES@
 
@@ -617,6 +618,9 @@ x86-linux-dregs.o: ../nat/x86-linux-dregs.c
 	$(COMPILE) $<
 	$(POSTCOMPILE)
 cleanup-utils.o: ../common/cleanup-utils.c
+	$(COMPILE) $<
+	$(POSTCOMPILE)
+linux-namespaces.o: ../nat/linux-namespaces.c
 	$(COMPILE) $<
 	$(POSTCOMPILE)
 
