@@ -1,5 +1,25 @@
 2015-04-16  Gary Benson  <gbenson@redhat.com>
 
+	* target.h (struct target_ops) <call_with_fs_of>: New field.
+	* linux-low.c (nat/linux-namespaces.h): New include.
+	(linux_low_call_with_fs_of): New function.
+	* linux-low.c (linux_target_ops): Initialize call_with_fs_of.
+	* hostio.c (hostio_fs_pid): New static variable.
+	(handle_setfs): New function.
+	(enter_filesystem): Likewise.
+	(open_closure): New structure.
+	(handle_open_1): New function.
+	(handle_open): Update to use enter_filesystem.
+	(unlink_closure): New structure.
+	(handle_unlink_1): New function.
+	(handle_unlink): Update to use enter_filesystem.
+	(readlink_closure): New structure.
+	(handle_readlink_1): New function.
+	(handle_readlink): Update to use enter_filesystem.
+	(handle_vFile): Handle vFile:setfs packets.
+
+2015-04-16  Gary Benson  <gbenson@redhat.com>
+
 	* configure.ac (AC_CHECK_FUNCS): Add setns.
 	* config.in: Regenerate.
 	* configure: Likewise.

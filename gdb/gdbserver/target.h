@@ -402,6 +402,12 @@ struct target_ops
      string should be copied into a buffer by the client if the string
      will not be immediately used, or if it must persist.  */
   char *(*pid_to_exec_file) (int pid);
+
+  /* Cause the filesystem to appear as it does to process PID and
+     call FUNC with argument ARG, restoring the filesystem to its
+     original state afterwards.  Return nonzero if FUNC was called,
+     zero otherwise (and set ERRNO). */
+  int (*call_with_fs_of) (int pid, void (*func) (void *), void *arg);
 };
 
 extern struct target_ops *the_target;

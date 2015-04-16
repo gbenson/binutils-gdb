@@ -243,6 +243,51 @@ hostio_reply_with_data (char *own_buf, char *buffer, int len,
   return input_index;
 }
 
+/* Process ID of inferior whose filesystem hostio functions
+   that take FILENAME arguments will use.  Zero means to use
+   our own filesystem.  */
+
+static int hostio_fs_pid = 0;
+
+/* Handle a "vFile:setfs:" packet.  */
+
+static void
+handle_setfs (char *own_buf)
+{
+  char *p;
+  int pid;
+
+  p = own_buf + strlen ("vFile:setfs:");
+
+  if (require_int (&p, &pid)
+      || pid < 0
+      || require_end (p))
+    {
+      hostio_packet_error (own_buf);
+      return;
+    }
+
+  hostio_fs_pid = pid;
+
+  hostio_reply (own_buf, 0);
+}
+
+/* Cause the filesystem to appear as it does to the process specified
+   by the most recent valid "vFile:setfs:" packet and call FUNC with
+   argument ARG, restoring the filesystem to its original state
+   afterwards.  Return nonzero if FUNC was called, zero otherwise (and
+   set ERRNO). */
+
+static int
+enter_filesystem (void (*func) (void *), void *arg)
+{
+  if (hostio_fs_pid != 0 && the_target->call_with_fs_of != NULL)
+    return the_target->call_with_fs_of (hostio_fs_pid, func, arg);
+
+  func (arg);
+  return 1;
+}
+
 static int
 fileio_open_flags_to_host (int fileio_open_flags, int *open_flags_p)
 {
@@ -275,23 +320,45 @@ fileio_open_flags_to_host (int fileio_open_flags, int *open_flags_p)
   return 0;
 }
 
+/* Arguments and return value of open(2).  */
+
+struct open_closure
+{
+  char filename[HOSTIO_PATH_MAX];
+  int flags;
+  int mode;
+  int return_value;
+};
+
+/* Helper for handle_open.  */
+
+static void
+handle_open_1 (void *arg)
+{
+  struct open_closure *clo = (struct open_closure *) arg;
+
+  clo->return_value = open (clo->filename, clo->flags, clo->mode);
+}
+
+/* Handle a "vFile:open:" packet.  */
+
 static void
 handle_open (char *own_buf)
 {
-  char filename[HOSTIO_PATH_MAX];
   char *p;
-  int fileio_flags, mode, flags, fd;
+  int fileio_flags, fd;
   struct fd_list *new_fd;
+  struct open_closure clo;
 
   p = own_buf + strlen ("vFile:open:");
 
-  if (require_filename (&p, filename)
+  if (require_filename (&p, clo.filename)
       || require_comma (&p)
       || require_int (&p, &fileio_flags)
       || require_comma (&p)
-      || require_int (&p, &mode)
+      || require_int (&p, &clo.mode)
       || require_end (p)
-      || fileio_open_flags_to_host (fileio_flags, &flags))
+      || fileio_open_flags_to_host (fileio_flags, &clo.flags))
     {
       hostio_packet_error (own_buf);
       return;
@@ -299,7 +366,11 @@ handle_open (char *own_buf)
 
   /* We do not need to convert MODE, since the fileio protocol
      uses the standard values.  */
-  fd = open (filename, flags, mode);
+
+  if (enter_filesystem (handle_open_1, &clo))
+    fd = clo.return_value;
+  else
+    fd = -1;
 
   if (fd == -1)
     {
@@ -487,23 +558,46 @@ handle_close (char *own_buf)
   hostio_reply (own_buf, ret);
 }
 
+/* Arguments and return value of unlink(2).  */
+
+struct unlink_closure
+{
+  char filename[HOSTIO_PATH_MAX];
+  int return_value;
+};
+
+/* Helper for handle_unlink.  */
+
+static void
+handle_unlink_1 (void *arg)
+{
+  struct unlink_closure *clo = (struct unlink_closure *) arg;
+
+  clo->return_value = unlink (clo->filename);
+}
+
+/* Handle a "vFile:unlink:" packet.  */
+
 static void
 handle_unlink (char *own_buf)
 {
-  char filename[HOSTIO_PATH_MAX];
+  struct unlink_closure clo;
   char *p;
   int ret;
 
   p = own_buf + strlen ("vFile:unlink:");
 
-  if (require_filename (&p, filename)
+  if (require_filename (&p, clo.filename)
       || require_end (p))
     {
       hostio_packet_error (own_buf);
       return;
     }
 
-  ret = unlink (filename);
+  if (enter_filesystem (handle_unlink_1, &clo))
+    ret = clo.return_value;
+  else
+    ret = -1;
 
   if (ret == -1)
     {
@@ -514,30 +608,57 @@ handle_unlink (char *own_buf)
   hostio_reply (own_buf, ret);
 }
 
+/* Arguments and return value of readlink(2).  */
+
+struct readlink_closure
+{
+  char filename[HOSTIO_PATH_MAX];
+  char linkname[HOSTIO_PATH_MAX];
+  int return_value;
+};
+
+/* Helper for handle_readlink.  */
+
+static void
+handle_readlink_1 (void *arg)
+{
+  struct readlink_closure *clo = (struct readlink_closure *) arg;
+
+  clo->return_value = readlink (clo->filename, clo->linkname,
+				sizeof (clo->linkname) - 1);
+}
+
+/* Handle a "vFile:readlink:" packet.  */
+
 static void
 handle_readlink (char *own_buf, int *new_packet_len)
 {
-  char filename[HOSTIO_PATH_MAX], linkname[HOSTIO_PATH_MAX];
+  struct readlink_closure clo;
   char *p;
   int ret, bytes_sent;
 
   p = own_buf + strlen ("vFile:readlink:");
 
-  if (require_filename (&p, filename)
+  if (require_filename (&p, clo.filename)
       || require_end (p))
     {
       hostio_packet_error (own_buf);
       return;
     }
 
-  ret = readlink (filename, linkname, sizeof (linkname) - 1);
+  if (enter_filesystem (handle_readlink_1, &clo))
+    ret = clo.return_value;
+  else
+    ret = -1;
+
   if (ret == -1)
     {
       hostio_error (own_buf);
       return;
     }
 
-  bytes_sent = hostio_reply_with_data (own_buf, linkname, ret, new_packet_len);
+  bytes_sent = hostio_reply_with_data (own_buf, clo.linkname,
+				       ret, new_packet_len);
 
   /* If the response does not fit into a single packet, do not attempt
      to return a partial response, but simply fail.  */
@@ -550,7 +671,10 @@ handle_readlink (char *own_buf, int *new_packet_len)
 int
 handle_vFile (char *own_buf, int packet_len, int *new_packet_len)
 {
-  if (startswith (own_buf, "vFile:open:"))
+  if (the_target->call_with_fs_of != NULL
+      && startswith (own_buf, "vFile:setfs:"))
+    handle_setfs (own_buf);
+  else if (startswith (own_buf, "vFile:open:"))
     handle_open (own_buf);
   else if (startswith (own_buf, "vFile:pread:"))
     handle_pread (own_buf, new_packet_len);

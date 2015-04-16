@@ -51,6 +51,7 @@
    definition of elf_fpregset_t.  */
 #include <elf.h>
 #endif
+#include "nat/linux-namespaces.h"
 
 #ifndef SPUFS_MAGIC
 #define SPUFS_MAGIC 0x23c9b64e
@@ -6349,6 +6350,14 @@ current_lwp_ptid (void)
   return ptid_of (current_thread);
 }
 
+/* Implementation of target_ops->call_with_fs_of.  */
+
+static int
+linux_low_call_with_fs_of (int pid, void (*func) (void *), void *arg)
+{
+  return linux_ns_enter (pid, LINUX_NS_MNT, func, arg);
+}
+
 static struct target_ops linux_target_ops = {
   linux_create_inferior,
   linux_attach,
@@ -6434,6 +6443,7 @@ static struct target_ops linux_target_ops = {
 #endif
   linux_supports_range_stepping,
   linux_proc_pid_to_exec_file,
+  linux_low_call_with_fs_of,
 };
 
 static void
