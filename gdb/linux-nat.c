@@ -66,6 +66,8 @@
 #include "target-descriptions.h"
 #include "filestuff.h"
 #include "objfiles.h"
+#include "fileio.h"
+#include "nat/linux-namespaces.h"
 
 #ifndef SPUFS_MAGIC
 #define SPUFS_MAGIC 0x23c9b64e
@@ -195,6 +197,24 @@ static target_xfer_partial_ftype *super_xfer_partial;
 /* The saved to_close method, inherited from inf-ptrace.c.
    Called by our to_close.  */
 static void (*super_close) (struct target_ops *);
+
+/* The saved to_fileio_open method, inherited from inf-child.c.
+   Called by our to_fileio_open.  */
+
+static int (*super_fileio_open) (struct target_ops *,
+				 const char *, int, int, int *);
+
+/* The saved to_fileio_unlink method, inherited from inf-child.c.
+   Called by our to_fileio_unlink.  */
+
+static int (*super_fileio_unlink) (struct target_ops *,
+				   const char *, int *);
+
+/* The saved to_fileio_readlink method, inherited from inf-child.c.
+   Called by our to_fileio_readlink.  */
+
+static char *(*super_fileio_readlink) (struct target_ops *,
+				       const char *, int *);
 
 static unsigned int debug_linux_nat;
 static void
@@ -4842,6 +4862,169 @@ linux_nat_core_of_thread (struct target_ops *ops, ptid_t ptid)
   return -1;
 }
 
+/* Process ID of inferior whose filesystem namespace the various
+   target_fileio functions will use.  Zero means to use our own.  */
+
+static int fs_ns_pid = 0;
+
+/* Implementation of to_fileio_set_fs.  */
+
+static void
+linux_nat_fileio_set_fs (struct target_ops *ops, int pid)
+{
+  fs_ns_pid = pid;
+}
+
+/* Implementation of to_filesystem_is_local.  */
+
+static int
+linux_nat_filesystem_is_local (struct target_ops *ops)
+{
+  return fs_ns_pid == 0
+    || linux_ns_same (getpid (), fs_ns_pid, LINUX_NS_MNT);
+}
+
+/* Enter the filesystem namespace of the process specified by
+   target_fileio_set_fs and call FUNC with the argument ARG,
+   restoring the original filesystem namespace afterwards.
+   Set TARGET_ERRNO if FUNC is not called.  */
+
+static void
+linux_nat_enter_fs (void (*func) (void *), void *arg, int *target_errno)
+{
+  if (fs_ns_pid == 0)
+    func (arg);
+  else if (!linux_ns_enter (fs_ns_pid, LINUX_NS_MNT, func, arg))
+    *target_errno = host_to_fileio_error (errno);
+}
+
+/* Arguments and return value of to_fileio_open.  */
+
+struct open_closure
+{
+  struct target_ops *ops;
+  const char *filename;
+  int flags;
+  int mode;
+  int *target_errno;
+  int return_value;
+};
+
+/* Helper for linux_nat_fileio_open.  */
+
+static void
+linux_nat_fileio_open_1 (void *arg)
+{
+  struct open_closure *clo = (struct open_closure *) arg;
+
+  clo->return_value = super_fileio_open (clo->ops, clo->filename,
+					 clo->flags, clo->mode,
+					 clo->target_errno);
+}
+
+/* Implementation of to_fileio_open.  */
+
+static int
+linux_nat_fileio_open (struct target_ops *ops,
+		       const char *filename, int flags, int mode,
+		       int *target_errno)
+{
+  struct open_closure clo =
+    {
+      /* Arguments.  */
+      ops, filename, flags, mode, target_errno,
+
+      /* Failure return value.  */
+      -1
+    };
+
+  linux_nat_enter_fs (linux_nat_fileio_open_1, &clo, target_errno);
+
+  return clo.return_value;
+}
+
+/* Arguments and return value of to_fileio_unlink.  */
+
+struct unlink_closure
+{
+  struct target_ops *ops;
+  const char *filename;
+  int *target_errno;
+  int return_value;
+};
+
+/* Helper for linux_nat_fileio_unlink.  */
+
+static void
+linux_nat_fileio_unlink_1 (void *arg)
+{
+  struct unlink_closure *clo = (struct unlink_closure *) arg;
+
+  clo->return_value = super_fileio_unlink (clo->ops, clo->filename,
+					   clo->target_errno);
+}
+
+/* Implementation of to_fileio_unlink.  */
+
+static int
+linux_nat_fileio_unlink (struct target_ops *ops,
+			   const char *filename, int *target_errno)
+{
+  struct unlink_closure clo =
+    {
+      /* Arguments.  */
+      ops, filename, target_errno,
+
+      /* Failure return value.  */
+      -1
+    };
+
+  linux_nat_enter_fs (linux_nat_fileio_unlink_1, &clo, target_errno);
+
+  return clo.return_value;
+}
+
+/* Arguments and return value of to_fileio_readlink.  */
+
+struct readlink_closure
+{
+  struct target_ops *ops;
+  const char *filename;
+  int *target_errno;
+  char *return_value;
+};
+
+/* Helper for linux_nat_fileio_readlink.  */
+
+static void
+linux_nat_fileio_readlink_1 (void *arg)
+{
+  struct readlink_closure *clo = (struct readlink_closure *) arg;
+
+  clo->return_value = super_fileio_readlink (clo->ops, clo->filename,
+					     clo->target_errno);
+}
+
+/* Implementation of to_fileio_readlink.  */
+
+static char *
+linux_nat_fileio_readlink (struct target_ops *ops,
+			   const char *filename, int *target_errno)
+{
+  struct readlink_closure clo =
+    {
+      /* Arguments.  */
+      ops, filename, target_errno,
+
+      /* Failure return value.  */
+      NULL
+    };
+
+  linux_nat_enter_fs (linux_nat_fileio_readlink_1, &clo, target_errno);
+
+  return clo.return_value;
+}
+
 void
 linux_nat_add_target (struct target_ops *t)
 {
@@ -4894,6 +5077,16 @@ linux_nat_add_target (struct target_ops *t)
     = linux_nat_supports_disable_randomization;
 
   t->to_core_of_thread = linux_nat_core_of_thread;
+
+  /* Target File-I/O functions.  */
+  t->to_fileio_set_fs = linux_nat_fileio_set_fs;
+  t->to_filesystem_is_local = linux_nat_filesystem_is_local;
+  super_fileio_open = t->to_fileio_open;
+  t->to_fileio_open = linux_nat_fileio_open;
+  super_fileio_unlink = t->to_fileio_unlink;
+  t->to_fileio_unlink = linux_nat_fileio_unlink;
+  super_fileio_readlink = t->to_fileio_readlink;
+  t->to_fileio_readlink = linux_nat_fileio_readlink;
 
   /* We don't change the stratum; this target will sit at
      process_stratum and thread_db will set at thread_stratum.  This
