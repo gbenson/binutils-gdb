@@ -42,6 +42,10 @@
   (no "set sysroot" or "file" commands are required).  See "New remote
   packets" below.
 
+* GDB and gdbserver now support attaching to processes running in
+  different mount namespaces from the debugger on GNU/Linux systems.
+  See "New remote packets" below.
+
 * Python Scripting
 
   ** gdb.Objfile objects have a new attribute "username",
@@ -115,6 +119,10 @@ vFile:fstat:
 qXfer:exec-file:read
   Return the full absolute name of the file that was executed to
   create a process running on the remote system.
+
+vFile:setfs:
+  Set the filesystem accessed by vFile: packets with filename
+  arguments.
 
 * The info record command now shows the recording format and the
   branch tracing configuration for the current thread when using

@@ -367,6 +367,12 @@ struct remote_state
 
   /* The branch trace configuration.  */
   struct btrace_config btrace_config;
+
+  /* The argument to the last "vFile:setfs:" packet we sent, used
+     to avoid sending repeated unnecessary "vFile:setfs:" packets.
+     Initialized to -1 to indicate that no "vFile:setfs:" packet
+     has yet been sent.  */
+  int fs_pid;
 };
 
 /* Private data that we'll store in (struct thread_info)->private.  */
@@ -409,6 +415,7 @@ new_remote_state (void)
   result->buf = xmalloc (result->buf_size);
   result->remote_traceframe_number = -1;
   result->last_sent_signal = GDB_SIGNAL_0;
+  result->fs_pid = -1;
 
   return result;
 }
@@ -1243,6 +1250,7 @@ enum {
   PACKET_Z2,
   PACKET_Z3,
   PACKET_Z4,
+  PACKET_vFile_setfs,
   PACKET_vFile_open,
   PACKET_vFile_pread,
   PACKET_vFile_pwrite,
@@ -9879,6 +9887,46 @@ remote_hostio_send_command (int command_bytes, int which_packet,
   return ret;
 }
 
+/* Process ID of inferior whose filesystem remote_hostio functions
+   that take FILENAME arguments will use.  Zero means to use the
+   remote stub's filesystem.  */
+
+static int remote_fs_pid = 0;
+
+/* Implementation of to_fileio_set_fs.  */
+
+static void
+remote_hostio_set_fs_deferred (struct target_ops *self, int pid)
+{
+  remote_fs_pid = pid;
+}
+
+/* Set the filesystem remote_hostio functions that take FILENAME
+   arguments will use.  */
+
+static void
+remote_hostio_set_filesystem (void)
+{
+  struct remote_state *rs = get_remote_state ();
+
+  if (rs->fs_pid == -1 || remote_fs_pid != rs->fs_pid)
+    {
+      char *p = rs->buf;
+      int left = get_remote_packet_size () - 1;
+      int remote_errno;
+      char arg[9];
+
+      remote_buffer_add_string (&p, &left, "vFile:setfs:");
+
+      xsnprintf (arg, sizeof (arg), "%x", remote_fs_pid);
+      remote_buffer_add_string (&p, &left, arg);
+
+      if (remote_hostio_send_command (p - rs->buf, PACKET_vFile_setfs,
+				      &remote_errno, NULL, NULL) == 0)
+	rs->fs_pid = remote_fs_pid;
+    }
+}
+
 /* Implementation of to_filesystem_is_local.  */
 
 static int
@@ -9897,6 +9945,8 @@ remote_hostio_open (struct target_ops *self,
   struct remote_state *rs = get_remote_state ();
   char *p = rs->buf;
   int left = get_remote_packet_size () - 1;
+
+  remote_hostio_set_filesystem ();
 
   remote_buffer_add_string (&p, &left, "vFile:open:");
 
@@ -10007,6 +10057,8 @@ remote_hostio_unlink (struct target_ops *self,
   char *p = rs->buf;
   int left = get_remote_packet_size () - 1;
 
+  remote_hostio_set_filesystem ();
+
   remote_buffer_add_string (&p, &left, "vFile:unlink:");
 
   remote_buffer_add_bytes (&p, &left, (const gdb_byte *) filename,
@@ -10030,6 +10082,8 @@ remote_hostio_readlink (struct target_ops *self,
   int len, attachment_len;
   int read_len;
   char *ret;
+
+  remote_hostio_set_filesystem ();
 
   remote_buffer_add_string (&p, &left, "vFile:readlink:");
 
@@ -11745,6 +11799,7 @@ Specify the serial device it is connected to\n\
   remote_ops.to_supports_multi_process = remote_supports_multi_process;
   remote_ops.to_supports_disable_randomization
     = remote_supports_disable_randomization;
+  remote_ops.to_fileio_set_fs = remote_hostio_set_fs_deferred;
   remote_ops.to_filesystem_is_local = remote_filesystem_is_local;
   remote_ops.to_fileio_open = remote_hostio_open;
   remote_ops.to_fileio_pwrite = remote_hostio_pwrite;
@@ -12310,6 +12365,9 @@ Show the maximum size of the address (in bits) in a memory packet."), NULL,
 
   add_packet_config_cmd (&remote_protocol_packets[PACKET_qTStatus],
 			 "qTStatus", "trace-status", 0);
+
+  add_packet_config_cmd (&remote_protocol_packets[PACKET_vFile_setfs],
+			 "vFile:setfs", "hostio-setfs", 0);
 
   add_packet_config_cmd (&remote_protocol_packets[PACKET_vFile_open],
 			 "vFile:open", "hostio-open", 0);

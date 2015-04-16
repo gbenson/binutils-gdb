@@ -19888,6 +19888,10 @@ are:
 @tab @code{vFile:fstat}
 @tab Host I/O
 
+@item @code{hostio-setfs-packet}
+@tab @code{vFile:setfs}
+@tab Host I/O
+
 @item @code{noack-packet}
 @tab @code{QStartNoAckMode}
 @tab Packet acknowledgment
@@ -37532,6 +37536,13 @@ An empty response indicates that this operation is not recognized.
 These are the supported Host I/O operations:
 
 @table @samp
+@item vFile:setfs: @var{pid}
+Set the filesystem accessed by @code{vFile} packets with
+@var{filename} arguments to the filesystem as seen by process
+@var{pid}.  If @var{pid} is zero, set the filesystem to that
+seen by the remote stub.  Return 0 on success, or -1 if an
+error occurs.
+
 @item vFile:open: @var{filename}, @var{flags}, @var{mode}
 Open a file at @var{filename} and return a file descriptor for it, or
 return -1 if an error occurs.  The @var{filename} is a string,

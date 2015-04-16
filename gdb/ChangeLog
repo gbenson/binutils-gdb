@@ -1,5 +1,23 @@
 2015-04-16  Gary Benson <gbenson@redhat.com>
 
+	* remote.c (struct remote_state) <fs_pid>: New field.
+	(new_remote_state): Initialize the above.
+	(PACKET_vFile_setfs): New enum value.
+	(remote_fs_pid): New static variable.
+	(remote_hostio_set_fs_deferred): New function.
+	(remote_hostio_set_filesystem): Likewise.
+	(remote_hostio_open): Call the above.
+	(remote_hostio_unlink): Likewise.
+	(remote_hostio_readlink): Likewise.
+	(init_remote_ops): Initialize to_fileio_set_fs.
+	(_initialize_remote): Register new "set/show remote
+	hostio-setfs-packet" command.
+	* NEWS: Mention that GDB and gdbserver support attaching to
+	processes in different mount namespaces on GNU/Linux systems.
+	Announce new vFile:setfs packet.
+
+2015-04-16  Gary Benson <gbenson@redhat.com>
+
 	* common/cleanup-utils.h: New file.
 	* common/cleanup-utils.c: Likewise.
 	* Makefile.in (SFILES): Add common/cleanup-utils.c.
