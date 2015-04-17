@@ -1,3 +1,9 @@
+2015-04-17  Gary Benson <gbenson@redhat.com>
+
+	* infrun.c (solist.h): New include.
+	(follow_exec): Use exec_file_find to prefix execd_pathname
+	with gdb_sysroot.
+
 2015-04-15  Gary Benson <gbenson@redhat.com>
 
 	* objfiles.c (allocate_objfile): Do not attempt to expand name
