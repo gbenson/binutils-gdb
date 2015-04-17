@@ -1969,6 +1969,153 @@ linux_handle_syscall_trap (struct lwp_info *lp, int stopping)
   return 1;
 }
 
+/* XXX.  */
+
+static int
+get_start_time (const char *filename, unsigned long long *start_time)
+{
+  char buffer[1024];
+  int fd, bytes_read, num;
+  char *start;
+
+  if (debug_linux_nat)
+    fprintf_unfiltered (gdb_stdlog,
+			"\x1B[35m%s (\"%s\")\x1B[0m\n",
+			__FUNCTION__, filename);
+
+  fd = gdb_open_cloexec (filename, O_RDONLY, 0);
+  if (fd < 0)
+    return -1;
+  bytes_read = read (fd, buffer, sizeof (buffer) - 1);
+  close (fd);
+  if (bytes_read <= 0 || bytes_read >= sizeof (buffer) - 1)
+    return -1;
+  buffer[bytes_read] = '\0';
+
+  /* Skip past the process name, being careful not to trip
+     over processes with names like ":-) 1 2 3 4 5 6".  */
+  start = strchr (buffer, '(');
+  if (start == NULL)
+    return -1;
+  start = strrchr (buffer, ')');
+  if (start == NULL)
+    return -1;
+  start += 2;
+
+  /* Parse the thing.  */
+  num = sscanf(start,
+	       /* state  */
+	       "%*c "
+	       /* ppid pgrp session tty_nr tpgid */
+	       "%*d %*d %*d %*d %*d "
+	       /* flags minflt cminflt majflt cmajflt */
+	       "%*u %*u %*u %*u %*u "
+	       /* utime stime cutime cstime */
+	       "%*u %*u %*u %*u "
+	       /* priority nice */
+	       "%*d %*d "
+	       /* num_threads */
+	       "%*d "
+	       /* itrealvalue */
+	       "%*d "
+	       /* start_time */
+	       "%Lu", start_time);
+
+  return num == 1 ? 0 : -1;
+}
+
+/* XXX.  */
+static int ptrace_geteventmsg_returns_inner_pid = -1;
+
+/* XXX.  */
+
+static pid_t
+pid_to_tracer_ns_maybe (pid_t outer_pid, pid_t inner_pid)
+{
+  char filename[PATH_MAX];
+  unsigned long long inner_start_time;
+  unsigned long long outer_start_time;
+  DIR *dir;
+  struct dirent *entry;
+  pid_t found_pid = 0;
+
+  xsnprintf (filename, sizeof (filename),
+	     "/proc/%d/root/proc/%d/stat",
+	     outer_pid, inner_pid);
+
+  if (get_start_time (filename, &inner_start_time) != 0)
+    perror_with_name (filename);
+
+  if (debug_linux_nat)
+    {
+      fprintf_unfiltered (gdb_stdlog,
+			  "%s (%d, %d)\n",
+			  __FUNCTION__, outer_pid, inner_pid);
+      fprintf_unfiltered (gdb_stdlog,
+			  "  start_time = %Lu\n",
+			  inner_start_time);
+    }
+
+  if (ptrace_geteventmsg_returns_inner_pid == -1)
+    {
+      /* We're kind of screwed if the same PID exists in both
+	 namespaces.  */
+      xsnprintf (filename, sizeof (filename),
+		 "/proc/%d/task/%d/stat",
+		 outer_pid, inner_pid);
+
+      if (get_start_time (filename, &outer_start_time) == 0)
+	{
+	  warning (_("can't decide what namespace "
+		     "PTRACE_GETEVENTMSG is using"));
+
+	  return inner_pid; /* Maybe it's right?  */
+	}
+
+      ptrace_geteventmsg_returns_inner_pid = 0;
+    }
+
+  xsnprintf (filename, sizeof (filename), "/proc/%d/task", outer_pid);
+  dir = opendir (filename);
+  if (dir == NULL)
+    perror_with_name (filename);
+
+  while (1)
+    {
+      pid_t check_pid;
+
+      entry = readdir (dir);
+      if (entry == NULL)
+	break;
+
+      check_pid = atoi (entry->d_name);
+      if (check_pid < 1)
+	continue;
+
+      xsnprintf (filename, sizeof (filename),
+		 "/proc/%d/task/%d/stat",
+		 outer_pid, check_pid);
+
+      if (get_start_time (filename, &outer_start_time) != 0)
+	perror_with_name (filename); // XXX closedir
+
+      if (inner_start_time == outer_start_time)
+	{
+	  if (found_pid != 0)
+	    error ("multiple matching PIDs"); // XXX closedir
+
+	  found_pid = check_pid;
+	}
+    }
+
+  closedir (dir);
+
+  if (found_pid == 0)
+    error ("no matching PIDs");
+
+  return found_pid;
+}
+
 /* Handle a GNU/Linux extended wait response.  If we see a clone
    event, we need to add the new LWP to our list (and not report the
    trap to higher layers).  This function returns non-zero if the
@@ -1990,6 +2137,15 @@ linux_handle_extended_wait (struct lwp_info *lp, int status,
       int ret;
 
       ptrace (PTRACE_GETEVENTMSG, pid, 0, &new_pid);
+
+      /* Damn, if the PID namespaces are different,
+	 and you're using RHEL6,
+	 new_pid is in the inferior's PID namespace.
+	 https://bugzilla.redhat.com/show_bug.cgi?id=573210
+	 XXX HACK!  */
+      if (ptrace_geteventmsg_returns_inner_pid
+	  && !linux_ns_same (pid, LINUX_NS_PID))
+	new_pid = pid_to_tracer_ns_maybe (pid, new_pid);
 
       /* If we haven't already seen the new PID stop, wait for it now.  */
       if (! pull_pid_from_list (&stopped_pids, new_pid, &status))
