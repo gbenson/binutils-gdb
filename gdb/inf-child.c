@@ -243,8 +243,8 @@ inf_child_fileio_open_flags_to_host (int fileio_open_flags, int *open_flags_p)
 
 static int
 inf_child_fileio_open (struct target_ops *self,
-		       const char *filename, int flags, int mode,
-		       int *target_errno)
+		       struct inferior *inf, const char *filename,
+		       int flags, int mode, int *target_errno)
 {
   int nat_flags;
   int fd;
@@ -353,7 +353,8 @@ inf_child_fileio_close (struct target_ops *self, int fd, int *target_errno)
 
 static int
 inf_child_fileio_unlink (struct target_ops *self,
-			 const char *filename, int *target_errno)
+			 struct inferior *inf, const char *filename,
+			 int *target_errno)
 {
   int ret;
 
@@ -368,7 +369,8 @@ inf_child_fileio_unlink (struct target_ops *self,
 
 static char *
 inf_child_fileio_readlink (struct target_ops *self,
-			   const char *filename, int *target_errno)
+			   struct inferior *inf, const char *filename,
+			   int *target_errno)
 {
   /* We support readlink only on systems that also provide a compile-time
      maximum path length (PATH_MAX), at least for now.  */
