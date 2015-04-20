@@ -9879,8 +9879,7 @@ remote_hostio_send_command (int command_bytes, int which_packet,
   return ret;
 }
 
-/* Return nonzero if the filesystem accessed by the target_fileio_*
-   methods is the local filesystem, zero otherwise.  */
+/* Implementation of to_filesystem_is_local.  */
 
 static int
 remote_filesystem_is_local (struct target_ops *self)
@@ -9888,9 +9887,7 @@ remote_filesystem_is_local (struct target_ops *self)
   return 0;
 }
 
-/* Open FILENAME on the remote target, using FLAGS and MODE.  Return a
-   remote file descriptor, or -1 if an error occurs (and set
-   *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_open.  */
 
 static int
 remote_hostio_open (struct target_ops *self,
@@ -9916,9 +9913,7 @@ remote_hostio_open (struct target_ops *self,
 				     remote_errno, NULL, NULL);
 }
 
-/* Write up to LEN bytes from WRITE_BUF to FD on the remote target.
-   Return the number of bytes written, or -1 if an error occurs (and
-   set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_pwrite.  */
 
 static int
 remote_hostio_pwrite (struct target_ops *self,
@@ -9945,9 +9940,7 @@ remote_hostio_pwrite (struct target_ops *self,
 				     remote_errno, NULL, NULL);
 }
 
-/* Read up to LEN bytes FD on the remote target into READ_BUF
-   Return the number of bytes read, or -1 if an error occurs (and
-   set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_pread.  */
 
 static int
 remote_hostio_pread (struct target_ops *self,
@@ -9986,8 +9979,7 @@ remote_hostio_pread (struct target_ops *self,
   return ret;
 }
 
-/* Close FD on the remote target.  Return 0, or -1 if an error occurs
-   (and set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_close.  */
 
 static int
 remote_hostio_close (struct target_ops *self, int fd, int *remote_errno)
@@ -10004,8 +9996,7 @@ remote_hostio_close (struct target_ops *self, int fd, int *remote_errno)
 				     remote_errno, NULL, NULL);
 }
 
-/* Unlink FILENAME on the remote target.  Return 0, or -1 if an error
-   occurs (and set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_unlink.  */
 
 static int
 remote_hostio_unlink (struct target_ops *self,
@@ -10024,9 +10015,7 @@ remote_hostio_unlink (struct target_ops *self,
 				     remote_errno, NULL, NULL);
 }
 
-/* Read value of symbolic link FILENAME on the remote target.  Return
-   a null-terminated string allocated via xmalloc, or NULL if an error
-   occurs (and set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_readlink.  */
 
 static char *
 remote_hostio_readlink (struct target_ops *self,
@@ -10063,9 +10052,7 @@ remote_hostio_readlink (struct target_ops *self,
   return ret;
 }
 
-/* Read information about the open file FD on the remote target
-   into ST.  Return 0 on success, or -1 if an error occurs (and
-   set *REMOTE_ERRNO).  */
+/* Implementation of to_fileio_fstat.  */
 
 static int
 remote_hostio_fstat (struct target_ops *self,
