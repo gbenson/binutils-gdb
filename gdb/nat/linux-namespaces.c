@@ -23,6 +23,15 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
+#include <sched.h>
+
+/* XXX!
+
+   "A process may not be reassociated with a new mount namespace if it
+   is multithreaded."
+     -- http://man7.org/linux/man-pages/man2/setns.2.html
+
+*/
 
 /* Handle systems with __NR_setns but no setns.  */
 #if defined(__NR_setns) && !defined(HAVE_SETNS)
