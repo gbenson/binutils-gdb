@@ -38,6 +38,7 @@ struct static_tracepoint_marker;
 struct traceframe_info;
 struct expression;
 struct dcache_struct;
+struct inferior;
 
 #include "infrun.h" /* For enum exec_direction_kind.  */
 
