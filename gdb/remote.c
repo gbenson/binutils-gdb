@@ -9887,29 +9887,16 @@ remote_hostio_send_command (int command_bytes, int which_packet,
   return ret;
 }
 
-/* Process ID of inferior whose filesystem remote_hostio functions
-   that take FILENAME arguments will use.  Zero means to use the
-   remote stub's filesystem.  */
-
-static int remote_fs_pid = 0;
-
-/* Implementation of to_fileio_set_fs.  */
-
-static void
-remote_hostio_set_fs_deferred (struct target_ops *self, int pid)
-{
-  remote_fs_pid = pid;
-}
-
 /* Set the filesystem remote_hostio functions that take FILENAME
    arguments will use.  */
 
 static void
-remote_hostio_set_filesystem (void)
+remote_hostio_set_filesystem (struct inferior *inf)
 {
   struct remote_state *rs = get_remote_state ();
+  int required_pid = (inf == NULL || inf->fake_pid_p) ? 0 : inf->pid;
 
-  if (rs->fs_pid == -1 || remote_fs_pid != rs->fs_pid)
+  if (rs->fs_pid == -1 || required_pid != rs->fs_pid)
     {
       char *p = rs->buf;
       int left = get_remote_packet_size () - 1;
@@ -9918,12 +9905,12 @@ remote_hostio_set_filesystem (void)
 
       remote_buffer_add_string (&p, &left, "vFile:setfs:");
 
-      xsnprintf (arg, sizeof (arg), "%x", remote_fs_pid);
+      xsnprintf (arg, sizeof (arg), "%x", required_pid);
       remote_buffer_add_string (&p, &left, arg);
 
       if (remote_hostio_send_command (p - rs->buf, PACKET_vFile_setfs,
 				      &remote_errno, NULL, NULL) == 0)
-	rs->fs_pid = remote_fs_pid;
+	rs->fs_pid = required_pid;
     }
 }
 
@@ -9946,7 +9933,7 @@ remote_hostio_open (struct target_ops *self,
   char *p = rs->buf;
   int left = get_remote_packet_size () - 1;
 
-  remote_hostio_set_filesystem ();
+  remote_hostio_set_filesystem (inf);
 
   remote_buffer_add_string (&p, &left, "vFile:open:");
 
@@ -10057,7 +10044,7 @@ remote_hostio_unlink (struct target_ops *self,
   char *p = rs->buf;
   int left = get_remote_packet_size () - 1;
 
-  remote_hostio_set_filesystem ();
+  remote_hostio_set_filesystem (inf);
 
   remote_buffer_add_string (&p, &left, "vFile:unlink:");
 
@@ -10083,7 +10070,7 @@ remote_hostio_readlink (struct target_ops *self,
   int read_len;
   char *ret;
 
-  remote_hostio_set_filesystem ();
+  remote_hostio_set_filesystem (inf);
 
   remote_buffer_add_string (&p, &left, "vFile:readlink:");
 
@@ -11799,7 +11786,6 @@ Specify the serial device it is connected to\n\
   remote_ops.to_supports_multi_process = remote_supports_multi_process;
   remote_ops.to_supports_disable_randomization
     = remote_supports_disable_randomization;
-  remote_ops.to_fileio_set_fs = remote_hostio_set_fs_deferred;
   remote_ops.to_filesystem_is_local = remote_filesystem_is_local;
   remote_ops.to_fileio_open = remote_hostio_open;
   remote_ops.to_fileio_pwrite = remote_hostio_pwrite;
