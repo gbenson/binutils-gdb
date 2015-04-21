@@ -1,27 +1,5 @@
 2015-04-16  Gary Benson <gbenson@redhat.com>
 
-	* linux-nat.c (fileio.h): New include.
-	(nat/linux-namespaces.h): Likewise.
-	(super_fileio_open): New static variable.
-	(super_fileio_unlink): Likewise.
-	(super_fileio_readlink): Likewise.
-	(fs_ns_pid): Likewise.
-	(linux_nat_fileio_set_fs): New function.
-	(linux_nat_filesystem_is_local): Likewise.
-	(linux_nat_enter_fs): Likewise.
-	(open_closure): New structure.
-	(linux_nat_fileio_open_1): New function.
-	(linux_nat_fileio_open): Likewise.
-	(unlink_closure): New structure.
-	(linux_nat_fileio_unlink_1): New function.
-	(linux_nat_fileio_unlink): Likewise.
-	(linux_nat_add_target): Install new target methods.
-	(readlink_closure): New structure.
-	(linux_nat_fileio_readlink_1): New function.
-	(linux_nat_fileio_readlink): Likewise.
-
-2015-04-16  Gary Benson <gbenson@redhat.com>
-
 	* linux-thread-db.c (nat/linux-namespaces.h): New include.
 	(check_pid_namespace_match): Use linux_ns_same rather than
 	linux_proc_pid_get_ns to spot PID namespace mismatches.
