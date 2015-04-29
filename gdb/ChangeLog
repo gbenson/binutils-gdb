@@ -1,5 +1,10 @@
 2015-04-29  Gary Benson <gbenson@redhat.com>
 
+	* gdb_bfd.c (gdb_bfd_open): Move vgdb special case to...
+	* remote.c (remote_filesystem_is_local): ...here.
+
+2015-04-29  Gary Benson <gbenson@redhat.com>
+
 	* solib.c (solib_find_1): Allow fd argument to be NULL.
 	(exec_file_find): Update comment.
 	(solib_find): Likewise.
