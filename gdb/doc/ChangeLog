@@ -1,3 +1,9 @@
+2015-04-30  Gary Benson <gbenson@redhat.com>
+
+	* gdb.texinfo (Remote Configuration): Document the
+	"set/show remote hostio-setfs-packet" command.
+	(Host I/O Packets): Document the vFile:setfs packet.
+
 2015-04-28  Sasha Smundak  <asmundak@google.com>
 
 	* python.texi: New method documented.

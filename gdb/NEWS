@@ -126,6 +126,12 @@ qXfer:exec-file:read
   Return the full absolute name of the file that was executed to
   create a process running on the remote system.
 
+vFile:setfs:
+  Select the filesystem on which vFile: operations with filename
+  arguments will operate.  This is required for GDB to be able to
+  access files on remote targets where the remote stub does not
+  share a common filesystem with the inferior(s).
+
 * The info record command now shows the recording format and the
   branch tracing configuration for the current thread when using
   the btrace record target.
