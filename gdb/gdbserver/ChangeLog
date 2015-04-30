@@ -1,5 +1,14 @@
 2015-04-30  Gary Benson  <gbenson@redhat.com>
 
+	* configure.ac (AC_CHECK_FUNCS): Add setns.
+	* config.in: Regenerate.
+	* configure: Likewise.
+	* Makefile.in (SFILES): Add nat/linux-namespaces.c.
+	(linux-namespaces.o): New rule.
+	* configure.srv (srv_linux_obj): Add linux-namespaces.o.
+
+2015-04-30  Gary Benson  <gbenson@redhat.com>
+
 	* Makefile.in (SFILES): Add common/cleanup-utils.c.
 	(OBS): Add cleanup-utils.o.
 	(cleanup-utils.o): New rule.
