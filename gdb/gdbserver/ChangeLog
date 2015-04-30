@@ -1,3 +1,9 @@
+2015-04-30  Gary Benson  <gbenson@redhat.com>
+
+	* Makefile.in (SFILES): Add common/cleanup-utils.c.
+	(OBS): Add cleanup-utils.o.
+	(cleanup-utils.o): New rule.
+
 2015-04-21  Gary Benson <gbenson@redhat.com>
 
 	* hostio.c (fileio_open_flags_to_host): Factored out to
