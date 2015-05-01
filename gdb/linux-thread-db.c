@@ -652,7 +652,7 @@ dladdr_to_soname (const void *addr)
    version mismatch between libthread_db and libpthread).  */
 
 static int
-try_thread_db_load_1 (struct thread_db_info *info)
+try_thread_db_load_2 (struct thread_db_info *info)
 {
   td_err_e err;
 
@@ -793,6 +793,22 @@ try_thread_db_load_1 (struct thread_db_info *info)
   return 1;
 }
 
+/* XXX.  */
+
+static int
+try_thread_db_load_1 (void *handle, char *filename)
+{
+  struct thread_db_info *info = add_thread_db_info (handle);
+
+  info->filename = filename;
+  if (try_thread_db_load_2 (info))
+    return 1;
+
+  /* This library "refused" to work on current inferior.  */
+  delete_thread_db_info (ptid_get_pid (inferior_ptid));
+  return 0;
+}
+
 /* Attempt to use LIBRARY as libthread_db.  LIBRARY could be absolute,
    relative, or just LIBTHREAD_DB.  */
 
@@ -800,7 +816,7 @@ static int
 try_thread_db_load (const char *library, int check_auto_load_safe)
 {
   void *handle;
-  struct thread_db_info *info;
+  char *filename = NULL;
 
   if (libthread_db_debug)
     fprintf_unfiltered (gdb_stdlog,
@@ -849,18 +865,11 @@ try_thread_db_load (const char *library, int check_auto_load_safe)
         }
     }
 
-  info = add_thread_db_info (handle);
-
   /* Do not save system library name, that one is always trusted.  */
   if (strchr (library, '/') != NULL)
-    info->filename = gdb_realpath (library);
+    filename = gdb_realpath (library);
 
-  if (try_thread_db_load_1 (info))
-    return 1;
-
-  /* This library "refused" to work on current inferior.  */
-  delete_thread_db_info (ptid_get_pid (inferior_ptid));
-  return 0;
+  return try_thread_db_load_1 (handle, filename);
 }
 
 /* Subroutine of try_thread_db_load_from_pdir to simplify it.
