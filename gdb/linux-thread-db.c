@@ -45,6 +45,48 @@
 #include <signal.h>
 #include <ctype.h>
 #include "nat/linux-namespaces.h"
+#include "infinity.h"
+
+/* XXX.  */
+
+static void *infinity_handle = &infinity_handle;
+
+/* XXX  */
+
+static void *
+infinity_dlsym (void *handle, const char *symbol)
+{
+  if (handle != infinity_handle)
+    return dlsym (handle, symbol);
+
+#define DO_SYMBOL(n) \
+  if (strcmp (symbol, #n) == 0) \
+    return infinity_ ## n ;
+
+  DO_SYMBOL (td_init);
+  DO_SYMBOL (td_ta_new);
+  DO_SYMBOL (td_ta_map_id2thr);
+  DO_SYMBOL (td_ta_map_lwp2thr);
+  DO_SYMBOL (td_ta_thr_iter);
+  DO_SYMBOL (td_thr_validate);
+  DO_SYMBOL (td_thr_get_info);
+  DO_SYMBOL (td_ta_event_addr);
+  DO_SYMBOL (td_ta_set_event);
+  DO_SYMBOL (td_ta_clear_event);
+  DO_SYMBOL (td_ta_event_getmsg);
+  DO_SYMBOL (td_thr_event_enable);
+  DO_SYMBOL (td_thr_tls_get_addr);
+  DO_SYMBOL (td_thr_tlsbase);
+
+#undef DO_SYMBOL
+
+  printf ("\x1B[35m%s (%s)\x1B[0m\n", __FUNCTION__, symbol);
+  return NULL;
+}
+
+/* XXX.  */
+
+#define dlsym(h, s) infinity_dlsym (h, s)
 
 /* GNU/Linux libthread_db support.
 
@@ -262,7 +304,7 @@ delete_thread_db_info (int pid)
   if (info == NULL)
     return;
 
-  if (info->handle != NULL)
+  if (info->handle != NULL && info->handle != infinity_handle)
     dlclose (info->handle);
 
   xfree (info->filename);
@@ -1084,6 +1126,10 @@ thread_db_load (void)
   /* Don't attempt to use thread_db for remote targets.  */
   if (!(target_can_run (&current_target) || core_bfd))
     return 0;
+
+  /* XXX.  */
+  if (try_thread_db_load_1 (infinity_handle, NULL))
+    return 1;
 
   if (thread_db_load_search ())
     return 1;
