@@ -896,6 +896,7 @@ SFILES = ada-exp.y ada-lang.c ada-typeprint.c ada-valprint.c ada-tasks.c \
 	target/waitstatus.c common/print-utils.c common/rsp-low.c \
 	common/errors.c common/common-debug.c common/common-exceptions.c \
 	common/btrace-common.c common/fileio.c \
+	infinity.c \
 	$(SUBDIR_GCC_COMPILE_SRCS)
 
 LINTFILES = $(SFILES) $(YYFILES) $(CONFIG_SRCS) init.c
@@ -987,7 +988,8 @@ common/common-debug.h common/cleanups.h common/gdb_setjmp.h \
 common/common-exceptions.h target/target.h common/symbol.h \
 common/common-regcache.h fbsd-tdep.h nat/linux-personality.h \
 common/fileio.h nat/x86-linux.h nat/x86-linux-dregs.h \
-nat/linux-namespaces.h arch/arm.h
+nat/linux-namespaces.h arch/arm.h \
+infinity.h
 
 # Header files that already have srcdir in them, or which are in objdir.
 
@@ -1086,6 +1088,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	format.o registry.o btrace.o record-btrace.o waitstatus.o \
 	print-utils.o rsp-low.o errors.o common-debug.o debug.o \
 	common-exceptions.o btrace-common.o fileio.o \
+	infinity.o \
 	$(SUBDIR_GCC_COMPILE_OBS)
 
 TSOBS = inflow.o

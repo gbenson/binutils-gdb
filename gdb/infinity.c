@@ -1,0 +1,134 @@
+/* XXX Infinity!
+
+   Copyright (C) 2015 Free Software Foundation, Inc.
+
+   This file is part of GDB.
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+
+#include "defs.h"
+#include "infinity.h"
+
+#define NotImplemented() \
+  error ("\x1B[1;41;33m%s: UNIMPLEMENTED\x1B[0m", __FUNCTION__)
+
+td_err_e
+infinity_td_init (void)
+{
+  int i;
+
+  for (i = 1; i < 7; i++)
+    fprintf_unfiltered (gdb_stdlog, "\x1B[4%dm ", i);
+
+  fprintf_unfiltered (gdb_stdlog, "\x1B[40;37;1m WeLCoMe To iNFiNiTY ");
+
+  for (i = 6; i > 0; i--)
+    fprintf_unfiltered (gdb_stdlog, "\x1B[4%dm ", i);
+
+  fprintf_unfiltered (gdb_stdlog, "\x1B[0m\n");
+
+  return TD_OK;
+}
+
+td_err_e
+infinity_td_ta_new (struct ps_prochandle *ps,
+				    td_thragent_t **ta)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_map_id2thr (const td_thragent_t *ta, pthread_t pt,
+			   td_thrhandle_t *th)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_map_lwp2thr (const td_thragent_t *ta, lwpid_t lwpid,
+			    td_thrhandle_t *th)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_thr_iter (const td_thragent_t *ta,
+			 td_thr_iter_f *callback, void *cbdata_p,
+			 td_thr_state_e state, int ti_pri,
+			 sigset_t *ti_sigmask_p,
+			 unsigned int ti_user_flags)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_thr_validate (const td_thrhandle_t *th)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_thr_get_info (const td_thrhandle_t *th, td_thrinfo_t *infop)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_event_addr (const td_thragent_t *ta, td_event_e event,
+			   td_notify_t *ptr)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_set_event (const td_thragent_t *ta,
+			  td_thr_events_t *event)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_clear_event (const td_thragent_t *ta,
+			    td_thr_events_t *event)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_ta_event_getmsg (const td_thragent_t *ta,
+			     td_event_msg_t *msg)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_thr_event_enable (const td_thrhandle_t *th, int event)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_thr_tls_get_addr (const td_thrhandle_t *th,
+			      psaddr_t map_address, size_t offset,
+			      psaddr_t *address)
+{
+  NotImplemented ();
+}
+
+td_err_e
+infinity_td_thr_tlsbase (const td_thrhandle_t *th,
+			 unsigned long int modid, psaddr_t *base)
+{
+  NotImplemented ();
+}
