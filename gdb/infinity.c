@@ -23,6 +23,8 @@
 #define NotImplemented() \
   error ("\x1B[1;41;33m%s: UNIMPLEMENTED\x1B[0m", __FUNCTION__)
 
+/* In glibc this does nothing.  */
+
 td_err_e
 infinity_td_init (void)
 {
@@ -41,11 +43,15 @@ infinity_td_init (void)
   return TD_OK;
 }
 
+/* In glibc this allocates some memory to store TA, and checks
+   version.  It's looking for the symbol "nptl_version" to be an
+   exact match of the string VERSION, defined in src/version.h,
+   which on my RHEL6 box is "2.12".  */
+
 td_err_e
-infinity_td_ta_new (struct ps_prochandle *ps,
-				    td_thragent_t **ta)
+infinity_td_ta_new (struct ps_prochandle *ps, td_thragent_t **ta)
 {
-  NotImplemented ();
+  return TD_OK;
 }
 
 td_err_e
