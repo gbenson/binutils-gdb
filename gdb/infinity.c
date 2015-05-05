@@ -46,11 +46,13 @@ infinity_td_init (void)
 /* In glibc this allocates some memory to store TA, and checks
    version.  It's looking for the symbol "nptl_version" to be an
    exact match of the string VERSION, defined in src/version.h,
-   which on my RHEL6 box is "2.12".  */
+   which on my RHEL6 box is "2.12".  td_thragent_t is opaque.  */
 
 td_err_e
 infinity_td_ta_new (struct ps_prochandle *ps, td_thragent_t **ta)
 {
+  /* XXX put something in *TA.  */
+
   return TD_OK;
 }
 
@@ -61,11 +63,19 @@ infinity_td_ta_map_id2thr (const td_thragent_t *ta, pthread_t pt,
   NotImplemented ();
 }
 
+/* In glibc this is some hairy machine-dependent stuff.
+   td_thrhandle_t is NOT OPAQUE to GDB!  */
+
 td_err_e
-infinity_td_ta_map_lwp2thr (const td_thragent_t *ta, lwpid_t lwpid,
+infinity_td_ta_map_lwp2thr (const td_thragent_t *ta_arg, lwpid_t lwpid,
 			    td_thrhandle_t *th)
 {
-  NotImplemented ();
+  td_thragent_t *const ta = (td_thragent_t *) ta_arg;
+
+  th->th_ta_p = ta;
+  th->th_unique = (psaddr_t) (intptr_t) lwpid;
+
+  return TD_OK;
 }
 
 td_err_e
