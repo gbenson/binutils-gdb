@@ -104,7 +104,8 @@ infinity_td_thr_validate (const td_thrhandle_t *th)
 td_err_e
 infinity_td_thr_get_info (const td_thrhandle_t *th, td_thrinfo_t *infop)
 {
-  NotImplemented ();
+  return trace (td_thr_get_info (th, infop),
+		"td_thr_get_info (%p, %p)", th, infop);
 }
 
 td_err_e
