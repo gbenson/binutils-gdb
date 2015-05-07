@@ -112,6 +112,9 @@ td_err_e
 infinity_td_ta_event_addr (const td_thragent_t *ta, td_event_e event,
 			   td_notify_t *ptr)
 {
+  /* Checked by enable_thread_event_reporting,
+     not required if the kernel supports clone events,
+     marked as "not essential" in try_thread_db_load_2.  */
   NotImplemented ();
 }
 
@@ -119,6 +122,9 @@ td_err_e
 infinity_td_ta_set_event (const td_thragent_t *ta,
 			  td_thr_events_t *event)
 {
+  /* Checked by enable_thread_event_reporting,
+     not required if the kernel supports clone events,
+     marked as "not essential" in try_thread_db_load_2.  */
   NotImplemented ();
 }
 
@@ -126,6 +132,9 @@ td_err_e
 infinity_td_ta_clear_event (const td_thragent_t *ta,
 			    td_thr_events_t *event)
 {
+  /* Checked by disable_thread_event_reporting,
+     not required if the kernel supports clone events,
+     marked as "not essential" in try_thread_db_load_2.  */
   NotImplemented ();
 }
 
@@ -133,12 +142,18 @@ td_err_e
 infinity_td_ta_event_getmsg (const td_thragent_t *ta,
 			     td_event_msg_t *msg)
 {
+  /* Checked by enable_thread_event_reporting,
+     not required if the kernel supports clone events,
+     marked as "not essential" in try_thread_db_load_2.  */
   NotImplemented ();
 }
 
 td_err_e
 infinity_td_thr_event_enable (const td_thrhandle_t *th, int event)
 {
+  /* Checked by enable_thread_event_reporting,
+     not required if the kernel supports clone events,
+     marked as "not essential" in try_thread_db_load_2.  */
   NotImplemented ();
 }
 
