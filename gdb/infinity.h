@@ -22,6 +22,9 @@
 
 #include "nat/gdb_thread_db.h"
 
+/* Debugging.  */
+extern char *thread_db_err_str (td_err_e err);
+
 /* Initialize the thread debug support library.  */
 extern td_err_e infinity_td_init (void);
 

@@ -19,28 +19,36 @@
 
 #include "defs.h"
 #include "infinity.h"
+#include <thread_db.h>
 
 #define NotImplemented() \
   error ("\x1B[1;41;33m%s: UNIMPLEMENTED\x1B[0m", __FUNCTION__)
+
+static td_err_e
+trace (td_err_e result, const char *fmt, ...)
+{
+  va_list ap;
+
+  debug_printf ("\x1B[%dm", result == TD_OK ? 32 : 31);
+
+  va_start (ap, fmt);
+  debug_vprintf (fmt, ap);
+  va_end (ap);
+
+  if (result != TD_OK)
+    debug_printf (" => %d (%s)", result, thread_db_err_str (result));
+
+  debug_printf ("\x1B[0m\n");
+
+  return result;
+}
 
 /* In glibc this does nothing.  */
 
 td_err_e
 infinity_td_init (void)
 {
-  int i;
-
-  for (i = 1; i < 7; i++)
-    fprintf_unfiltered (gdb_stdlog, "\x1B[4%dm ", i);
-
-  fprintf_unfiltered (gdb_stdlog, "\x1B[40;37;1m WeLCoMe To iNFiNiTY ");
-
-  for (i = 6; i > 0; i--)
-    fprintf_unfiltered (gdb_stdlog, "\x1B[4%dm ", i);
-
-  fprintf_unfiltered (gdb_stdlog, "\x1B[0m\n");
-
-  return TD_OK;
+  return trace (td_init (), "td_init ()");
 }
 
 /* In glibc this allocates some memory to store TA, and checks
@@ -51,9 +59,12 @@ infinity_td_init (void)
 td_err_e
 infinity_td_ta_new (struct ps_prochandle *ps, td_thragent_t **ta)
 {
-  /* XXX put something in *TA.  */
+  td_err_e result = trace (td_ta_new (ps, ta), "td_ta_new (ps, ta)");
 
-  return TD_OK;
+  if (result == TD_OK)
+    debug_printf ("\x1B[32m  ta <= %p\x1B[0m\n", *ta);
+
+  return result;
 }
 
 td_err_e
