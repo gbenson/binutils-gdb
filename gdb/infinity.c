@@ -22,6 +22,7 @@
 #include <thread_db.h>
 
 #define NotImplemented() \
+  debug_printf ("\x1B[1;41;33m%s: UNIMPLEMENTED\x1B[0m\n", __FUNCTION__); \
   error ("\x1B[1;41;33m%s: UNIMPLEMENTED\x1B[0m", __FUNCTION__)
 
 static td_err_e
@@ -92,7 +93,11 @@ infinity_td_ta_thr_iter (const td_thragent_t *ta,
 			 sigset_t *ti_sigmask_p,
 			 unsigned int ti_user_flags)
 {
-  NotImplemented ();
+  /* Not used on running targets when /proc is mounted.
+     Used for core file debugging.  */
+  return trace (td_ta_thr_iter (ta, callback, cbdata_p, state,
+				ti_pri, ti_sigmask_p, ti_user_flags),
+		"td_ta_thr_iter (...)");
 }
 
 td_err_e
