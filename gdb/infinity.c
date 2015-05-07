@@ -87,7 +87,10 @@ infinity_td_ta_thr_iter (const td_thragent_t *ta,
 			 unsigned int ti_user_flags)
 {
   /* Not used on running targets when /proc is mounted.
-     Used for core file debugging.  */
+     Used for core file debugging and presumably debug without /proc.
+     Can avoid having to implement this by not using this
+     "library" unless (target_has_execution
+     && linux_proc_task_list_dir_exists (ptid_get_pid (inferior_ptid))).  */
   return trace (td_ta_thr_iter (ta, callback, cbdata_p, state,
 				ti_pri, ti_sigmask_p, ti_user_flags),
 		"td_ta_thr_iter (...)");
