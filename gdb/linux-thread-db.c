@@ -73,8 +73,6 @@ infinity_dlsym (void *handle, const char *symbol)
   DO_SYMBOL (td_thr_tlsbase);
 
 #undef DO_SYMBOL
-
-  printf ("\x1B[35m%s (%s)\x1B[0m\n", __FUNCTION__, symbol);
   return NULL;
 }
 
