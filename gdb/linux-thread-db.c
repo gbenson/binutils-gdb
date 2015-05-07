@@ -68,13 +68,7 @@ infinity_dlsym (void *handle, const char *symbol)
   DO_SYMBOL (td_ta_map_id2thr);
   DO_SYMBOL (td_ta_map_lwp2thr);
   DO_SYMBOL (td_ta_thr_iter);
-  DO_SYMBOL (td_thr_validate);
   DO_SYMBOL (td_thr_get_info);
-  DO_SYMBOL (td_ta_event_addr);
-  DO_SYMBOL (td_ta_set_event);
-  DO_SYMBOL (td_ta_clear_event);
-  DO_SYMBOL (td_ta_event_getmsg);
-  DO_SYMBOL (td_thr_event_enable);
   DO_SYMBOL (td_thr_tls_get_addr);
   DO_SYMBOL (td_thr_tlsbase);
 

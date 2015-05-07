@@ -54,33 +54,9 @@ extern td_err_e infinity_td_ta_thr_iter (const td_thragent_t *ta,
 					 sigset_t *ti_sigmask_p,
 					 unsigned int ti_user_flags);
 
-/* Validate that TH is a thread handle.  */
-extern td_err_e infinity_td_thr_validate (const td_thrhandle_t *th);
-
 /* Return information about thread TH.  */
 extern td_err_e infinity_td_thr_get_info (const td_thrhandle_t *th,
 					  td_thrinfo_t *infop);
-
-/* Get event address for EVENT.  */
-extern td_err_e infinity_td_ta_event_addr (const td_thragent_t *ta,
-					   td_event_e event,
-					   td_notify_t *ptr);
-
-/* Enable EVENT in global mask.  */
-extern td_err_e infinity_td_ta_set_event (const td_thragent_t *ta,
-					  td_thr_events_t *event);
-
-/* Disable EVENT in global mask.  */
-extern td_err_e infinity_td_ta_clear_event (const td_thragent_t *ta,
-					    td_thr_events_t *event);
-
-/* Return information about last event.  */
-extern td_err_e infinity_td_ta_event_getmsg (const td_thragent_t *ta,
-					     td_event_msg_t *msg);
-
-/* Enable reporting for EVENT for thread TH.  */
-extern td_err_e infinity_td_thr_event_enable (const td_thrhandle_t *th,
-					      int event);
 
 /* Get address of thread local variable.  */
 extern td_err_e infinity_td_thr_tls_get_addr (const td_thrhandle_t *th,
