@@ -78,15 +78,11 @@ infinity_td_ta_map_id2thr (const td_thragent_t *ta, pthread_t pt,
    td_thrhandle_t is NOT OPAQUE to GDB!  */
 
 td_err_e
-infinity_td_ta_map_lwp2thr (const td_thragent_t *ta_arg, lwpid_t lwpid,
+infinity_td_ta_map_lwp2thr (const td_thragent_t *ta, lwpid_t lwpid,
 			    td_thrhandle_t *th)
 {
-  td_thragent_t *const ta = (td_thragent_t *) ta_arg;
-
-  th->th_ta_p = ta;
-  th->th_unique = (psaddr_t) (intptr_t) lwpid;
-
-  return TD_OK;
+  return trace (td_ta_map_lwp2thr (ta, lwpid, th),
+		"td_ta_map_lwp2thr (%p, %d, %p)", ta, lwpid, th);
 }
 
 td_err_e
