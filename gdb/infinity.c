@@ -147,7 +147,9 @@ infinity_td_thr_tls_get_addr (const td_thrhandle_t *th,
 			      psaddr_t map_address, size_t offset,
 			      psaddr_t *address)
 {
-  NotImplemented ();
+  return trace (td_thr_tls_get_addr (th, map_address, offset, address),
+		"td_thr_tls_get_addr (%p, %p, %ld, %p)",
+		th, map_address, offset, address);
 }
 
 td_err_e
