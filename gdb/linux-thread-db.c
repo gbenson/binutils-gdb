@@ -65,7 +65,6 @@ infinity_dlsym (void *handle, const char *symbol)
 
   DO_SYMBOL (td_init);
   DO_SYMBOL (td_ta_new);
-  DO_SYMBOL (td_ta_map_id2thr);
   DO_SYMBOL (td_ta_map_lwp2thr);
   DO_SYMBOL (td_ta_thr_iter);
   DO_SYMBOL (td_thr_get_info);

@@ -68,13 +68,6 @@ infinity_td_ta_new (struct ps_prochandle *ps, td_thragent_t **ta)
   return result;
 }
 
-td_err_e
-infinity_td_ta_map_id2thr (const td_thragent_t *ta, pthread_t pt,
-			   td_thrhandle_t *th)
-{
-  NotImplemented ();
-}
-
 /* In glibc this is some hairy machine-dependent stuff.
    td_thrhandle_t is NOT OPAQUE to GDB!  */
 

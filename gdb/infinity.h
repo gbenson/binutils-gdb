@@ -32,12 +32,6 @@ extern td_err_e infinity_td_init (void);
 extern td_err_e infinity_td_ta_new (struct ps_prochandle *ps,
 				    td_thragent_t **ta);
 
-/* Map thread library handle PT to thread debug library handle for process
-   associated with TA and store result in *TH.  */
-extern td_err_e infinity_td_ta_map_id2thr (const td_thragent_t *ta,
-					   pthread_t pt,
-					   td_thrhandle_t *th);
-
 /* Map process ID LWPID to thread debug library handle for process
    associated with TA and store result in *TH.  */
 extern td_err_e infinity_td_ta_map_lwp2thr (const td_thragent_t *ta,
