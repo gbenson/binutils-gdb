@@ -1082,18 +1082,44 @@ thread_db_load_search (void)
   return rc;
 }
 
-/* Return non-zero if the inferior has a libpthread.  */
+/* XXX.  */
 
-static int
-has_libpthread (void)
+static struct objfile *
+libpthread_objfile (void)
 {
   struct objfile *obj;
 
   ALL_OBJFILES (obj)
     if (libpthread_name_p (objfile_name (obj)))
-      return 1;
+      return obj;
 
-  return 0;
+  return NULL;
+}
+
+/* Return non-zero if the inferior has a libpthread.  */
+
+static int
+has_libpthread (void)
+{
+  return libpthread_objfile () != NULL;
+}
+
+/* XXX>  */
+
+static int
+try_infinity_load (void)
+{
+  struct objfile *obj;
+
+  obj = libpthread_objfile ();
+  if (obj == NULL)
+    {
+      debug_printf ("\x1B[31m%s: no libpthread.so\x1B[0m\n", __FUNCTION__);
+      return 0;
+    }
+
+  debug_printf ("\x1B[32m%s: got libpthread.so\x1B[0m\n", __FUNCTION__);
+  return 1;
 }
 
 /* Attempt to load and initialize libthread_db.
@@ -1119,8 +1145,12 @@ thread_db_load (void)
     return 0;
 
   /* XXX.  */
-  if (try_thread_db_load_1 (infinity_handle, NULL))
+  if (try_infinity_load ())
     return 1;
+
+  /* XXX.
+  if (try_thread_db_load_1 (infinity_handle, NULL))
+    return 1; */
 
   if (thread_db_load_search ())
     return 1;
