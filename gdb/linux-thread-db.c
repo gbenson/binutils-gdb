@@ -1109,16 +1109,15 @@ has_libpthread (void)
 static int
 try_infinity_load (void)
 {
-  struct objfile *obj;
+  struct objfile *obj = libpthread_objfile ();
 
-  obj = libpthread_objfile ();
-  if (obj == NULL)
-    {
-      debug_printf ("\x1B[31m%s: no libpthread.so\x1B[0m\n", __FUNCTION__);
-      return 0;
-    }
+  if (obj == NULL
+      || obj->obfd == NULL
+      || bfd_get_flavour (obj->obfd) != bfd_target_elf_flavour)
+    return 0;
 
-  debug_printf ("\x1B[32m%s: got libpthread.so\x1B[0m\n", __FUNCTION__);
+  debug_printf ("\x1B[32m%s: got libpthread.so\x1B[0m\n",
+		__FUNCTION__);
   return 1;
 }
 
