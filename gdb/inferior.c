@@ -888,7 +888,10 @@ add_inferior_command (char *args, int from_tty)
 	  switch_to_thread (null_ptid);
 
 	  exec_file_attach (exec, from_tty);
+	  exec_file_is_user_supplied = 1;
+
 	  symbol_file_add_main (exec, from_tty);
+	  symfile_objfile_is_user_supplied = 1;
 	}
     }
 

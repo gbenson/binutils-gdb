@@ -32,6 +32,8 @@ struct objfile;
 #define exec_bfd current_program_space->ebfd
 #define exec_bfd_mtime current_program_space->ebfd_mtime
 #define exec_filename current_program_space->pspace_exec_filename
+#define exec_file_is_user_supplied \
+  current_program_space->pspace_exec_file_is_user_supplied
 
 /* Builds a section table, given args BFD, SECTABLE_PTR, SECEND_PTR.
    Returns 0 if OK, 1 on error.  */

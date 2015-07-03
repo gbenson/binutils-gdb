@@ -102,6 +102,7 @@ exec_close (void)
 
       xfree (exec_filename);
       exec_filename = NULL;
+      exec_file_is_user_supplied = 0;
     }
 }
 
@@ -142,11 +143,6 @@ exec_file_locate_attach (int pid, int from_tty)
 {
   char *exec_file, *full_exec_path = NULL;
 
-  /* Do nothing if we already have an executable filename.  */
-  exec_file = (char *) get_exec_file (0);
-  if (exec_file != NULL)
-    return;
-
   /* Try to determine a filename from the process itself.  */
   exec_file = target_pid_to_exec_file (pid);
   if (exec_file == NULL)
@@ -170,8 +166,27 @@ exec_file_locate_attach (int pid, int from_tty)
 	full_exec_path = xstrdup (exec_file);
     }
 
-  exec_file_attach (full_exec_path, from_tty);
-  symbol_file_add_main (full_exec_path, from_tty);
+  if (exec_file_is_user_supplied)
+    {
+      if (strcmp (full_exec_path, exec_filename) != 0)
+	warning (_("Process %d has executable file %s,"
+		   " but executable file is currently set to %s"),
+		 pid, full_exec_path, exec_filename);
+    }
+  else
+    exec_file_attach (full_exec_path, from_tty);
+
+  if (symfile_objfile_is_user_supplied)
+    {
+      const char *symbol_filename = objfile_filename (symfile_objfile);
+
+      if (strcmp (full_exec_path, symbol_filename) != 0)
+	warning (_("Process %d has symbol file %s,"
+		   " but symbol file is currently set to %s"),
+		 pid, full_exec_path, symbol_filename);
+    }
+  else
+    symbol_file_add_main (full_exec_path, from_tty);
 }
 
 /* Set FILENAME as the new exec file.
@@ -375,6 +390,7 @@ exec_file_command (char *args, int from_tty)
       filename = tilde_expand (*argv);
       make_cleanup (xfree, filename);
       exec_file_attach (filename, from_tty);
+      exec_file_is_user_supplied = 1;
 
       do_cleanups (cleanups);
     }

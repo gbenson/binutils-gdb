@@ -1636,9 +1636,12 @@ remote_add_inferior (int fake_pid_p, int pid, int attached,
   inf->attach_flag = attached;
   inf->fake_pid_p = fake_pid_p;
 
-  /* If no main executable is currently open then attempt to
-     open the file that was executed to create this inferior.  */
-  if (try_open_exec && get_exec_file (0) == NULL)
+  /* Attempt to open the file that was executed to create this
+     inferior.  If the user has explicitly specified executable
+     and/or symbol files then warn the user if their choices do
+     not match.  Otherwise, set exec_file and symfile_objfile to
+     the new file.  */
+  if (try_open_exec)
     exec_file_locate_attach (pid, 1);
 
   return inf;

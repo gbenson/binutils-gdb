@@ -1347,6 +1347,8 @@ symbol_file_clear (int from_tty)
   gdb_assert (symfile_objfile == NULL);
   if (from_tty)
     printf_unfiltered (_("No symbol file now.\n"));
+
+  symfile_objfile_is_user_supplied = 0;
 }
 
 static int
@@ -1664,6 +1666,7 @@ symbol_file_command (char *args, int from_tty)
 	  else
 	    {
 	      symbol_file_add_main_1 (*argv, from_tty, flags);
+	      symfile_objfile_is_user_supplied = 1;
 	      name = *argv;
 	    }
 

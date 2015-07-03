@@ -1,3 +1,29 @@
+2015-07-03  Gary Benson <gbenson@redhat.com>
+
+	PR gdb/17626
+	* progspace.h (struct program_space)
+	<pspace_exec_file_is_user_supplied>: New field.
+	<symfile_object_file_is_user_supplied>: Likewise.
+	(symfile_objfile_is_user_supplied): New macro.
+	* exec.h (exec_file_is_user_supplied): Likewise.
+	* exec.c (exec_close): Clear exec_file_is_user_supplied.
+	(exec_file_locate_attach): Remove get_exec_file check.
+	Do not replace user-supplied executable or symbol files.
+	Warn if user-supplied executable or symbol files do not
+	match discovered file.
+	(exec_file_command): Set exec_file_is_user_supplied.
+	* symfile.c (symbol_file_clear): Clear
+	symfile_objfile_is_user_supplied.
+	(symbol_file_command): Set symfile_objfile_is_user_supplied.
+	* inferior.c (add_inferior_command): Set
+	exec_file_is_user_supplied and symfile_objfile_is_user_supplied.
+	* main.c (captured_main): Likewise.
+	* infcmd.c (attach_command_post_wait): Always call
+	exec_file_locate_attach.  Only call reopen_exec_file and
+	reread_symbols if exec_file_is_user_supplied.
+	* remote.c (remote_add_inferior): Remove get_exec_file check
+	around exec_file_locate_attach.
+
 2015-07-02  Kevin Buettner  <kevinb@redhat.com>
 
 	* rx-tdep.c (RX_USP_REGNUM, RX_BPC_REGNUM): New constants.

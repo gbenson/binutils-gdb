@@ -154,6 +154,12 @@ struct program_space
        It needs to be freed by xfree.  It is not NULL iff EBFD is not NULL.  */
     char *pspace_exec_filename;
 
+    /* Nonzero if pspace_exec_filename was supplied by the user,
+       either at startup (on the command-line) or via the "file"
+       or "add-inferior -exec" commands.  Zero if
+       pspace_exec_filename is unset or was discovered by GDB.  */
+    int pspace_exec_file_is_user_supplied;
+
     /* The address space attached to this program space.  More than one
        program space may be bound to the same address space.  In the
        traditional unix-like debugging scenario, this will usually
@@ -182,6 +188,12 @@ struct program_space
     /* The object file that the main symbol table was loaded from
        (e.g. the argument to the "symbol-file" or "file" command).  */
     struct objfile *symfile_object_file;
+
+    /* Nonzero if symfile_object_file was supplied by the user,
+       either at startup (on the command-line) or via the "file",
+       "symbol-file" or "add-inferior -exec" commands.  Zero if
+       symfile_object_file is unset or was discovered by GDB.  */
+    int symfile_object_file_is_user_supplied;
 
     /* All known objfiles are kept in a linked list.  This points to
        the head of this list.  */
@@ -214,6 +226,11 @@ struct program_space
    argument to the "symbol-file" or "file" command).  */
 
 #define symfile_objfile current_program_space->symfile_object_file
+
+/* See program_space->symfile_object_file_is_user_supplied.  */
+
+#define symfile_objfile_is_user_supplied \
+  current_program_space->symfile_object_file_is_user_supplied
 
 /* All known objfiles are kept in a linked list.  This points to the
    root of this list.  */

@@ -1050,17 +1050,25 @@ captured_main (void *data)
          catch_command_errors returns non-zero on success!  */
       if (catch_command_errors_const (exec_file_attach, execarg,
 				      !batch_flag))
-	catch_command_errors_const (symbol_file_add_main, symarg,
-				    !batch_flag);
+	{
+	  exec_file_is_user_supplied = 1;
+
+	  if (catch_command_errors_const (symbol_file_add_main, symarg,
+					  !batch_flag))
+	    symfile_objfile_is_user_supplied = 1;
+	}
     }
   else
     {
-      if (execarg != NULL)
-	catch_command_errors_const (exec_file_attach, execarg,
-				    !batch_flag);
-      if (symarg != NULL)
-	catch_command_errors_const (symbol_file_add_main, symarg,
-				    !batch_flag);
+      if (execarg != NULL
+	  && catch_command_errors_const (exec_file_attach, execarg,
+					 !batch_flag))
+	exec_file_is_user_supplied = 1;
+
+      if (symarg != NULL
+	  && catch_command_errors_const (symbol_file_add_main, symarg,
+					 !batch_flag))
+	symfile_objfile_is_user_supplied = 1;
     }
 
   if (corearg && pidarg)
