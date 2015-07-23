@@ -1,5 +1,12 @@
 2015-07-23  Gary Benson <gbenson@redhat.com>
 
+	* symfile.c (find_separate_debug_file): Update comment.
+	(terminate_after_last_dir_separator): Replaced with...
+	(terminate_at_last_dir_separator): New function.
+	(find_separate_debug_file_by_debuglink): Use the above.
+
+2015-07-23  Gary Benson <gbenson@redhat.com>
+
 	* utils.h (build_filename): New declaration.
 	* utils.c (build_filename): New function.
 	* symfile.c (find_separate_debug_file): Use the above.

@@ -1450,7 +1450,6 @@ show_debug_file_directory (struct ui_file *file, int from_tty,
    where the original file resides (may not be the same as
    dirname(objfile->name) due to symlinks), and DEBUGLINK as the file we are
    looking for.  CANON_DIR is the "realpath" form of DIR.
-   DIR must contain a trailing '/'.
    Returns the path of the file with separate debug info, of NULL.  */
 
 static char *
@@ -1518,12 +1517,12 @@ find_separate_debug_file (const char *dir,
   return NULL;
 }
 
-/* Modify PATH to contain only "[/]directory/" part of PATH.
-   If there were no directory separators in PATH, PATH will be empty
+/* Terminate PATH at the final directory separator.  If PATH
+   contains no directory separators then PATH will be an empty
    string on return.  */
 
 static void
-terminate_after_last_dir_separator (char *path)
+terminate_at_last_dir_separator (char *path)
 {
   int i;
 
@@ -1531,10 +1530,12 @@ terminate_after_last_dir_separator (char *path)
      followed by a slash.  The directory can be relative or absolute.  */
   for (i = strlen(path) - 1; i >= 0; i--)
     if (IS_DIR_SEPARATOR (path[i]))
-      break;
+      {
+	path[i] = '\0';
+	return;
+      }
 
-  /* If I is -1 then no directory is present there and DIR will be "".  */
-  path[i + 1] = '\0';
+  path[0] = '\0';
 }
 
 /* Find separate debuginfo for OBJFILE (using .gnu_debuglink section).
@@ -1561,7 +1562,7 @@ find_separate_debug_file_by_debuglink (struct objfile *objfile)
   cleanups = make_cleanup (xfree, debuglink);
   dir = xstrdup (objfile_name (objfile));
   make_cleanup (xfree, dir);
-  terminate_after_last_dir_separator (dir);
+  terminate_at_last_dir_separator (dir);
   canon_dir = lrealpath (dir);
 
   debugfile = find_separate_debug_file (dir, canon_dir, debuglink,
@@ -1584,7 +1585,7 @@ find_separate_debug_file_by_debuglink (struct objfile *objfile)
 	  if (symlink_dir != NULL)
 	    {
 	      make_cleanup (xfree, symlink_dir);
-	      terminate_after_last_dir_separator (symlink_dir);
+	      terminate_at_last_dir_separator (symlink_dir);
 	      if (strcmp (dir, symlink_dir) != 0)
 		{
 		  /* Different directory, so try using it.  */
