@@ -134,6 +134,13 @@ extern int gdb_filename_fnmatch (const char *pattern, const char *string,
 extern void substitute_path_component (char **stringp, const char *from,
 				       const char *to);
 
+/* Build a filename from an arbitrary number of components.  Returns
+   an xmalloc'd string that must be freed by the caller.  The final
+   argument of this function must be NULL to mark the end the argument
+   list.  */
+
+extern char *build_filename (const char *first, ...);
+
 char *ldirname (const char *filename);
 
 /* GDB output, ui_file utilities.  */

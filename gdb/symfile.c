@@ -1461,38 +1461,21 @@ find_separate_debug_file (const char *dir,
 {
   char *debugdir;
   char *debugfile;
-  int i;
   VEC (char_ptr) *debugdir_vec;
   struct cleanup *back_to;
   int ix;
 
-  /* Set I to max (strlen (canon_dir), strlen (dir)).  */
-  i = strlen (dir);
-  if (canon_dir != NULL && strlen (canon_dir) > i)
-    i = strlen (canon_dir);
-
-  debugfile = xmalloc (strlen (debug_file_directory) + 1
-		       + i
-		       + strlen (DEBUG_SUBDIRECTORY)
-		       + strlen ("/")
-		       + strlen (debuglink)
-		       + 1);
-
   /* First try in the same directory as the original file.  */
-  strcpy (debugfile, dir);
-  strcat (debugfile, debuglink);
-
+  debugfile = build_filename (dir, debuglink, NULL);
   if (separate_debug_file_exists (debugfile, crc32, objfile))
     return debugfile;
+  xfree (debugfile);
 
   /* Then try in the subdirectory named DEBUG_SUBDIRECTORY.  */
-  strcpy (debugfile, dir);
-  strcat (debugfile, DEBUG_SUBDIRECTORY);
-  strcat (debugfile, "/");
-  strcat (debugfile, debuglink);
-
+  debugfile = build_filename (dir, DEBUG_SUBDIRECTORY, debuglink, NULL);
   if (separate_debug_file_exists (debugfile, crc32, objfile))
     return debugfile;
+  xfree (debugfile);
 
   /* Then try in the global debugfile directories.
 
@@ -1504,16 +1487,13 @@ find_separate_debug_file (const char *dir,
 
   for (ix = 0; VEC_iterate (char_ptr, debugdir_vec, ix, debugdir); ++ix)
     {
-      strcpy (debugfile, debugdir);
-      strcat (debugfile, "/");
-      strcat (debugfile, dir);
-      strcat (debugfile, debuglink);
-
+      debugfile = build_filename (debugdir, dir, debuglink, NULL);
       if (separate_debug_file_exists (debugfile, crc32, objfile))
 	{
 	  do_cleanups (back_to);
 	  return debugfile;
 	}
+      xfree (debugfile);
 
       /* If the file is in the sysroot, try using its base path in the
 	 global debugfile directory.  */
@@ -1522,21 +1502,19 @@ find_separate_debug_file (const char *dir,
 			    strlen (gdb_sysroot)) == 0
 	  && IS_DIR_SEPARATOR (canon_dir[strlen (gdb_sysroot)]))
 	{
-	  strcpy (debugfile, debugdir);
-	  strcat (debugfile, canon_dir + strlen (gdb_sysroot));
-	  strcat (debugfile, "/");
-	  strcat (debugfile, debuglink);
-
+	  debugfile = build_filename (debugdir,
+				      canon_dir + strlen (gdb_sysroot),
+				      debuglink, NULL);
 	  if (separate_debug_file_exists (debugfile, crc32, objfile))
 	    {
 	      do_cleanups (back_to);
 	      return debugfile;
 	    }
+	  xfree (debugfile);
 	}
     }
 
   do_cleanups (back_to);
-  xfree (debugfile);
   return NULL;
 }
 

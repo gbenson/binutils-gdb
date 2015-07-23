@@ -1,3 +1,9 @@
+2015-07-23  Gary Benson <gbenson@redhat.com>
+
+	* utils.h (build_filename): New declaration.
+	* utils.c (build_filename): New function.
+	* symfile.c (find_separate_debug_file): Use the above.
+
 2015-07-23  Yao Qi  <yao.qi@linaro.org>
 
 	* aarch64-linux-nat.c (aarch64_linux_can_use_hw_breakpoint): If

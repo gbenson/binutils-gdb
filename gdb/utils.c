@@ -3249,6 +3249,54 @@ substitute_path_component (char **stringp, const char *from, const char *to)
   *stringp = string;
 }
 
+/* See utils.h.  */
+
+char *
+build_filename (const char *first, ...)
+{
+  char *buf = NULL;
+  const char *arg;
+  va_list ap;
+
+  va_start (ap, first);
+  for (arg = first; arg != NULL; arg = va_arg (ap, const char *))
+    {
+      int len, orig_len;
+      char *tmp;
+
+      /* Strip leading separators from all components except first.  */
+      if (arg != first)
+	{
+	  while (*arg != '\0' && IS_DIR_SEPARATOR (*arg))
+	    arg++;
+	}
+
+      /* Strip trailing separators.  */
+      len = orig_len = strlen (arg);
+
+      while (len > 0 && IS_DIR_SEPARATOR (arg[len - 1]))
+	len--;
+
+      if (len == 0)
+	continue;
+
+      tmp = savestring (arg, len);
+
+      /* Append the component to the buffer.  */
+      if (buf == NULL)
+	buf = xstrdup (tmp);
+      else
+	buf = reconcat (buf, buf, SLASH_STRING, tmp, NULL);
+
+      xfree (tmp);
+    }
+  va_end (ap);
+
+  gdb_assert (buf != NULL);
+
+  return buf;
+}
+
 #ifdef HAVE_WAITPID
 
 #ifdef SIGALRM
