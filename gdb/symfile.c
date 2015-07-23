@@ -1463,6 +1463,7 @@ find_separate_debug_file (const char *dir,
   VEC (char_ptr) *debugdir_vec;
   struct cleanup *back_to;
   int ix;
+  const char *altdir = NULL;
 
   /* First try in the same directory as the original file.  */
   debugfile = build_filename (dir, debuglink, NULL);
@@ -1484,6 +1485,20 @@ find_separate_debug_file (const char *dir,
   debugdir_vec = dirnames_to_char_ptr_vec (debug_file_directory);
   back_to = make_cleanup_free_char_ptr_vec (debugdir_vec);
 
+  /* If the file is in the sysroot, try its base path in the
+     global debugfile directory as an alternate location.  */
+  if (canon_dir != NULL && *gdb_sysroot != '\0'
+      && filename_ncmp (canon_dir, gdb_sysroot,
+			strlen (gdb_sysroot)) == 0
+      && strlen (canon_dir) > strlen (gdb_sysroot)
+      && IS_DIR_SEPARATOR (canon_dir[strlen (gdb_sysroot)]))
+    {
+      altdir = canon_dir + strlen (gdb_sysroot);
+
+      if (strcmp (altdir, dir) == 0)
+	altdir = NULL;
+    }
+
   for (ix = 0; VEC_iterate (char_ptr, debugdir_vec, ix, debugdir); ++ix)
     {
       debugfile = build_filename (debugdir, dir, debuglink, NULL);
@@ -1494,16 +1509,10 @@ find_separate_debug_file (const char *dir,
 	}
       xfree (debugfile);
 
-      /* If the file is in the sysroot, try using its base path in the
-	 global debugfile directory.  */
-      if (canon_dir != NULL
-	  && filename_ncmp (canon_dir, gdb_sysroot,
-			    strlen (gdb_sysroot)) == 0
-	  && IS_DIR_SEPARATOR (canon_dir[strlen (gdb_sysroot)]))
+      if (altdir != NULL)
 	{
-	  debugfile = build_filename (debugdir,
-				      canon_dir + strlen (gdb_sysroot),
-				      debuglink, NULL);
+	  debugfile = build_filename (debugdir, altdir, debuglink,
+				      NULL);
 	  if (separate_debug_file_exists (debugfile, crc32, objfile))
 	    {
 	      do_cleanups (back_to);

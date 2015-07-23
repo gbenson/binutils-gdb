@@ -1,5 +1,10 @@
 2015-07-23  Gary Benson <gbenson@redhat.com>
 
+	* symfile.c (find_separate_debug_file): Move canon_dir
+	logic out of loop.  Don't check the same location twice.
+
+2015-07-23  Gary Benson <gbenson@redhat.com>
+
 	* symfile.c (find_separate_debug_file): Update comment.
 	(terminate_after_last_dir_separator): Replaced with...
 	(terminate_at_last_dir_separator): New function.
