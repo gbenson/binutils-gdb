@@ -1,4 +1,10 @@
 2015-07-24  Gary Benson <gbenson@redhat.com>
+	    Cédric Buissart <cbuissar@redhat.com>
+
+	* symfile.c (find_separate_debug_file): In debugdir loop,
+	also try alternate directory prefixed with gdb_sysroot.
+
+2015-07-24  Gary Benson <gbenson@redhat.com>
 
 	* utils.h (build_filename): New argument "prefix".
 	* utils.c (build_filename): Likewise.

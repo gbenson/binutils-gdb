@@ -1523,10 +1523,22 @@ find_separate_debug_file (const char *dir,
 	}
       xfree (debugfile);
 
-      /* Try the alternate location on the local filesystem.  */
       if (altdir != NULL)
 	{
+	  /* Try the alternate location on the local filesystem.  */
 	  debugfile = build_filename (no_prefix, debugdir,
+				      altdir, debuglink, NULL);
+	  if (separate_debug_file_exists (debugfile, crc32, objfile))
+	    {
+	      do_cleanups (back_to);
+	      return debugfile;
+	    }
+	  xfree (debugfile);
+
+	  /* Try the alternate location in gdb_sysroot.  This can
+	     be slow for remote targets, so we don't check it until
+	     all local filesystem options have been exhausted.  */
+	  debugfile = build_filename (gdb_sysroot, debugdir,
 				      altdir, debuglink, NULL);
 	  if (separate_debug_file_exists (debugfile, crc32, objfile))
 	    {
