@@ -1,3 +1,11 @@
+2015-07-24  Gary Benson <gbenson@redhat.com>
+
+	* utils.h (build_filename): New argument "prefix".
+	* utils.c (build_filename): Likewise.
+	* symfile.c (find_separate_debug_file): Separate
+	TARGET_SYSROOT_PREFIX from dir.  In debugdir loop, also try
+	location prepended with dir's prefix if one was supplied.
+
 2015-07-23  Gary Benson <gbenson@redhat.com>
 
 	* symfile.c (find_separate_debug_file): Move canon_dir

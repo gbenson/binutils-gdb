@@ -3252,7 +3252,7 @@ substitute_path_component (char **stringp, const char *from, const char *to)
 /* See utils.h.  */
 
 char *
-build_filename (const char *first, ...)
+build_filename (const char *prefix, const char *first, ...)
 {
   char *buf = NULL;
   const char *arg;
@@ -3284,7 +3284,7 @@ build_filename (const char *first, ...)
 
       /* Append the component to the buffer.  */
       if (buf == NULL)
-	buf = xstrdup (tmp);
+	buf = concat (prefix, tmp, NULL);
       else
 	buf = reconcat (buf, buf, SLASH_STRING, tmp, NULL);
 

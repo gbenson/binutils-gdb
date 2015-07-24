@@ -137,9 +137,11 @@ extern void substitute_path_component (char **stringp, const char *from,
 /* Build a filename from an arbitrary number of components.  Returns
    an xmalloc'd string that must be freed by the caller.  The final
    argument of this function must be NULL to mark the end the argument
-   list.  */
+   list.  PREFIX will be prepended to the result with no directory
+   separator.  */
 
-extern char *build_filename (const char *first, ...);
+extern char *build_filename (const char *prefix,
+			     const char *first, ...);
 
 char *ldirname (const char *filename);
 

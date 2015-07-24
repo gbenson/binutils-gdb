@@ -1464,15 +1464,27 @@ find_separate_debug_file (const char *dir,
   struct cleanup *back_to;
   int ix;
   const char *altdir = NULL;
+  const char *no_prefix = "";
+  const char *dir_prefix = no_prefix;
+
+  /* Separate TARGET_SYSROOT_PREFIX from directory.  */
+  if (is_target_filename (dir))
+    {
+      dir += strlen (TARGET_SYSROOT_PREFIX);
+
+      if (!target_filesystem_is_local ())
+	dir_prefix = TARGET_SYSROOT_PREFIX;
+    }
 
   /* First try in the same directory as the original file.  */
-  debugfile = build_filename (dir, debuglink, NULL);
+  debugfile = build_filename (dir_prefix, dir, debuglink, NULL);
   if (separate_debug_file_exists (debugfile, crc32, objfile))
     return debugfile;
   xfree (debugfile);
 
   /* Then try in the subdirectory named DEBUG_SUBDIRECTORY.  */
-  debugfile = build_filename (dir, DEBUG_SUBDIRECTORY, debuglink, NULL);
+  debugfile = build_filename (dir_prefix, dir, DEBUG_SUBDIRECTORY,
+			      debuglink, NULL);
   if (separate_debug_file_exists (debugfile, crc32, objfile))
     return debugfile;
   xfree (debugfile);
@@ -1501,7 +1513,9 @@ find_separate_debug_file (const char *dir,
 
   for (ix = 0; VEC_iterate (char_ptr, debugdir_vec, ix, debugdir); ++ix)
     {
-      debugfile = build_filename (debugdir, dir, debuglink, NULL);
+      /* Try the main location on the local filesystem.  */
+      debugfile = build_filename (no_prefix, debugdir, dir,
+				  debuglink, NULL);
       if (separate_debug_file_exists (debugfile, crc32, objfile))
 	{
 	  do_cleanups (back_to);
@@ -1509,10 +1523,26 @@ find_separate_debug_file (const char *dir,
 	}
       xfree (debugfile);
 
+      /* Try the alternate location on the local filesystem.  */
       if (altdir != NULL)
 	{
-	  debugfile = build_filename (debugdir, altdir, debuglink,
-				      NULL);
+	  debugfile = build_filename (no_prefix, debugdir,
+				      altdir, debuglink, NULL);
+	  if (separate_debug_file_exists (debugfile, crc32, objfile))
+	    {
+	      do_cleanups (back_to);
+	      return debugfile;
+	    }
+	  xfree (debugfile);
+	}
+
+      /* Try with TARGET_SYSROOT_PREFIX, if supplied.  This can
+	 be slow for remote targets, so we don't check it until
+	 all local filesystem options have been exhausted.  */
+      if (dir_prefix != no_prefix)
+	{
+	  debugfile = build_filename (dir_prefix, debugdir, dir,
+				      debuglink, NULL);
 	  if (separate_debug_file_exists (debugfile, crc32, objfile))
 	    {
 	      do_cleanups (back_to);
