@@ -39,8 +39,7 @@
 * Directory names supplied to the "set sysroot" commands may be
   prefixed with "target:" to tell GDB to access shared libraries from
   the target system, be it local or remote.  This replaces the prefix
-  "remote:".  The default sysroot has been changed from "" to
-  "target:".  "remote:" is automatically converted to "target:" for
+  "remote:", which is automatically converted to "target:" for
   backward compatibility.
 
 * The system root specified by "set sysroot" will be prepended to the

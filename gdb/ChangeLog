@@ -1,3 +1,8 @@
+2015-07-28  Gary Benson  <gbenson@redhat.com>
+
+	* main.c (captured_main): Revert default sysroot back to "".
+	* NEWS: Remove comment about default sysroot being "target:".
+
 2015-07-25  Kevin Buettner  <kevinb@redhat.com>
 
 	* remote.c (read_ptid): Return null_ptid when no thread id

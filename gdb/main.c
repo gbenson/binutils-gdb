@@ -545,11 +545,8 @@ captured_main (void *data)
   gdb_sysroot = relocate_gdb_directory (TARGET_SYSTEM_ROOT,
 					TARGET_SYSTEM_ROOT_RELOCATABLE);
 
-  if (gdb_sysroot == NULL || *gdb_sysroot == '\0')
-    {
-      xfree (gdb_sysroot);
-      gdb_sysroot = xstrdup (TARGET_SYSROOT_PREFIX);
-    }
+  if (gdb_sysroot == NULL)
+    gdb_sysroot = xstrdup ("");
 
   debug_file_directory = relocate_gdb_directory (DEBUGDIR,
 						 DEBUGDIR_RELOCATABLE);
