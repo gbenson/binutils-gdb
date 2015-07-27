@@ -61,6 +61,7 @@
 #include "target-dcache.h"
 #include "terminal.h"
 #include "solist.h"
+#include "filenames.h"
 
 /* Prototypes for local functions */
 
@@ -1133,7 +1134,9 @@ follow_exec (ptid_t ptid, char *execd_pathname)
 
   breakpoint_init_inferior (inf_execd);
 
-  if (*gdb_sysroot != '\0')
+  /* If the discovered filename is absolute then prefix the filename
+     with the target prefix (if necessary) and gdb_sysroot.  */
+  if (IS_ABSOLUTE_PATH (execd_pathname))
     {
       char *name = exec_file_find (execd_pathname, NULL);
 

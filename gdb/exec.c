@@ -152,9 +152,9 @@ exec_file_locate_attach (int pid, int from_tty)
   if (exec_file == NULL)
     return;
 
-  /* If gdb_sysroot is not empty and the discovered filename
-     is absolute then prefix the filename with gdb_sysroot.  */
-  if (*gdb_sysroot != '\0' && IS_ABSOLUTE_PATH (exec_file))
+  /* If the discovered filename is absolute then prefix the filename
+     with the target prefix (if necessary) and gdb_sysroot.  */
+  if (IS_ABSOLUTE_PATH (exec_file))
     full_exec_path = exec_file_find (exec_file, NULL);
 
   if (full_exec_path == NULL)

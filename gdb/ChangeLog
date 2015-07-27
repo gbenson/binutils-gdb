@@ -1,5 +1,12 @@
 2015-07-28  Gary Benson  <gbenson@redhat.com>
 
+	* exec.c (exec_file_locate_attach): Use exec_file_find
+	regardless of what gdb_sysroot is set to.
+	* infrun.c (follow_exec): Likewise, but only if the new
+	filename is absolute.
+
+2015-07-28  Gary Benson  <gbenson@redhat.com>
+
 	* solib.c (auto_target_prefix): New static variable.
 	(solib_find_1): Use TARGET_FILENAME_PREFIX as sysroot
 	in some cases.
