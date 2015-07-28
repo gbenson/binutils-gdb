@@ -1,3 +1,8 @@
+2015-07-28  Gary Benson <gbenson@redhat.com>
+
+	* gdb.texinfo (Commands to Specify Files): Document the
+	"set/show auto-target-prefix" commands.
+
 2015-07-20  Doug Evans  <dje@google.com>
 
 	* Makefile.in (STABS_DOC_BUILD_INCLUDES): Add gdb-cfg.texi, GDBvn.texi.

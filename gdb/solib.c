@@ -105,6 +105,11 @@ show_solib_search_path (struct ui_file *file, int from_tty,
 		    value);
 }
 
+/* If nonzero, prefix executable and shared library filenames with
+   TARGET_FILENAME_PREFIX when attaching to processes whose filesystem
+   is not the local filesystem.  */
+static int auto_target_prefix = 1;
+
 /* Same as HAVE_DOS_BASED_FILE_SYSTEM, but useable as an rvalue.  */
 #if (HAVE_DOS_BASED_FILE_SYSTEM)
 #  define DOS_BASED_FILE_SYSTEM 1
@@ -124,7 +129,10 @@ show_solib_search_path (struct ui_file *file, int from_tty,
    is the local filesystem then the "target:" prefix will be
    stripped before the search starts.  This ensures that the
    same search algorithm is used for local files regardless of
-   whether a "target:" prefix was used.
+   whether a "target:" prefix was used.  If the target filesystem
+   is not the local filesystem then "target:" will be used as the
+   prefix directory for binary files if GDB_SYSROOT is empty and
+   AUTO_TARGET_PREFIX is nonzero.
 
    Global variable SOLIB_SEARCH_PATH is used as a prefix directory
    (or set of directories, as in LD_LIBRARY_PATH) to search for all
@@ -160,14 +168,30 @@ solib_find_1 (char *in_pathname, int *fd, int is_solib)
   char *sysroot = gdb_sysroot;
   int prefix_len, orig_prefix_len;
 
-  /* If the absolute prefix starts with "target:" but the filesystem
-     accessed by the target_fileio_* methods is the local filesystem
-     then we strip the "target:" prefix now and work with the local
-     filesystem.  This ensures that the same search algorithm is used
-     for all local files regardless of whether a "target:" prefix was
-     used.  */
-  if (is_target_filename (sysroot) && target_filesystem_is_local ())
-    sysroot += strlen (TARGET_FILENAME_PREFIX);
+  if (target_filesystem_is_local ())
+    {
+      /* If the absolute prefix starts with "target:" but the
+	 filesystem accessed by the target_fileio_* methods is the
+	 local filesystem then we strip the "target:" prefix now and
+	 work with the local filesystem.  This ensures that the same
+	 search algorithm is used for all local files regardless of
+	 whether a "target:" prefix was used.  */
+      if (is_target_filename (sysroot))
+	sysroot += strlen (TARGET_FILENAME_PREFIX);
+    }
+  else if (auto_target_prefix && *gdb_sysroot == '\0')
+    {
+      /* Set the absolute prefix to "target:" for executable files
+	 and for shared libraries whose executable filename has a
+	 "target:"-prefix.  */
+      if (!is_solib
+	  || (exec_filename != NULL
+	      && is_target_filename (exec_filename)))
+	{
+	  sysroot = xstrdup (TARGET_FILENAME_PREFIX);
+	  make_cleanup (xfree, sysroot);
+	}
+    }
 
   /* Strip any trailing slashes from the absolute prefix.  */
   prefix_len = orig_prefix_len = strlen (sysroot);
@@ -1507,6 +1531,15 @@ show_auto_solib_add (struct ui_file *file, int from_tty,
 		    value);
 }
 
+static void
+show_auto_target_prefix (struct ui_file *file, int from_tty,
+			 struct cmd_list_element *c, const char *value)
+{
+  fprintf_filtered (file,
+		    _("Automatic prefixing of binary filenames is %s.\n"),
+		    value);
+}
+
 
 /* Handler for library-specific lookup of global symbol NAME in OBJFILE.  Call
    the library-specific handler if it is installed for the current target.  */
@@ -1714,4 +1747,15 @@ PATH and LD_LIBRARY_PATH."),
 				     reload_shared_libraries,
 				     show_solib_search_path,
 				     &setlist, &showlist);
+
+  add_setshow_boolean_cmd ("auto-target-prefix", class_support,
+			   &auto_target_prefix, _("\
+Set automatic prefixing of binary filenames."), _("\
+Show automatic prefixing of binary filenames."), _("\
+If \"on\", filenames of binaries will be prefixed with \"target:\"\n\
+when attaching to processes whose filesystems GDB cannot access\n\
+directly."),
+			   NULL,
+			   show_auto_target_prefix,
+			   &setlist, &showlist);
 }

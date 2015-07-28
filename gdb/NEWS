@@ -40,7 +40,9 @@
   prefixed with "target:" to tell GDB to access shared libraries from
   the target system, be it local or remote.  This replaces the prefix
   "remote:", which is automatically converted to "target:" for
-  backward compatibility.
+  backward compatibility.  If the system root is unset, GDB will use
+  "target:" as the system root where necessary if auto-target-prefix
+  is enabled.  See "New commands" below.
 
 * The system root specified by "set sysroot" will be prepended to the
   filename of the main executable (if reported to GDB as absolute by
@@ -192,6 +194,10 @@ set|show record btrace pt buffer-size
 maint set|show btrace pt skip-pad
   Set and show whether PAD packets are skipped when computing the
   packet history.
+
+set auto-target-prefix
+show auto-target-prefix
+  Control automatic prefixing of binary filenames with "target:".
 
 * The command 'thread apply all' can now support new option '-ascending'
   to call its specified command for all threads in ascending order.

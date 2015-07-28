@@ -1,5 +1,17 @@
 2015-07-28  Gary Benson  <gbenson@redhat.com>
 
+	* solib.c (auto_target_prefix): New static variable.
+	(solib_find_1): Use TARGET_FILENAME_PREFIX as sysroot
+	in some cases.
+	(show_auto_target_prefix): New function.
+	(_initialize_solib): New "set/show auto-target-prefix"
+	commands.
+	* NEWS: Mention that GDB will use "target:" as the system
+	root in some cases.  Mention new "set/show auto-target-prefix"
+	commands.
+
+2015-07-28  Gary Benson  <gbenson@redhat.com>
+
 	* gdb_bfd.h (TARGET_SYSROOT_PREFIX): Rename from this...
 	(TARGET_FILENAME_PREFIX): ...to this.  Update all uses.
 

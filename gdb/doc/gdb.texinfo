@@ -18091,6 +18091,17 @@ location.
 @item show sysroot
 Display the current executable and shared library prefix.
 
+@kindex set auto-target-prefix
+@item set solib-search-path @var{mode}
+If @var{mode} is @code{on}, and the system root is empty, @value{GDBN}
+will use @file{target:} as the system root if that is necessary for
+@value{GDBN} to be able to access the target binaries.
+
+@kindex show auto-target-prefix
+@item show auto-solib-add
+Display the current target-prefixing mode.
+@end table
+
 @kindex set solib-search-path
 @item set solib-search-path @var{path}
 If this variable is set, @var{path} is a colon-separated list of
