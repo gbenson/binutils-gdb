@@ -1,5 +1,10 @@
 2015-07-28  Gary Benson  <gbenson@redhat.com>
 
+	* gdb_bfd.h (TARGET_SYSROOT_PREFIX): Rename from this...
+	(TARGET_FILENAME_PREFIX): ...to this.  Update all uses.
+
+2015-07-28  Gary Benson  <gbenson@redhat.com>
+
 	* remote.c (remote_filesystem_is_local): Update vgdb handling.
 
 2015-07-28  Gary Benson  <gbenson@redhat.com>

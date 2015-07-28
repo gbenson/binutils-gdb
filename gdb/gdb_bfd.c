@@ -144,7 +144,7 @@ eq_bfd (const void *a, const void *b)
 int
 is_target_filename (const char *name)
 {
-  return startswith (name, TARGET_SYSROOT_PREFIX);
+  return startswith (name, TARGET_FILENAME_PREFIX);
 }
 
 /* See gdb_bfd.h.  */
@@ -223,7 +223,7 @@ gdb_bfd_iovec_fileio_open (struct bfd *abfd, void *inferior)
   gdb_assert (is_target_filename (filename));
 
   fd = target_fileio_open ((struct inferior *) inferior,
-			   filename + strlen (TARGET_SYSROOT_PREFIX),
+			   filename + strlen (TARGET_FILENAME_PREFIX),
 			   FILEIO_O_RDONLY, 0,
 			   &target_errno);
   if (fd == -1)
@@ -336,7 +336,7 @@ gdb_bfd_open (const char *name, const char *target, int fd)
 				      gdb_bfd_iovec_fileio_fstat);
 	}
 
-      name += strlen (TARGET_SYSROOT_PREFIX);
+      name += strlen (TARGET_FILENAME_PREFIX);
     }
 
   if (gdb_bfd_cache == NULL)

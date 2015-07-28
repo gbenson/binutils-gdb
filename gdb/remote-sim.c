@@ -675,7 +675,7 @@ gdbsim_open (const char *args, int from_tty)
 
   sysroot = gdb_sysroot;
   if (is_target_filename (sysroot))
-    sysroot += strlen (TARGET_SYSROOT_PREFIX);
+    sysroot += strlen (TARGET_FILENAME_PREFIX);
 
   if (remote_debug)
     fprintf_unfiltered (gdb_stdlog,

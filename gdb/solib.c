@@ -167,7 +167,7 @@ solib_find_1 (char *in_pathname, int *fd, int is_solib)
      for all local files regardless of whether a "target:" prefix was
      used.  */
   if (is_target_filename (sysroot) && target_filesystem_is_local ())
-    sysroot += strlen (TARGET_SYSROOT_PREFIX);
+    sysroot += strlen (TARGET_FILENAME_PREFIX);
 
   /* Strip any trailing slashes from the absolute prefix.  */
   prefix_len = orig_prefix_len = strlen (sysroot);
@@ -239,7 +239,7 @@ solib_find_1 (char *in_pathname, int *fd, int is_solib)
 	There's no need to check for drive spec explicitly, as we only
 	get here if IN_PATHNAME is considered an absolute path.  */
       need_dir_separator = !(IS_DIR_SEPARATOR (in_pathname[0])
-			     || strcmp (TARGET_SYSROOT_PREFIX, sysroot) == 0);
+			     || strcmp (TARGET_FILENAME_PREFIX, sysroot) == 0);
 
       /* Cat the prefixed pathname together.  */
       temp_pathname = concat (sysroot,
@@ -1477,7 +1477,7 @@ gdb_sysroot_changed (char *ignored, int from_tty,
 		     struct cmd_list_element *e)
 {
   const char *old_prefix = "remote:";
-  const char *new_prefix = TARGET_SYSROOT_PREFIX;
+  const char *new_prefix = TARGET_FILENAME_PREFIX;
 
   if (startswith (gdb_sysroot, old_prefix))
     {

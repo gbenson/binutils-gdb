@@ -225,7 +225,7 @@ exec_file_attach (const char *filename, int from_tty)
       if (is_target_filename (filename))
 	{
 	  if (target_filesystem_is_local ())
-	    filename += strlen (TARGET_SYSROOT_PREFIX);
+	    filename += strlen (TARGET_FILENAME_PREFIX);
 	  else
 	    load_via_target = 1;
 	}
@@ -235,8 +235,8 @@ exec_file_attach (const char *filename, int from_tty)
 	  /* gdb_bfd_fopen does not support "target:" filenames.  */
 	  if (write_files)
 	    warning (_("writing into executable files is "
-		       "not supported for %s sysroots"),
-		     TARGET_SYSROOT_PREFIX);
+		       "not supported for %s filenames"),
+		     TARGET_FILENAME_PREFIX);
 
 	  scratch_pathname = xstrdup (filename);
 	  make_cleanup (xfree, scratch_pathname);
