@@ -1,5 +1,9 @@
 2015-07-28  Gary Benson  <gbenson@redhat.com>
 
+	* remote.c (remote_filesystem_is_local): Update vgdb handling.
+
+2015-07-28  Gary Benson  <gbenson@redhat.com>
+
 	* main.c (captured_main): Revert default sysroot back to "".
 	* NEWS: Remove comment about default sysroot being "target:".
 

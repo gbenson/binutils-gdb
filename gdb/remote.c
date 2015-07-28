@@ -10567,9 +10567,8 @@ remote_filesystem_is_local (struct target_ops *self)
      on the local filesystem: it does not implement remote get
      and users are not expected to set a sysroot.  To handle
      this case we treat the remote filesystem as local if the
-     sysroot is exactly TARGET_SYSROOT_PREFIX and if the stub
-     does not support vFile:open.  */
-  if (strcmp (gdb_sysroot, TARGET_SYSROOT_PREFIX) == 0)
+     sysroot is empty and the stub does not support vFile:open.  */
+  if (*gdb_sysroot == '\0')
     {
       enum packet_support ps = packet_support (PACKET_vFile_open);
 
