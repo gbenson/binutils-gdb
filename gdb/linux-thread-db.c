@@ -46,6 +46,7 @@
 #include <ctype.h>
 #include "nat/linux-namespaces.h"
 #include "infinity.h"
+#include "elf-bfd.h"
 
 /* XXX.  */
 
@@ -1110,18 +1111,21 @@ static int
 try_infinity_load (void)
 {
   struct objfile *obj = libpthread_objfile ();
-  struct bfd_section *section;
+  struct elf_infinity *note;
 
   if (obj == NULL
       || obj->obfd == NULL
       || bfd_get_flavour (obj->obfd) != bfd_target_elf_flavour)
     return 0;
 
-  debug_printf("\x1B[32m%s: %s\x1B[0m\n",__FUNCTION__,objfile_name(obj));
+  debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
+		objfile_name(obj));
 
-  section = bfd_get_section_by_name (obj->obfd, ".note.infinity");
+  note = elf_tdata (obj->obfd)->infinity;
+  if (note == NULL)
+    return 0;
 
-  debug_printf("\x1B[32m%s: .note.infinity = %p\x1B[0m\n",__FUNCTION__,section);
+  debug_printf ("\x1B[32m%s: %p\x1B[0m\n", __FUNCTION__, note);
 
   return 1;
 }
