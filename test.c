@@ -33,7 +33,7 @@ dummyfunc ()
   __asm__ __volatile__ (
     _SDT_ASM_3 (.pushsection .note.infinity, "a", "note")
     _SDT_ASM_1 (.4byte 4)  /* Name size */
-    _SDT_ASM_1 (.4byte 13) /* Desc size */
+    _SDT_ASM_1 (.4byte 11) /* Desc size */
     _SDT_ASM_1 (.4byte NT_GNU_INFINITY)
     _SDT_ASM_1 (.string "GNU")
     _SDT_ASM_1 (.align 4)

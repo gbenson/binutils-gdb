@@ -1125,7 +1125,14 @@ try_infinity_load (void)
   if (note == NULL)
     return 0;
 
-  debug_printf ("\x1B[32m%s: %p\x1B[0m\n", __FUNCTION__, note);
+  debug_printf ("\x1B[32m%s: size = %ld\n", __FUNCTION__, note->size);
+  {
+    int i;
+
+    for (i = 0; i < note->size; i++)
+      debug_printf ("  %02x '%c'\n", note->data[i], note->data[i]);
+  }
+  debug_printf ("\x1B[0m");
 
   return 1;
 }
