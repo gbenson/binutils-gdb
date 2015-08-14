@@ -1104,20 +1104,25 @@ has_libpthread (void)
   return libpthread_objfile () != NULL;
 }
 
-/* XXX>  */
+/* XXX  */
 
 static int
 try_infinity_load (void)
 {
   struct objfile *obj = libpthread_objfile ();
+  struct bfd_section *section;
 
   if (obj == NULL
       || obj->obfd == NULL
       || bfd_get_flavour (obj->obfd) != bfd_target_elf_flavour)
     return 0;
 
-  debug_printf ("\x1B[32m%s: got libpthread.so\x1B[0m\n",
-		__FUNCTION__);
+  debug_printf("\x1B[32m%s: %s\x1B[0m\n",__FUNCTION__,objfile_name(obj));
+
+  section = bfd_get_section_by_name (obj->obfd, ".note.infinity");
+
+  debug_printf("\x1B[32m%s: .note.infinity = %p\x1B[0m\n",__FUNCTION__,section);
+
   return 1;
 }
 
