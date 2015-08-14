@@ -1,5 +1,8 @@
 /* gcc -shared -o libtest.so test.c */
 /* eu-readelf -n libtest.so */
+/* OR:
+   gcc test.c -o libpthread-test
+   (GDB will check_for_thread_db if objfile name has "/libpthread" in it) */
 
 /* NB objcopy --add-section can add to pre-built files.*/
 /* NB objcopy is unconditionally usable at glibc build time */
