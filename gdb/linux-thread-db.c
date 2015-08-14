@@ -1118,9 +1118,6 @@ try_infinity_load (void)
       || bfd_get_flavour (obj->obfd) != bfd_target_elf_flavour)
     return 0;
 
-  debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
-		objfile_name(obj));
-
   note = elf_tdata (obj->obfd)->infinity;
   if (note == NULL)
     return 0;
@@ -1128,8 +1125,6 @@ try_infinity_load (void)
   if (note->major_version != 1)
     return 0;
 
-  debug_printf ("\x1B[32m%s: version = %d.%d\n", __FUNCTION__,
-		note->major_version, note->minor_version);
   debug_printf ("\x1B[32m%s: size = %ld\n", __FUNCTION__, note->size);
   {
     int i;
