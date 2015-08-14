@@ -1125,6 +1125,11 @@ try_infinity_load (void)
   if (note == NULL)
     return 0;
 
+  if (note->major_version != 1)
+    return 0;
+
+  debug_printf ("\x1B[32m%s: version = %d.%d\n", __FUNCTION__,
+		note->major_version, note->minor_version);
   debug_printf ("\x1B[32m%s: size = %ld\n", __FUNCTION__, note->size);
   {
     int i;

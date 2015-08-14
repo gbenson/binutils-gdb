@@ -1594,8 +1594,10 @@ struct sdt_note
 /* NT_GNU_INFINITY note type info for input BFDs.  */
 struct elf_infinity
 {
+  int major_version;
+  int minor_version;
   size_t size;
-  bfd_byte data[1];
+  bfd_byte data[0];
 };
 
 /* tdata information grabbed from an elf core file.  */
