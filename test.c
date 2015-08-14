@@ -4,6 +4,19 @@
 /* NB objcopy --add-section can add to pre-built files.*/
 /* NB objcopy is unconditionally usable at glibc build time */
 
+/* NB a program called rpcgen is built at glibc build time
+   which is then run to emit stuff the compiler then compiles
+
+   -or-
+
+   <codonell> Python is currently a dependency of our microbenchmarks
+              framework, and I expect it could easily become a build
+              dependency, since we already depend on Perl.
+   <gbenson> oh, that's great, I'll do it in python and say you need
+             python installed to have the new interface built
+   <gbenson> if not you can use libthread_db
+   <codonell> That would be acceptable IMO, and I would support that.  */
+
 #include <sys/sdt.h>
 
 #define NT_GNU_INFINITY 5
