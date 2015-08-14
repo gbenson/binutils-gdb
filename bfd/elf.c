@@ -9233,6 +9233,25 @@ elfobj_grok_gnu_build_id (bfd *abfd, Elf_Internal_Note *note)
 }
 
 static bfd_boolean
+elfobj_grok_gnu_infinity (bfd *abfd, Elf_Internal_Note *note)
+{
+  struct elf_obj_tdata *t;
+
+  if (note->descsz == 0)
+    return FALSE;
+
+  t = elf_tdata (abfd);
+  t->infinity = bfd_alloc (abfd, sizeof (*t->infinity) - 1 + note->descsz);
+  if (t->infinity == NULL)
+    return FALSE;
+
+  t->infinity->size = note->descsz;
+  memcpy (t->infinity->data, note->descdata, note->descsz);
+
+  return TRUE;
+}
+
+static bfd_boolean
 elfobj_grok_gnu_note (bfd *abfd, Elf_Internal_Note *note)
 {
   switch (note->type)
@@ -9242,6 +9261,9 @@ elfobj_grok_gnu_note (bfd *abfd, Elf_Internal_Note *note)
 
     case NT_GNU_BUILD_ID:
       return elfobj_grok_gnu_build_id (abfd, note);
+
+    case 23: /* NT_GNU_INFINITY */
+      return elfobj_grok_gnu_infinity (abfd, note);
     }
 }
 

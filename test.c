@@ -22,7 +22,7 @@
 
 #include <sys/sdt.h>
 
-#define NT_GNU_INFINITY 5
+#define NT_GNU_INFINITY 23
 
 /* NB Add the above to glibc/src/elf/elf.h */
 
