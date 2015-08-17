@@ -1134,6 +1134,31 @@ try_infinity_load (void)
   }
   debug_printf ("\x1B[0m");
 
+  {
+    struct bound_minimal_symbol version_msym;
+
+    version_msym = lookup_minimal_symbol ("infinity_version", NULL, obj);
+    if (version_msym.minsym == NULL)
+      debug_printf ("\x1B[31merror 1\x1B[0m\n");
+    else
+      {
+	CORE_ADDR version_addr;
+	char *version;
+	int got, err;
+
+	version_addr = BMSYMBOL_VALUE_ADDRESS (version_msym);
+	debug_printf ("\x1B[33mversion_addr = %lx\x1B[0m\n", version_addr);
+
+	got = target_read_string (version_addr, &version, 32, &err);
+	debug_printf ("\x1B[33mgot = %d, err = %d\x1B[0m\n", got, err);
+
+	if (err == 0 && memchr (version, 0, got) == &version[got -1])
+	  debug_printf ("\x1B[33mversion = %s\x1B[0m\n", version);
+	else
+	  debug_printf ("\x1B[31merror 2\x1B[0m\n");
+      }
+  }
+
   return 1;
 }
 
@@ -1163,9 +1188,9 @@ thread_db_load (void)
   if (try_infinity_load ())
     return 1;
 
-  /* XXX.
+  /* XXX.  */
   if (try_thread_db_load_1 (infinity_handle, NULL))
-    return 1; */
+    return 1;
 
   if (thread_db_load_search ())
     return 1;

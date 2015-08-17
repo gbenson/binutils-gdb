@@ -47,3 +47,5 @@ dummyfunc ()
 int main()
 {
 }
+
+static const char infinity_version[] __attribute_used__ = "23.4.209";
