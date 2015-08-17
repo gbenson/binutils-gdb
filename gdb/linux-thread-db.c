@@ -47,6 +47,8 @@
 #include "nat/linux-namespaces.h"
 #include "infinity.h"
 #include "elf-bfd.h"
+#include "dwarf2.h"
+#include "dwarf2expr.h"
 
 /* XXX.  */
 
@@ -1112,6 +1114,7 @@ try_infinity_load (void)
 {
   struct objfile *obj = libpthread_objfile ();
   struct elf_infinity *note;
+  CORE_ADDR version_addr;
 
   if (obj == NULL
       || obj->obfd == NULL
@@ -1142,7 +1145,6 @@ try_infinity_load (void)
       debug_printf ("\x1B[31merror 1\x1B[0m\n");
     else
       {
-	CORE_ADDR version_addr;
 	char *version;
 	int got, err;
 
@@ -1153,10 +1155,44 @@ try_infinity_load (void)
 	debug_printf ("\x1B[33mgot = %d, err = %d\x1B[0m\n", got, err);
 
 	if (err == 0 && memchr (version, 0, got) == &version[got -1])
-	  debug_printf ("\x1B[33mversion = %s\x1B[0m\n", version);
+	  ;
 	else
 	  debug_printf ("\x1B[31merror 2\x1B[0m\n");
       }
+  }
+  {
+    note->data[0] = DW_OP_addr;
+    memcpy (note->data + 1, &version_addr, 8); // DW_OP_addr's arg
+    note->data[9] = DW_OP_deref;
+    note->size = 10;
+  }
+  debug_printf ("\x1B[32m%s: size = %ld\n", __FUNCTION__, note->size);
+  {
+    int i;
+
+    for (i = 0; i < note->size; i++)
+      debug_printf ("  %d. %02x\n", i, note->data[i]);
+  }
+  debug_printf ("\x1B[0m");
+  {
+    struct dwarf_expr_context *ctx = new_dwarf_expr_context ();
+    extern const struct dwarf_expr_context_funcs dwarf_expr_ctx_funcs;
+
+    ctx->gdbarch = get_objfile_arch (obj);
+    ctx->addr_size = 8; // XXX
+    /*
+    ctx->ref_addr_size = dwarf2_per_cu_ref_addr_size (per_cu);
+    ctx->offset = dwarf2_per_cu_text_offset (per_cu);
+    ctx->baton = &baton;
+    */
+    ctx->funcs = &dwarf_expr_ctx_funcs;
+
+    gdb_assert (ctx->stack_len == 0);
+    dwarf_expr_eval (ctx, note->data, note->size);
+    gdb_assert (ctx->stack_len == 1);
+
+    debug_printf ("\x1B[33mresult = %lx\x1B[0m\n",
+		  value_as_address (dwarf_expr_fetch (ctx, 0)));
   }
 
   return 1;

@@ -48,4 +48,6 @@ int main()
 {
 }
 
-static const char infinity_version[] __attribute_used__ = "23.4.209";
+static const char infinity_version[] __attribute_used__ = {
+  0xbe, 0xba, 0xfe, 0xca, 0xef, 0xbe, 0xad, 0xde, 0
+};
