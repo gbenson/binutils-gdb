@@ -10329,6 +10329,26 @@ remote_hostio_send_command (int command_bytes, int which_packet,
   return ret;
 }
 
+struct readahead_cache
+{
+  int fd;
+  gdb_byte *buf;
+  ULONGEST offset;
+  size_t bufsize;
+};
+
+static struct readahead_cache *readahead_cache;
+
+static void
+readahead_cache_invalidate (void)
+{
+  if (readahead_cache != NULL)
+    readahead_cache->fd = -1;
+}
+
+static unsigned int readahead_cache_hit_count;
+static unsigned int readahead_cache_miss_count;
+
 /* Set the filesystem remote_hostio functions that take FILENAME
    arguments will use.  Return 0 on success, or -1 if an error
    occurs (and set *REMOTE_ERRNO).  */
@@ -10342,6 +10362,8 @@ remote_hostio_set_filesystem (struct inferior *inf, int *remote_errno)
   int left = get_remote_packet_size () - 1;
   char arg[9];
   int ret;
+
+  readahead_cache_invalidate ();
 
   if (packet_support (PACKET_vFile_setfs) == PACKET_DISABLE)
     return 0;
@@ -10407,6 +10429,9 @@ remote_hostio_pwrite (struct target_ops *self,
   int left = get_remote_packet_size ();
   int out_len;
 
+  if (readahead_cache != NULL && readahead_cache->fd == fd)
+    readahead_cache_invalidate ();
+
   remote_buffer_add_string (&p, &left, "vFile:pwrite:");
 
   remote_buffer_add_int (&p, &left, fd);
@@ -10425,9 +10450,9 @@ remote_hostio_pwrite (struct target_ops *self,
 /* Implementation of to_fileio_pread.  */
 
 static int
-remote_hostio_pread (struct target_ops *self,
-		     int fd, gdb_byte *read_buf, int len,
-		     ULONGEST offset, int *remote_errno)
+remote_hostio_pread_1 (struct target_ops *self,
+		       int fd, gdb_byte *read_buf, int len,
+		       ULONGEST offset, int *remote_errno)
 {
   struct remote_state *rs = get_remote_state ();
   char *p = rs->buf;
@@ -10461,6 +10486,74 @@ remote_hostio_pread (struct target_ops *self,
   return ret;
 }
 
+static int
+remote_hostio_pread_from_cache (struct readahead_cache *cache,
+				int fd, gdb_byte *read_buf, int len,
+				ULONGEST offset)
+{
+  if (cache->fd == fd
+      && cache->offset <= offset
+      && offset < cache->offset + cache->bufsize)
+    {
+      ULONGEST max = cache->offset + cache->bufsize;
+
+      if (offset + len > max)
+	len = max - offset;
+
+      if (remote_debug)
+	fprintf_unfiltered (gdb_stdlog,
+			    "readahead cache hit %d\n",
+			    ++readahead_cache_hit_count);
+      memcpy (read_buf, cache->buf + offset - cache->offset, len);
+      return len;
+    }
+
+  return -1;
+}
+
+static int
+remote_hostio_pread (struct target_ops *self,
+		     int fd, gdb_byte *read_buf, int len,
+		     ULONGEST offset, int *remote_errno)
+{
+  int ret;
+
+  if (readahead_cache != NULL)
+    {
+      ret = remote_hostio_pread_from_cache (readahead_cache, fd,
+					    read_buf, len, offset);
+      if (ret >= 0)
+	return ret;
+
+      readahead_cache_invalidate ();
+    }
+
+  if (remote_debug)
+    fprintf_unfiltered (gdb_stdlog, "readahead cache miss %d\n",
+			++readahead_cache_miss_count);
+
+  if (readahead_cache == NULL)
+    readahead_cache = XCNEW (struct readahead_cache);
+  readahead_cache->fd = fd;
+  readahead_cache->offset = offset;
+  readahead_cache->bufsize = get_remote_packet_size ();
+  readahead_cache->buf = xrealloc (readahead_cache->buf, readahead_cache->bufsize);
+
+  ret = remote_hostio_pread_1 (self,
+			       readahead_cache->fd,
+			       readahead_cache->buf, readahead_cache->bufsize,
+			       readahead_cache->offset, remote_errno);
+  if (ret <= 0)
+    {
+      readahead_cache_invalidate ();
+      return ret;
+    }
+
+  readahead_cache->bufsize = ret;
+  return remote_hostio_pread_from_cache (readahead_cache, fd,
+					 read_buf, len, offset);
+}
+
 /* Implementation of to_fileio_close.  */
 
 static int
@@ -10469,6 +10562,9 @@ remote_hostio_close (struct target_ops *self, int fd, int *remote_errno)
   struct remote_state *rs = get_remote_state ();
   char *p = rs->buf;
   int left = get_remote_packet_size () - 1;
+
+  if (readahead_cache != NULL && readahead_cache->fd == fd)
+    readahead_cache_invalidate ();
 
   remote_buffer_add_string (&p, &left, "vFile:close:");
 
