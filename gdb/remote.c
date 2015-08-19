@@ -10363,8 +10363,6 @@ remote_hostio_set_filesystem (struct inferior *inf, int *remote_errno)
   char arg[9];
   int ret;
 
-  readahead_cache_invalidate ();
-
   if (packet_support (PACKET_vFile_setfs) == PACKET_DISABLE)
     return 0;
 
