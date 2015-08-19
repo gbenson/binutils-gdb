@@ -336,6 +336,9 @@ handle_open (char *own_buf)
   new_fd->next = open_fds;
   open_fds = new_fd;
 
+  debug_printf ("%s: filename = %s -> fd = %d\n",
+		__FUNCTION__, filename, fd);
+
   hostio_reply (own_buf, fd);
 }
 
@@ -359,6 +362,9 @@ handle_pread (char *own_buf, int *new_packet_len)
       hostio_packet_error (own_buf);
       return;
     }
+
+  debug_printf ("%s: fd = %d, len = %d, offset = %d\n",
+		__FUNCTION__, fd, len, offset);
 
   /* Do not attempt to read more than the maximum number of bytes
      hostio_reply_with_data can fit in a packet.  We may still read
@@ -501,6 +507,8 @@ handle_close (char *own_buf)
       hostio_packet_error (own_buf);
       return;
     }
+
+  debug_printf ("%s: fd = %d\n", __FUNCTION__, fd);
 
   ret = close (fd);
 
