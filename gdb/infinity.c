@@ -19,3 +19,37 @@
 
 #include "defs.h"
 #include "infinity.h"
+#include "objfiles.h"
+#include "observer.h"
+
+/* Called whenever a new object file is loaded.  */
+
+static void
+infinity_new_objfile (struct objfile *objfile)
+{
+  if (objfile == NULL)
+    return;
+
+  debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
+		objfile_name (objfile));
+}
+
+/* Called whenever an object file is unloaded.  */
+
+static void
+infinity_free_objfile (struct objfile *objfile)
+{
+  debug_printf ("\x1B[31m%s: %s\x1B[0m\n", __FUNCTION__,
+		objfile_name (objfile));
+}
+
+/* Provide a prototype to silence -Wmissing-prototypes.  */
+extern initialize_file_ftype _initialize_infinity;
+
+void
+_initialize_infinity (void)
+{
+  /* Notice when object files get loaded and unloaded.  */
+  observer_attach_new_objfile (infinity_new_objfile);
+  observer_attach_free_objfile (infinity_free_objfile);
+}
