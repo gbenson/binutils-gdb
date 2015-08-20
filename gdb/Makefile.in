@@ -1320,6 +1320,10 @@ test-cp-name-parser$(EXEEXT): test-cp-name-parser.o $(LIBIBERTY)
 # modules still take the address of these builtin types forcing them
 # to be variables, sigh!
 
+# FIXME: gbenson/2015-08-20: _initialize_infinity needs to be called
+# before _initialize_thread_db because XXX.  Force the order so that
+# the first call after _initialize_gdbtypes is _initialize_infinity.
+
 # NOTE: cagney/2003-03-18: The sed pattern ``s|^\([^ /]...'' is
 # anchored on the first column and excludes the ``/'' character so
 # that it doesn't add the $(srcdir) prefix to any file that already
@@ -1337,12 +1341,14 @@ init.c: $(INIT_FILES)
 	@rm -f init.c-tmp init.l-tmp
 	@touch init.c-tmp
 	@echo gdbtypes > init.l-tmp
+	@echo infinity >> init.l-tmp
 	@-LANG=C ; export LANG ; \
 	LC_ALL=C ; export LC_ALL ; \
 	echo $(INIT_FILES) | \
 	tr ' ' '\012' | \
 	sed \
 	    -e '/^gdbtypes.[co]$$/d' \
+	    -e '/^infinity.[co]$$/d' \
 	    -e '/^init.[co]$$/d' \
 	    -e '/xdr_ld.[co]$$/d' \
 	    -e '/xdr_ptrace.[co]$$/d' \
