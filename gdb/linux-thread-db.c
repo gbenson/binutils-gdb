@@ -45,7 +45,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include "nat/linux-namespaces.h"
-#include "infinity.h"
+#include "infinity-thread-db.h"
 #include "elf-bfd.h"
 #include "dwarf2.h"
 #include "dwarf2expr.h"

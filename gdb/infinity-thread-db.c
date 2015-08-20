@@ -18,7 +18,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-#include "infinity.h"
+#include "infinity-thread-db.h"
 #include <thread_db.h>
 
 #define NotImplemented() \
