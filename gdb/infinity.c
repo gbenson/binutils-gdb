@@ -22,13 +22,57 @@
 #include "objfiles.h"
 #include "observer.h"
 
+/* Per-program-space data.  */
+struct infinity_context
+{
+};
+
+/* Per-program-space data key.  */
+static const struct program_space_data *infinity_pspace_data;
+
+/* Get the per-program-space data.  If none is found, allocate and
+   initialize one.  This function always returns a valid object.  */
+
+static struct infinity_context *
+infinity_get_context (void)
+{
+  struct infinity_context *ctx;
+
+  ctx = program_space_data (current_program_space, infinity_pspace_data);
+  if (ctx != NULL)
+    return ctx;
+
+  ctx = XCNEW (struct infinity_context);
+  set_program_space_data (current_program_space, infinity_pspace_data, ctx);
+
+  debug_printf ("\x1B[32m%s: created %p\x1B[0m\n", __FUNCTION__, ctx);
+
+  return ctx;
+}
+
+/* Free the per-program-space data.  */
+
+static void
+infinity_context_cleanup (struct program_space *pspace, void *arg)
+{
+  struct infinity_context *ctx = arg;
+
+  debug_printf ("\x1B[32m%s: freeing %p\x1B[0m\n", __FUNCTION__, ctx);
+
+  xfree (ctx);
+}
+
 /* Called whenever a new object file is loaded.  */
 
 static void
 infinity_new_objfile (struct objfile *objfile)
 {
+  struct infinity_context *ctx;
+
   if (objfile == NULL)
     return;
+
+  ctx = infinity_get_context ();
 
   debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
 		objfile_name (objfile));
@@ -49,6 +93,10 @@ extern initialize_file_ftype _initialize_infinity;
 void
 _initialize_infinity (void)
 {
+  infinity_pspace_data
+    = register_program_space_data_with_cleanup (NULL,
+						infinity_context_cleanup);
+
   /* Notice when object files get loaded and unloaded.  */
   observer_attach_new_objfile (infinity_new_objfile);
   observer_attach_free_objfile (infinity_free_objfile);
