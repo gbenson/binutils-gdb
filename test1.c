@@ -11,14 +11,15 @@ main (int argc, char *argv[])
 {
 __asm__ __volatile__ (
   ".pushsection .note.infinity, \"a\", \"note\"\n"
+  ".balign 4\n"  /* Just in case */
   ".4byte 4\n"  /* Name size */
   ".4byte 15\n" /* Desc size INCLUDING 2 BYTE VERSION */
   ".4byte 23\n" /* Note type */
   ".string \"GNU\"\n"
-  ".align 4\n"
+  ".balign 4\n"
   ".byte 1\n"  /* Major version */
   ".byte 0\n"  /* Minor version */
   ".string \"Hello world!\"\n"
-  ".align 4\n"
+  ".balign 4\n"
   ".popsection\n");
 }
