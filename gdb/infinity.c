@@ -34,7 +34,7 @@ static const struct program_space_data *infinity_pspace_data;
    initialize one.  This function always returns a valid object.  */
 
 static struct infinity_context *
-infinity_get_context (void)
+get_infinity_context (void)
 {
   struct infinity_context *ctx;
 
@@ -72,7 +72,7 @@ infinity_new_objfile (struct objfile *objfile)
   if (objfile == NULL)
     return;
 
-  ctx = infinity_get_context ();
+  ctx = get_infinity_context ();
 
   debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
 		objfile_name (objfile));
@@ -93,6 +93,7 @@ extern initialize_file_ftype _initialize_infinity;
 void
 _initialize_infinity (void)
 {
+  /* Register our per-program-space data.  */
   infinity_pspace_data
     = register_program_space_data_with_cleanup (NULL,
 						infinity_context_cleanup);
