@@ -19,6 +19,7 @@
 
 #include "defs.h"
 #include "infinity.h"
+#include "elf-bfd.h"
 #include "objfiles.h"
 #include "observer.h"
 
@@ -68,14 +69,22 @@ static void
 infinity_new_objfile (struct objfile *objfile)
 {
   struct infinity_context *ctx;
+  struct elf_infinity *note;
 
-  if (objfile == NULL)
+  if (objfile == NULL
+      || objfile->obfd == NULL
+      || bfd_get_flavour (objfile->obfd) != bfd_target_elf_flavour)
     return;
+
+  note = elf_tdata (objfile->obfd)->infinity;
+  if (note == NULL)
+    return;
+
+  debug_printf ("\x1B[32m%s: %s: got infinity note\x1B[0m\n",
+		__FUNCTION__, objfile_name (objfile));
 
   ctx = get_infinity_context ();
 
-  debug_printf ("\x1B[32m%s: %s\x1B[0m\n", __FUNCTION__,
-		objfile_name (objfile));
 }
 
 /* Called whenever an object file is unloaded.  */
