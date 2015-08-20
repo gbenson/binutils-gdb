@@ -17,9 +17,14 @@ __asm__ __volatile__ (
   "     .4byte 23\n"         /* NT_GNU_INFINITY */
   "101: .string \"GNU\"\n"
   "102: .balign 4\n"
-  "103: .byte 1\n"           /* Major version */
-  "     .byte 0\n"           /* Minor version */
-  "     .string \"Hello world!\"\n"
+  "103: .byte 1\n"               /* version */
+  "     .byte 0\n"               /* num_args */
+  "     .byte 1\n"               /* num_res */
+  "     .byte 0\n"               /* reserved */
+  "     .string \"td_ta_new\"\n" /* name + '\0' */
+                                 /* no arguments */
+  "     .byte 4\n"               /* the one result slot */
+  // some DWARF
   "104: .balign 4\n"
   "     .popsection\n");
 }
