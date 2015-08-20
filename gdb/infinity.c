@@ -63,12 +63,32 @@ infinity_context_cleanup (struct program_space *pspace, void *arg)
   xfree (ctx);
 }
 
-/* Called whenever a new object file is loaded.  */
+/* Called whenever a new note is loaded.  */
 
 static void
-infinity_new_objfile (struct objfile *objfile)
+infinity_new_note (struct infinity_note *note)
 {
-  struct infinity_context *ctx;
+  struct infinity_context *ctx = get_infinity_context ();
+
+  debug_printf ("\x1B[32m%s: size = %ld\x1B[0m\n", __FUNCTION__, note->size);
+}
+
+/* Called whenever a note is unloaded.  */
+
+static void
+infinity_free_note (struct infinity_note *note)
+{
+  struct infinity_context *ctx = get_infinity_context ();
+
+  debug_printf ("\x1B[32m%s: size = %ld\x1B[0m\n", __FUNCTION__, note->size);
+}
+
+/* Call FUNC for each GNU Infinity note in OBJFILE.  */
+
+static void
+foreach_infinity_note (struct objfile *objfile,
+		       void (*func) (struct infinity_note *))
+{
   struct infinity_note *note;
 
   if (objfile == NULL
@@ -76,16 +96,17 @@ infinity_new_objfile (struct objfile *objfile)
       || bfd_get_flavour (objfile->obfd) != bfd_target_elf_flavour)
     return;
 
-  note = elf_tdata (objfile->obfd)->infinity_note_head;
-  if (note == NULL)
-    return;
+  for (note = elf_tdata (objfile->obfd)->infinity_note_head;
+       note != NULL; note = note->next)
+    func (note);
+}
 
-  for (; note != NULL; note = note->next)
-    debug_printf ("\x1B[32m%s: %s: got infinity note (%ld bytes)\x1B[0m\n",
-		  __FUNCTION__, objfile_name (objfile), note->size);
+/* Called whenever a new object file is loaded.  */
 
-  ctx = get_infinity_context ();
-
+static void
+infinity_new_objfile (struct objfile *objfile)
+{
+  foreach_infinity_note (objfile, infinity_new_note);
 }
 
 /* Called whenever an object file is unloaded.  */
@@ -93,8 +114,7 @@ infinity_new_objfile (struct objfile *objfile)
 static void
 infinity_free_objfile (struct objfile *objfile)
 {
-  debug_printf ("\x1B[31m%s: %s\x1B[0m\n", __FUNCTION__,
-		objfile_name (objfile));
+  foreach_infinity_note (objfile, infinity_free_note);
 }
 
 /* Provide a prototype to silence -Wmissing-prototypes.  */
