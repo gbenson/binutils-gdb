@@ -1592,10 +1592,9 @@ struct sdt_note
 };
 
 /* NT_GNU_INFINITY note type info for input BFDs.  */
-struct elf_infinity
+struct infinity_note
 {
-  int major_version;
-  int minor_version;
+  struct infinity_note *next;
   size_t size;
   bfd_byte data[0];
 };
@@ -1746,13 +1745,15 @@ struct elf_obj_tdata
   obj_attribute known_obj_attributes[2][NUM_KNOWN_OBJ_ATTRIBUTES];
   obj_attribute_list *other_obj_attributes[2];
 
-  /* NT_GNU_INFINITY note type.  */
-  struct elf_infinity *infinity;
-
   /* Linked-list containing information about every Systemtap section
      found in the object file.  Each section corresponds to one entry
      in the list.  */
   struct sdt_note *sdt_note_head;
+
+  /* Linked list containing information about every GNU Infinity
+     note found in the object file.  Each note corresponds to one
+     entry in the list.  */
+  struct infinity_note *infinity_note_head;
 
   Elf_Internal_Shdr **group_sect_ptr;
   int num_group;

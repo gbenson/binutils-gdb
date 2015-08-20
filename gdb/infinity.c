@@ -69,19 +69,20 @@ static void
 infinity_new_objfile (struct objfile *objfile)
 {
   struct infinity_context *ctx;
-  struct elf_infinity *note;
+  struct infinity_note *note;
 
   if (objfile == NULL
       || objfile->obfd == NULL
       || bfd_get_flavour (objfile->obfd) != bfd_target_elf_flavour)
     return;
 
-  note = elf_tdata (objfile->obfd)->infinity;
+  note = elf_tdata (objfile->obfd)->infinity_note_head;
   if (note == NULL)
     return;
 
-  debug_printf ("\x1B[32m%s: %s: got infinity note\x1B[0m\n",
-		__FUNCTION__, objfile_name (objfile));
+  for (; note != NULL; note = note->next)
+    debug_printf ("\x1B[32m%s: %s: got infinity note (%ld bytes)\x1B[0m\n",
+		  __FUNCTION__, objfile_name (objfile), note->size);
 
   ctx = get_infinity_context ();
 

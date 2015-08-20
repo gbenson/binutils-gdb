@@ -1112,6 +1112,7 @@ has_libpthread (void)
 static int
 try_infinity_load (void)
 {
+#if 0
   struct objfile *obj = libpthread_objfile ();
   struct elf_infinity *note;
   CORE_ADDR version_addr;
@@ -1196,6 +1197,8 @@ try_infinity_load (void)
   }
 
   return 1;
+#endif // 0
+  return 0;
 }
 
 /* Attempt to load and initialize libthread_db.

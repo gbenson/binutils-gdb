@@ -9235,21 +9235,18 @@ elfobj_grok_gnu_build_id (bfd *abfd, Elf_Internal_Note *note)
 static bfd_boolean
 elfobj_grok_gnu_infinity (bfd *abfd, Elf_Internal_Note *note)
 {
-  struct elf_obj_tdata *t;
-  size_t datasize = note->descsz - 2;
+  struct infinity_note *cur;
 
-  if (datasize <= 0)
+  if (note->descsz <= 0)
     return FALSE;
 
-  t = elf_tdata (abfd);
-  t->infinity = bfd_alloc (abfd, sizeof (*t->infinity) + datasize);
-  if (t->infinity == NULL)
-    return FALSE;
+  cur = bfd_alloc (abfd, sizeof (struct infinity_note) + note->descsz);
 
-  t->infinity->major_version = note->descdata[0];
-  t->infinity->minor_version = note->descdata[1];
-  t->infinity->size = datasize;
-  memcpy (t->infinity->data, note->descdata + 2, datasize);
+  cur->next = elf_tdata (abfd)->infinity_note_head;
+  cur->size = note->descsz;
+  memcpy (cur->data, note->descdata, note->descsz);
+
+  elf_tdata (abfd)->infinity_note_head = cur;
 
   return TRUE;
 }
