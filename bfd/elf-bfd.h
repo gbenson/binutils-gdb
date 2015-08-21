@@ -1591,6 +1591,14 @@ struct sdt_note
   bfd_byte data[1];
 };
 
+/* A GNU Infinity note.  */
+struct elf_infinity_note
+{
+  struct elf_infinity_note *next;
+  size_t size;
+  bfd_byte data[0];
+};
+
 /* tdata information grabbed from an elf core file.  */
 struct core_elf_obj_tdata
 {
@@ -1741,6 +1749,11 @@ struct elf_obj_tdata
      found in the object file.  Each section corresponds to one entry
      in the list.  */
   struct sdt_note *sdt_note_head;
+
+  /* Linked list containing information about every GNU Infinity
+     note found in the object file.  Each note corresponds to one
+     entry in the list.  */
+  struct elf_infinity_note *infinity_note_head;
 
   Elf_Internal_Shdr **group_sect_ptr;
   int num_group;
