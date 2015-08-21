@@ -1,4 +1,4 @@
-/* To infinity... and beyond! (XXX)
+/* XXX To infinity... and beyond!
 
    Copyright (C) 2015 Free Software Foundation, Inc.
 
@@ -17,9 +17,13 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef INFINITY_H
-#define INFINITY_H
-
+#include "common-defs.h"
 #include "infinity-common.h"
 
-#endif /* INFINITY_H */
+/* See infinity-common.h.  */
+
+ULONGEST
+infinity_extract_uint (const gdb_byte *addr, int size)
+{
+  error ("%s:%d: unimplemented", __FILE__, __LINE__);
+}

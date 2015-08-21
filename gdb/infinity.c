@@ -63,76 +63,6 @@ infinity_context_cleanup (struct program_space *pspace, void *arg)
   xfree (ctx);
 }
 
-/* An infinity function.  */
-
-struct infinity_function
-{
-  /* The ELF note this function was created from.  */
-  struct infinity_note *note;
-
-  /* The function's provider and name.  Together these form
-     the identifier by which the function will be referenced.
-     Both point into NOTE->data and do not need to be freed
-     individually.  */
-  gdb_byte *provider;
-  gdb_byte *name;
-};
-
-/* Allocate a new struct infinity_function and populate it from NOTE.
-   Returns non-NULL on success, NULL if NOTE could not be parsed.
-   Non-NULL results must be freed with free_infinity_function.  */
-
-static struct infinity_function *
-new_infinity_function (struct infinity_note *note)
-{
-  struct infinity_function *func;
-  enum bfd_endian byte_order = gdbarch_byte_order (target_gdbarch ());
-  int version, reserved1, reserved2;
-  gdb_byte *provider, *name, *p, *pl = note->data + note->size;
-
-  /* Ensure the note is not too small.  18 bytes is 16 header bytes,
-     1 byte for the NUL of provider and 1 byte for the NUL of name.  */
-  if (note->size < 18)
-    return NULL;
-
-  /* Check the version and reserved fields.  */
-  version = extract_unsigned_integer (note->data, 2, byte_order);
-  if (version != 1)
-    return NULL;
-
-  reserved1 = extract_unsigned_integer (note->data + 2, 2, byte_order);
-  if (reserved1 != 0)
-    return NULL;
-
-  reserved2 = extract_unsigned_integer (note->data + 12, 4, byte_order);
-  if (reserved1 != 0)
-    return NULL;
-
-  /* Extract the name and provider.  */
-  provider = p = note->data + 16;
-  while (p < pl && *p != '\0')
-    p++;
-  name = p += 1;
-  while (p < pl && *p != '\0')
-    p++;
-  if (p >= pl)
-    return NULL;
-
-  func = XCNEW (struct infinity_function);
-  func->provider = provider;
-  func->name = name;
-
-  return func;
-}
-
-/* Free an infinity function object.  */
-
-static void
-free_infinity_function (struct infinity_function *func)
-{
-  xfree (func);
-}
-
 /* Called once per note whenever a new object file is loaded.  */
 
 static void
@@ -178,7 +108,8 @@ foreach_infinity_note (struct objfile *objfile,
   for (note = elf_tdata (objfile->obfd)->infinity_note_head;
        note != NULL; note = note->next)
     {
-      struct infinity_function *func = new_infinity_function (note);
+      struct infinity_function *func
+	= new_infinity_function (note->data, note->size, 0);
 
       if (func != NULL)
 	worker (func);
@@ -199,6 +130,16 @@ static void
 infinity_free_objfile (struct objfile *objfile)
 {
   foreach_infinity_note (objfile, infinity_function_unregister);
+}
+
+/* See infinity-common.h.  */
+
+ULONGEST
+infinity_extract_uint (const gdb_byte *addr, int size)
+{
+  enum bfd_endian byte_order = gdbarch_byte_order (target_gdbarch ());
+
+  return extract_unsigned_integer (addr, size, byte_order);
 }
 
 /* Provide a prototype to silence -Wmissing-prototypes.  */
