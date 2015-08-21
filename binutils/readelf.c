@@ -15090,6 +15090,8 @@ get_gnu_elf_note_type (unsigned e_type)
       return _("NT_GNU_BUILD_ID (unique build ID bitstring)");
     case NT_GNU_GOLD_VERSION:
       return _("NT_GNU_GOLD_VERSION (gold version)");
+    case 23: /* NT_GNU_INFINITY */
+      return _("NT_GNU_INFINITY (exported bytecode)");
     default:
       break;
     }
@@ -15174,6 +15176,44 @@ print_gnu_note (Elf_Internal_Note *pnote)
 	printf ("\n");
       }
       break;
+
+    case 23: /* NT_GNU_INFINITY */
+      {
+	unsigned long version, reserved1, num_constants, num_args;
+	unsigned long num_locals, max_stack, reserved2;
+	unsigned char *p = (unsigned char *) pnote->descdata;
+	//unsigned char *pe = p + pnote->descsz;
+
+	/* 16 byte header + 4 bytes provider + 4 bytes name */
+	if (pnote->descsz < 24)
+	  {
+	    printf (_("    <corrupt GNU_INFINITY note>\n"));
+	    break;
+	  }
+
+	version = byte_get_big_endian (p, 2);
+	p += 2;
+	printf (_("    Version: %ld\n"), version);
+
+	reserved1 = byte_get_big_endian (p, 2);
+	p += 2;
+	num_constants = byte_get_big_endian (p, 2);
+	p += 2;
+	num_args = byte_get_big_endian (p, 2);
+	p += 2;
+	num_locals = byte_get_big_endian (p, 2);
+	p += 2;
+	max_stack = byte_get_big_endian (p, 2);
+	p += 2;
+	reserved2 = byte_get_big_endian (p, 4);
+	p += 4;
+
+	if (version != 1 || reserved1 != 0 || reserved2 != 0)
+	  {
+	    printf (_("    <unhandled GNU_INFINITY note>\n"));
+	    break;
+	  }
+      }
     }
 
   return 1;
