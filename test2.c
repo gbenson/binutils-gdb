@@ -17,11 +17,9 @@ __asm__ __volatile__ (
   "     .byte 106, 107\n"               /* max_stack */
   "     .byte 0, 0, 0, 0\n"             /* reserved2 (must be zero) */
   "     .string \"libpthread\"\n"       /* provider + '\0' */
-  "     .balign 4\n"
   "     .string \"ta_map_lwp2thr\"\n"   /* name + '\0' */
-  "     .balign 4\n"
   "     .byte 14, 23, 12, 118\n"        /* instructions */
-  "     .byte 12, 242, 13, 42\n"
-  "104: .balign 4\n" /* should be unnecessary (instructions are 4 bytes) */
+  "     .byte 12, 242, 42\n"
+  "104: .balign 4\n"
   "     .popsection\n");
 }

@@ -26,10 +26,8 @@ __asm__ __volatile__ (
   "     .byte 11, 12\n"                 /* max_stack */
   "     .byte 0, 0, 0, 0\n"             /* reserved2 (must be zero) */
   "     .string \"libpthread\"\n"       /* provider + '\0' */
-  "     .balign 4\n"
   "     .string \"ta_new\"\n"           /* name + '\0' */
-  "     .balign 4\n"
   "     .byte 23, 4, 17, 2\n"           /* instructions */
-  "104: .balign 4\n" /* should be unnecessary (instructions are 4 bytes) */
+  "104: .balign 4\n"
   "     .popsection\n");
 }
