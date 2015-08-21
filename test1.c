@@ -18,13 +18,10 @@ __asm__ __volatile__ (
   "101: .string \"GNU\"\n"
   "102: .balign 4\n"
   "103: .byte 1\n"               /* version */
-  "     .byte 0\n"               /* num_args */
-  "     .byte 1\n"               /* num_res */
-  "     .byte 0\n"               /* reserved */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
   "     .string \"td_ta_new\"\n" /* name + '\0' */
-                                 /* no arguments */
-  "     .byte 4\n"               /* the one result slot */
-  // some DWARF
   "104: .balign 4\n"
   "     .popsection\n");
 }

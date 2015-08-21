@@ -2,15 +2,17 @@ void
 dummy(void)
 {
 __asm__ __volatile__ (
-  ".pushsection .note.infinity, \"a\", \"note\"\n"
-  ".byte 4, 0, 0, 0\n"  /* Name size */
-  ".byte 17, 0, 0, 0\n" /* Desc size INCLUDING 2 BYTE VERSION */
-  ".byte 23, 0, 0, 0\n" /* Note type */
-  ".string \"GNU\"\n"
-  ".align 4\n"
-  ".byte 1\n"  /* Major version */
-  ".byte 0\n"  /* Minor version */
-  ".string \"Hello again...\"\n"
-  ".align 4\n"
-  ".popsection\n");
+  "	.pushsection .note.infinity, \"a\", \"note\"\n"
+  "     .4byte 102f-101f\n"  /* namesz */
+  "     .4byte 104f-103f\n"  /* descsz */
+  "     .4byte 23\n"         /* NT_GNU_INFINITY */
+  "101: .string \"GNU\"\n"
+  "102: .balign 4\n"
+  "103: .byte 1\n"               /* version */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
+  "     .byte 0\n"               /* reserved MUST BE ZERO */
+  "     .string \"td_ta_map_lwp2thr\"\n" /* name + '\0' */
+  "104: .balign 4\n"
+  "     .popsection\n");
 }
