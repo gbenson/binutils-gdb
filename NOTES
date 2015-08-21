@@ -1,0 +1,13 @@
+gdb/remote.c		remote_new_objfile (and others) -- it's an objfile observer
+			remote_check_symbols
+gdbserver/server.c      handle_query ("qSymbol::")
+gdbserver/linux-low.c	linux_look_up_symbols
+gdbserver/thread_db.c	thread_db_init
+			thread_db_load_search
+			try_thread_db_load_from_sdir or try_thread_db_load_from_dir
+			try_thread_db_load (does dlopen)
+			try_thread_db_load_1 (calls td_ta_new_p, which refuses if wrong)
+
+new GDB target function notice_new_infinity_notes?
+ - native gets sucked up by linux-thread-db.c
+ - remote gets pushed over to gdbserver IF it supports it
