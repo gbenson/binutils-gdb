@@ -63,16 +63,24 @@ infinity_context_cleanup (struct program_space *pspace, void *arg)
   xfree (ctx);
 }
 
-/* XXX.  */
+/* An infinity function.  */
 
 struct infinity_function
 {
+  /* The ELF note this function was created from.  */
   struct infinity_note *note;
+
+  /* The function's provider and name.  Together these form
+     the identifier by which the function will be referenced.
+     Both point into NOTE->data and do not need to be freed
+     individually.  */
   gdb_byte *provider;
   gdb_byte *name;
 };
 
-/* XXX.  */
+/* Allocate a new struct infinity_function and populate it from NOTE.
+   Returns non-NULL on success, NULL if NOTE could not be parsed.
+   Non-NULL results must be freed with free_infinity_function.  */
 
 static struct infinity_function *
 new_infinity_function (struct infinity_note *note)
