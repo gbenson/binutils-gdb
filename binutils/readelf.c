@@ -15249,8 +15249,13 @@ print_gnu_note (Elf_Internal_Note *pnote)
 	    break;
 	  }
 
-	printf (_("    Args: %ld, Locals: %ld, Stack: %ld\n"),
+	printf (_("    Arguments: %ld, Locals: %ld, Stack: %ld\n"),
 		num_args, num_locals, max_stack);
+
+	printf (_("    Instructions: "));
+	while (p < pe)
+	  printf ("%02x", *p++);
+	printf ("\n");
       }
     }
 
