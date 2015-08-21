@@ -63,31 +63,102 @@ infinity_context_cleanup (struct program_space *pspace, void *arg)
   xfree (ctx);
 }
 
-/* Called whenever a new note is loaded.  */
+/* XXX.  */
+
+struct infinity_function
+{
+  struct infinity_note *note;
+  gdb_byte *provider;
+  gdb_byte *name;
+};
+
+/* XXX.  */
+
+static struct infinity_function *
+new_infinity_function (struct infinity_note *note)
+{
+  struct infinity_function *func;
+  enum bfd_endian byte_order = gdbarch_byte_order (target_gdbarch ());
+  int version, reserved1, reserved2;
+  gdb_byte *provider, *name, *p, *pl = note->data + note->size;
+
+  /* Ensure the note is not too small.  18 bytes is 16 header bytes,
+     1 byte for the NUL of provider and 1 byte for the NUL of name.  */
+  if (note->size < 18)
+    return NULL;
+
+  /* Check the version and reserved fields.  */
+  version = extract_unsigned_integer (note->data, 2, byte_order);
+  if (version != 1)
+    return NULL;
+
+  reserved1 = extract_unsigned_integer (note->data + 2, 2, byte_order);
+  if (reserved1 != 0)
+    return NULL;
+
+  reserved2 = extract_unsigned_integer (note->data + 12, 4, byte_order);
+  if (reserved1 != 0)
+    return NULL;
+
+  /* Extract the name and provider.  */
+  provider = p = note->data + 16;
+  while (p < pl && *p != '\0')
+    p++;
+  name = p += 1;
+  while (p < pl && *p != '\0')
+    p++;
+  if (p >= pl)
+    return NULL;
+
+  func = XCNEW (struct infinity_function);
+  func->provider = provider;
+  func->name = name;
+
+  return func;
+}
+
+/* Free an infinity function object.  */
 
 static void
-infinity_new_note (struct infinity_note *note)
+free_infinity_function (struct infinity_function *func)
+{
+  xfree (func);
+}
+
+/* Called once per note whenever a new object file is loaded.  */
+
+static void
+infinity_function_register (struct infinity_function *func)
 {
   struct infinity_context *ctx = get_infinity_context ();
 
-  debug_printf ("\x1B[32m%s: size = %ld\x1B[0m\n", __FUNCTION__, note->size);
+  debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
+		func->provider, func->name);
+
+  free_infinity_function (func); // XXX
 }
 
-/* Called whenever a note is unloaded.  */
+/* Called once per note whenever an object file is unloaded.  */
 
 static void
-infinity_free_note (struct infinity_note *note)
+infinity_function_unregister (struct infinity_function *func)
 {
   struct infinity_context *ctx = get_infinity_context ();
 
-  debug_printf ("\x1B[32m%s: size = %ld\x1B[0m\n", __FUNCTION__, note->size);
+  debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
+		func->provider, func->name);
+
+  free_infinity_function (func);
 }
 
-/* Call FUNC for each GNU Infinity note in OBJFILE.  */
+/* For each GNU Infinity note in OBJFILE, unpack the note into a new
+   struct infinity_function and call WORKER with that as its single
+   argument.  The unpacked note is allocated on the heap and must be
+   freed by WORKER using free_infinity_function.  */
 
 static void
 foreach_infinity_note (struct objfile *objfile,
-		       void (*func) (struct infinity_note *))
+		       void (*worker) (struct infinity_function *))
 {
   struct infinity_note *note;
 
@@ -98,7 +169,12 @@ foreach_infinity_note (struct objfile *objfile,
 
   for (note = elf_tdata (objfile->obfd)->infinity_note_head;
        note != NULL; note = note->next)
-    func (note);
+    {
+      struct infinity_function *func = new_infinity_function (note);
+
+      if (func != NULL)
+	worker (func);
+    }
 }
 
 /* Called whenever a new object file is loaded.  */
@@ -106,7 +182,7 @@ foreach_infinity_note (struct objfile *objfile,
 static void
 infinity_new_objfile (struct objfile *objfile)
 {
-  foreach_infinity_note (objfile, infinity_new_note);
+  foreach_infinity_note (objfile, infinity_function_register);
 }
 
 /* Called whenever an object file is unloaded.  */
@@ -114,7 +190,7 @@ infinity_new_objfile (struct objfile *objfile)
 static void
 infinity_free_objfile (struct objfile *objfile)
 {
-  foreach_infinity_note (objfile, infinity_free_note);
+  foreach_infinity_note (objfile, infinity_function_unregister);
 }
 
 /* Provide a prototype to silence -Wmissing-prototypes.  */
