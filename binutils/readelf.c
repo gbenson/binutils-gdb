@@ -15091,7 +15091,7 @@ get_gnu_elf_note_type (unsigned e_type)
     case NT_GNU_GOLD_VERSION:
       return _("NT_GNU_GOLD_VERSION (gold version)");
     case 23: /* NT_GNU_INFINITY */
-      return _("NT_GNU_INFINITY (exported bytecode)");
+      return _("NT_GNU_INFINITY (GNU Infinity function)");
     default:
       break;
     }
