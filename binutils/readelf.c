@@ -15103,7 +15103,7 @@ get_gnu_elf_note_type (unsigned e_type)
 static unsigned long
 infinity_read_uint (unsigned char **p, int size)
 {
-  unsigned long result = byte_get_big_endian (*p, size);
+  unsigned long result = byte_get (*p, size);
 
   *p += size;
 
