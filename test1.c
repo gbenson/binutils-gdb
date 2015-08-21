@@ -20,10 +20,10 @@ __asm__ __volatile__ (
   "102: .balign 4\n"
   "103: .byte 0, 1\n"                   /* version */
   "     .byte 0, 0\n"                   /* reserved1 (must be zero) */
-  "     .byte 0, 0\n"                   /* num_args */
-  "     .byte 0, 0\n"                   /* num_constants */
-  "     .byte 0, 0\n"                   /* max_locals (must be >= num_args) */
-  "     .byte 0, 0\n"                   /* max_stack */
+  "     .byte 7, 8\n"                   /* num_constants */
+  "     .byte 5, 6\n"                   /* num_args */
+  "     .byte 9, 10\n"                  /* max_locals (must be >= num_args) */
+  "     .byte 11, 12\n"                 /* max_stack */
   "     .byte 0, 0, 0, 0\n"             /* reserved2 (must be zero) */
   "     .string \"libpthread\"\n"       /* provider + '\0' */
   "     .balign 4\n"
