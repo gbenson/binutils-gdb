@@ -894,7 +894,7 @@ SFILES = ada-exp.y ada-lang.c ada-typeprint.c ada-valprint.c ada-tasks.c \
 	common/format.c common/filestuff.c btrace.c record-btrace.c ctf.c \
 	target/waitstatus.c common/print-utils.c common/rsp-low.c \
 	common/errors.c common/common-debug.c common/common-exceptions.c \
-	common/common-infinity.c \
+	common/common-infinity.c infinity.c \
 	common/btrace-common.c common/fileio.c \
 	$(SUBDIR_GCC_COMPILE_SRCS)
 
@@ -1086,7 +1086,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	common-utils.o buffer.o ptid.o gdb-dlfcn.o common-agent.o \
 	format.o registry.o btrace.o record-btrace.o waitstatus.o \
 	print-utils.o rsp-low.o errors.o common-debug.o debug.o \
-	common-infinity.o \
+	common-infinity.o infinity.o \
 	common-exceptions.o btrace-common.o fileio.o \
 	$(SUBDIR_GCC_COMPILE_OBS)
 
