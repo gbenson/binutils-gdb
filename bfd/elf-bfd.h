@@ -1591,7 +1591,7 @@ struct sdt_note
   bfd_byte data[1];
 };
 
-/* NT_GNU_INFINITY note type info for input BFDs.  */
+/* A GNU Infinity note.  */
 struct infinity_note
 {
   struct infinity_note *next;
