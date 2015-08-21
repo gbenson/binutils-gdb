@@ -47,8 +47,6 @@ get_infinity_context (void)
   ctx = XCNEW (struct infinity_context);
   set_program_space_data (current_program_space, infinity_pspace_data, ctx);
 
-  debug_printf ("\x1B[32m%s: created %p\x1B[0m\n", __FUNCTION__, ctx);
-
   return ctx;
 }
 
@@ -58,8 +56,6 @@ static void
 infinity_context_cleanup (struct program_space *pspace, void *arg)
 {
   struct infinity_context *ctx = arg;
-
-  debug_printf ("\x1B[32m%s: freeing %p\x1B[0m\n", __FUNCTION__, ctx);
 
   xfree (ctx);
 }
@@ -71,8 +67,9 @@ infinity_function_register (struct infinity_function *func)
 {
   struct infinity_context *ctx = get_infinity_context ();
 
-  debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
-		func->provider, func->name);
+  if (debug_infinity)
+    debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
+		  func->provider, func->name);
 
   free_infinity_function (func); // XXX
 }
@@ -84,8 +81,9 @@ infinity_function_unregister (struct infinity_function *func)
 {
   struct infinity_context *ctx = get_infinity_context ();
 
-  debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
-		func->provider, func->name);
+  if (debug_infinity)
+    debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
+		  func->provider, func->name);
 
   free_infinity_function (func);
 }
