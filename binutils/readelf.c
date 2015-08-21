@@ -15100,6 +15100,29 @@ get_gnu_elf_note_type (unsigned e_type)
   return buff;
 }
 
+static unsigned long
+infinity_read_integer (unsigned char **p, int size)
+{
+  unsigned long result = byte_get_big_endian (*p, size);
+
+  *p += size;
+
+  return result;
+}
+
+static unsigned char *
+infinity_read_utf8 (unsigned char **p, unsigned char *limit)
+{
+  unsigned char *result = *p;
+
+  while (*p < limit && **p != '\0')
+    (*p)++;
+
+  (*p)++; /* skip the NUL */
+
+  return result;
+}
+
 static int
 print_gnu_note (Elf_Internal_Note *pnote)
 {
@@ -15182,37 +15205,52 @@ print_gnu_note (Elf_Internal_Note *pnote)
 	unsigned long version, reserved1, num_constants, num_args;
 	unsigned long num_locals, max_stack, reserved2;
 	unsigned char *p = (unsigned char *) pnote->descdata;
-	//unsigned char *pe = p + pnote->descsz;
+	unsigned char *pe = p + pnote->descsz;
+	unsigned char *provider, *name;
 
-	/* 16 byte header + 4 bytes provider + 4 bytes name */
-	if (pnote->descsz < 24)
+	/* 16 byte header + 1 byte provider + 1 byte name */
+	if (pnote->descsz < 18)
 	  {
 	    printf (_("    <corrupt GNU_INFINITY note>\n"));
 	    break;
 	  }
 
-	version = byte_get_big_endian (p, 2);
-	p += 2;
+	version = infinity_read_integer (&p, 2);
 	printf (_("    Version: %ld\n"), version);
 
-	reserved1 = byte_get_big_endian (p, 2);
-	p += 2;
-	num_constants = byte_get_big_endian (p, 2);
-	p += 2;
-	num_args = byte_get_big_endian (p, 2);
-	p += 2;
-	num_locals = byte_get_big_endian (p, 2);
-	p += 2;
-	max_stack = byte_get_big_endian (p, 2);
-	p += 2;
-	reserved2 = byte_get_big_endian (p, 4);
-	p += 4;
+	reserved1 = infinity_read_integer (&p, 2);
+	num_constants = infinity_read_integer (&p, 2);
+	num_args = infinity_read_integer (&p, 2);
+	num_locals = infinity_read_integer (&p, 2);
+	max_stack = infinity_read_integer (&p, 2);
+	reserved2 = infinity_read_integer (&p, 4);
 
 	if (version != 1 || reserved1 != 0 || reserved2 != 0)
 	  {
 	    printf (_("    <unhandled GNU_INFINITY note>\n"));
 	    break;
 	  }
+
+	provider = infinity_read_utf8 (&p, pe);
+	if (p < pe)
+	  printf (_("    Provider: %s\n"), provider);
+	else
+	  {
+	    printf (_("    <corrupt GNU_INFINITY note>\n"));
+	    break;
+	  }
+
+	name = infinity_read_utf8 (&p, pe);
+	if (p < pe)
+	  printf (_("    Name: %s\n"), name);
+	else
+	  {
+	    printf (_("    <corrupt GNU_INFINITY note>\n"));
+	    break;
+	  }
+
+	printf (_("    Args: %ld, Locals: %ld, Stack: %ld\n"),
+		num_args, num_locals, max_stack);
       }
     }
 
