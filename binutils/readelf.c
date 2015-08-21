@@ -15216,7 +15216,7 @@ print_gnu_note (Elf_Internal_Note *pnote)
 	  }
 
 	version = infinity_read_integer (&p, 2);
-	printf (_("    Version: %ld\n"), version);
+	printf (_("    Version: %ld"), version);
 
 	reserved1 = infinity_read_integer (&p, 2);
 	num_constants = infinity_read_integer (&p, 2);
@@ -15227,24 +15227,26 @@ print_gnu_note (Elf_Internal_Note *pnote)
 
 	if (version != 1 || reserved1 != 0 || reserved2 != 0)
 	  {
-	    printf (_("    <unhandled GNU_INFINITY note>\n"));
+	    printf (_(" <unhandled>\n"));
 	    break;
 	  }
 
 	provider = infinity_read_utf8 (&p, pe);
 	if (p < pe)
-	  printf (_("    Provider: %s\n"), provider);
+	  printf (_(", Provider: %s"), provider);
 	else
 	  {
+	    printf ("\n");
 	    printf (_("    <corrupt GNU_INFINITY note>\n"));
 	    break;
 	  }
 
 	name = infinity_read_utf8 (&p, pe);
 	if (p < pe)
-	  printf (_("    Name: %s\n"), name);
+	  printf (_(", Name: %s\n"), name);
 	else
 	  {
+	    printf ("\n");
 	    printf (_("    <corrupt GNU_INFINITY note>\n"));
 	    break;
 	  }
