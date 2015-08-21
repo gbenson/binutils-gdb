@@ -15101,7 +15101,7 @@ get_gnu_elf_note_type (unsigned e_type)
 }
 
 static unsigned long
-infinity_read_integer (unsigned char **p, int size)
+infinity_read_uint (unsigned char **p, int size)
 {
   unsigned long result = byte_get_big_endian (*p, size);
 
@@ -15215,15 +15215,15 @@ print_gnu_note (Elf_Internal_Note *pnote)
 	    break;
 	  }
 
-	version = infinity_read_integer (&p, 2);
+	version = infinity_read_uint (&p, 2);
 	printf (_("    Version: %ld"), version);
 
-	reserved1 = infinity_read_integer (&p, 2);
-	num_constants = infinity_read_integer (&p, 2);
-	num_args = infinity_read_integer (&p, 2);
-	num_locals = infinity_read_integer (&p, 2);
-	max_stack = infinity_read_integer (&p, 2);
-	reserved2 = infinity_read_integer (&p, 4);
+	reserved1 = infinity_read_uint (&p, 2);
+	num_constants = infinity_read_uint (&p, 2);
+	num_args = infinity_read_uint (&p, 2);
+	num_locals = infinity_read_uint (&p, 2);
+	max_stack = infinity_read_uint (&p, 2);
+	reserved2 = infinity_read_uint (&p, 4);
 
 	if (version != 1 || reserved1 != 0 || reserved2 != 0)
 	  {
