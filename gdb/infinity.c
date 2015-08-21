@@ -25,7 +25,7 @@
 #include "observer.h"
 
 /* Per-program-space data.  */
-struct infinity_context
+struct infinity_info
 {
 };
 
@@ -35,29 +35,31 @@ static const struct program_space_data *infinity_pspace_data;
 /* Get the per-program-space data.  If none is found, allocate and
    initialize one.  This function always returns a valid object.  */
 
-static struct infinity_context *
-get_infinity_context (void)
+static struct infinity_info *
+get_infinity_info (void)
 {
-  struct infinity_context *ctx;
+  struct infinity_info *info;
 
-  ctx = program_space_data (current_program_space, infinity_pspace_data);
-  if (ctx != NULL)
-    return ctx;
+  info = program_space_data (current_program_space,
+			     infinity_pspace_data);
+  if (info != NULL)
+    return info;
 
-  ctx = XCNEW (struct infinity_context);
-  set_program_space_data (current_program_space, infinity_pspace_data, ctx);
+  info = XCNEW (struct infinity_info);
+  set_program_space_data (current_program_space, infinity_pspace_data,
+			  info);
 
-  return ctx;
+  return info;
 }
 
 /* Free the per-program-space data.  */
 
 static void
-infinity_context_cleanup (struct program_space *pspace, void *arg)
+infinity_info_cleanup (struct program_space *pspace, void *arg)
 {
-  struct infinity_context *ctx = arg;
+  struct infinity_info *info = arg;
 
-  xfree (ctx);
+  xfree (info);
 }
 
 /* Called once per note whenever a new object file is loaded.  */
@@ -65,7 +67,7 @@ infinity_context_cleanup (struct program_space *pspace, void *arg)
 static void
 infinity_function_register (struct infinity_function *func)
 {
-  struct infinity_context *ctx = get_infinity_context ();
+  struct infinity_info *info = get_infinity_info ();
 
   if (debug_infinity)
     debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
@@ -79,7 +81,7 @@ infinity_function_register (struct infinity_function *func)
 static void
 infinity_function_unregister (struct infinity_function *func)
 {
-  struct infinity_context *ctx = get_infinity_context ();
+  struct infinity_info *info = get_infinity_info ();
 
   if (debug_infinity)
     debug_printf ("\x1B[32m%s: %s::%s\x1B[0m\n", __FUNCTION__,
@@ -160,7 +162,7 @@ Enables printf debugging output."),
   /* Register our per-program-space data.  */
   infinity_pspace_data
     = register_program_space_data_with_cleanup (NULL,
-						infinity_context_cleanup);
+						infinity_info_cleanup);
 
   /* Notice when object files get loaded and unloaded.  */
   observer_attach_new_objfile (infinity_new_objfile);
