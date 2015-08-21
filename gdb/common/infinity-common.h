@@ -20,6 +20,10 @@
 #ifndef COMMON_INFINITY_H
 #define COMMON_INFINITY_H
 
+/* Set to nonzero to enable debugging of GNU Infinity code.  */
+
+extern int debug_infinity;
+
 /* A GNU Infinity function.  */
 
 struct infinity_function

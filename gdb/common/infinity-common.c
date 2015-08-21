@@ -21,6 +21,9 @@
 #include "infinity-common.h"
 
 /* See infinity-common.h.  */
+int debug_infinity;
+
+/* See infinity-common.h.  */
 
 struct infinity_function *
 new_infinity_function (gdb_byte *data, size_t size, int data_needs_free)

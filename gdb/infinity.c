@@ -20,6 +20,7 @@
 #include "defs.h"
 #include "infinity.h"
 #include "elf-bfd.h"
+#include "gdbcmd.h"
 #include "objfiles.h"
 #include "observer.h"
 
@@ -148,6 +149,16 @@ extern initialize_file_ftype _initialize_infinity;
 void
 _initialize_infinity (void)
 {
+  /* Register our debug flag.  */
+  add_setshow_boolean_cmd ("infinity", class_maintenance,
+			   &debug_infinity, _("\
+Set debugging of GNU Infinity functions."), _("\
+Show debugging of GNU Infinity functions."), _("\
+Enables printf debugging output."),
+			   NULL,
+			   NULL,
+			   &setdebuglist, &showdebuglist);
+
   /* Register our per-program-space data.  */
   infinity_pspace_data
     = register_program_space_data_with_cleanup (NULL,
