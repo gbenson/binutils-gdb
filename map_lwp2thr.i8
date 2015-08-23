@@ -1,0 +1,56 @@
+# 1 "infinity_map_lwp2thr.i8"
+# 1 "/home/gary/work/glibc/infinity/src/nptl//"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "../include/stdc-predef.h" 1
+# 1 "<command-line>" 2
+# 1 "/home/gary/work/glibc/infinity/build64/libc-modules.h" 1
+# 1 "<command-line>" 2
+# 1 "./../include/libc-symbols.h" 1
+# 60 "./../include/libc-symbols.h"
+# 1 "/home/gary/work/glibc/infinity/build64/config.h" 1
+# 61 "./../include/libc-symbols.h" 2
+# 725 "./../include/libc-symbols.h"
+# 1 "../sysdeps/generic/symbol-hacks.h" 1
+# 726 "./../include/libc-symbols.h" 2
+# 1 "<command-line>" 2
+# 1 "infinity_map_lwp2thr.i8"
+# 19 "infinity_map_lwp2thr.i8"
+# 1 "/home/gary/work/glibc/infinity/build64/pthread-infinity.h" 1
+# 20 "infinity_map_lwp2thr.i8" 2
+# 1 "/home/gary/work/glibc/infinity/build64/tls-infinity.h" 1
+# 21 "infinity_map_lwp2thr.i8" 2
+
+
+# 1 "infinity_lookup_th_unique_cta.i8" 1
+# 28 "infinity_lookup_th_unique_cta.i8"
+int, addr
+libpthread::__lookup_th_unique (int lwpid)
+{
+  err, result = i8core::ps_get_thread_area (lwpid, 25);
+  if (err != 0)
+    return 1, undefined;
+
+  return 0, result;
+}
+# 24 "infinity_map_lwp2thr.i8" 2
+# 37 "infinity_map_lwp2thr.i8"
+int, addr
+libpthread::map_lwp2thr (int lwpid)
+{
+
+
+
+
+
+
+  if (deref (__stack_user, 0) == NULL)
+    {
+      if (i8core::ps_getpid () != lwpid)
+        return 1, undefined;
+
+      return 0, NULL;
+    }
+
+  return __lookup_th_unique (lwpid);
+}
