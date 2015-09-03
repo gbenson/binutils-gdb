@@ -910,6 +910,9 @@ objfile_relocate1 (struct objfile *objfile,
 				obj_section_addr (s));
     }
 
+  /* Notify observers that this objfile has been relocated.  */
+  observer_notify_relocate_objfile (objfile);
+
   /* Data changed.  */
   return 1;
 }

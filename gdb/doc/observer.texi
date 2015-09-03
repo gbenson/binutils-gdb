@@ -166,6 +166,10 @@ Called with @var{objfile} equal to @code{NULL} to indicate
 previously loaded symbol table data has now been invalidated.
 @end deftypefun
 
+@deftypefun void relocate_objfile (struct objfile *@var{objfile})
+The symbol file specified by @var{objfile} has been relocated.
+@end deftypefun
+
 @deftypefun void free_objfile (struct objfile *@var{objfile})
 The object file specified by @var{objfile} is about to be freed.
 @end deftypefun
