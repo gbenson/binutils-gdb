@@ -288,3 +288,23 @@ skip_to_space_const (const char *chp)
     chp++;
   return chp;
 }
+
+/* See common-utils.h.  */
+
+ULONGEST
+align_up (ULONGEST v, int n)
+{
+  /* Check that N is really a power of two.  */
+  gdb_assert (n && (n & (n-1)) == 0);
+  return (v + n - 1) & -n;
+}
+
+/* See common-utils.h.  */
+
+ULONGEST
+align_down (ULONGEST v, int n)
+{
+  /* Check that N is really a power of two.  */
+  gdb_assert (n && (n & (n-1)) == 0);
+  return (v & -n);
+}
