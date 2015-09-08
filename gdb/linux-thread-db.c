@@ -45,6 +45,109 @@
 #include <signal.h>
 #include <ctype.h>
 #include "nat/linux-namespaces.h"
+#include "common-infinity.h"
+
+/* HACKY INFINITY TEST.  */
+
+struct infinity_function *i8_map_lwp2thr;
+
+static void
+thread_db_i8func_load (struct program_space *pspace,
+		       struct infinity_function *func)
+{
+  i8_map_lwp2thr = func;
+}
+
+static void
+thread_db_i8func_change (struct program_space *pspace,
+			 struct infinity_function *func)
+{
+  i8_map_lwp2thr = func;
+}
+
+static void
+thread_db_i8func_unload (struct program_space *pspace,
+			 struct infinity_function *func)
+{
+  i8_map_lwp2thr = NULL;
+}
+
+#include "dwarf2.h"
+#include "dwarf2expr.h"
+
+static void
+i8_print_dwarf_stack (const char *what, struct dwarf_expr_context *ctx)
+{
+#if 0
+  int i;
+
+  debug_printf ("%s stack:\n", what);
+  for (i = 0; i < ctx->stack_len; i++)
+    {
+      struct value *val = dwarf_expr_fetch (ctx, i);
+      char *typestr = type_to_string (value_type (val));
+
+      debug_printf ("  %2d: %12s %15s %s\n", -i,
+		    phex_nz (value_as_address (val), ctx->addr_size),
+		    pulongest (value_as_address (val)), typestr);
+
+      xfree (typestr);
+    }
+#endif
+}
+
+static void
+i8_read_mem (void *baton, gdb_byte *buf, CORE_ADDR addr, size_t length)
+{
+  read_memory (addr, buf, length);
+}
+
+struct dwarf_expr_context_funcs i8_dwarf_expr_funcs = {
+  NULL, /* read_addr_from_reg */
+  NULL, /* get_reg_value */
+  i8_read_mem,
+};
+
+static void
+i8_map_lwp2thr_test (struct ps_prochandle *ph,
+		     td_err_e lt_err, psaddr_t lt_unique)
+{
+  struct dwarf_expr_context *ctx;
+  td_err_e i8_err;
+  psaddr_t i8_unique;
+
+  debug_printf ("libthread_db map_lwp2thr(%s) -> %d, %p\n",
+		pulongest (ptid_get_lwp (ph->ptid)), lt_err, lt_unique);
+
+  ctx = new_dwarf_expr_context ();
+  ctx->gdbarch = target_gdbarch (); /* XXX objfile of the func?  */
+  ctx->addr_size = gdbarch_addr_bit (ctx->gdbarch) / 8;
+  ctx->baton = ph; /* For DW_OP_GNU_get_thread_area */
+  ctx->funcs = &i8_dwarf_expr_funcs;
+
+  gdb_assert (ctx->stack_len == 0);
+  dwarf_expr_push_address (ctx,
+			   i8_extract_uint (i8_map_lwp2thr->symbols,
+					    ctx->addr_size), 0);
+  /* XXX neither of the following are addresses!  */
+  dwarf_expr_push_address (ctx, ptid_get_pid (ph->ptid), 0);
+  dwarf_expr_push_address (ctx, ptid_get_lwp (ph->ptid), 0);
+
+  i8_print_dwarf_stack ("Input", ctx);
+  dwarf_expr_eval (ctx, i8_map_lwp2thr->code, i8_map_lwp2thr->codesize);
+  i8_print_dwarf_stack ("Output", ctx);
+
+  gdb_assert (ctx->stack_len >= 2);
+  /* XXX this isn't an address either...  */
+  i8_err = dwarf_expr_fetch_address (ctx, 0);
+  i8_unique = (psaddr_t) dwarf_expr_fetch_address (ctx, 1);
+
+  debug_printf ("and infinity map_lwp2thr(%s) -> \x1B[%dm%d\x1B[0m, "
+		"\x1B[%dm%p\x1B[0m\n",
+		pulongest (ptid_get_lwp (ph->ptid)),
+		i8_err == lt_err ? 32 : 31, i8_err,
+		i8_unique == lt_unique ? 32 : 31, i8_unique);
+}
 
 /* GNU/Linux libthread_db support.
 
@@ -408,6 +511,8 @@ thread_from_lwp (ptid_t ptid)
   info->proc_handle.ptid = ptid;
   err = info->td_ta_map_lwp2thr_p (info->thread_agent, ptid_get_lwp (ptid),
 				   &th);
+  if (debug_infinity && i8_map_lwp2thr != NULL)
+    i8_map_lwp2thr_test (&info->proc_handle, err, th.th_unique);
   if (err != TD_OK)
     error (_("Cannot find user-level thread for LWP %ld: %s"),
 	   ptid_get_lwp (ptid), thread_db_err_str (err));
@@ -2180,6 +2285,8 @@ This options has security implications for untrusted inferiors."),
 Usage: info auto-load libthread-db"),
 	   auto_load_info_cmdlist_get ());
 
+  /* XXX maint set infinity-thread-db [on|off]  */
+
   /* Add ourselves to objfile event chain.  */
   observer_attach_new_objfile (thread_db_new_objfile);
 
@@ -2187,4 +2294,9 @@ Usage: info auto-load libthread-db"),
      This is needed to handle debugging statically linked programs where
      the new_objfile observer won't get called for libpthread.  */
   observer_attach_inferior_created (thread_db_inferior_created);
+
+  /* Add ourselves to infinity function event chain.  */
+  observer_attach_i8func_load (thread_db_i8func_load);
+  observer_attach_i8func_change (thread_db_i8func_change);
+  observer_attach_i8func_unload (thread_db_i8func_unload);
 }
