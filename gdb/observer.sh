@@ -65,6 +65,7 @@ struct objfile;
 struct thread_info;
 struct inferior;
 struct trace_state_variable;
+struct infinity_function;
 EOF
         ;;
 esac
@@ -86,7 +87,7 @@ sed -n '
     h
 # Convert from: @deftypefun void EVENT (TYPE @var{PARAM},...)
 # to event and formals: EVENT:TYPE PARAM, ...:
-    s/^.* void \([a-z_][a-z_]*\) (\(.*\))$/\1:\2/
+    s/^.* void \([a-z_][a-z0-9_]*\) (\(.*\))$/\1:\2/
     s/@var{//g
     s/}//g
 # Switch to held
