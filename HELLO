@@ -1,0 +1,37 @@
+thread_db returns td_thrhandle_t objects as handles
+these are NOT OPAQUE
+although the declaration says it is:
+
+  /* The actual thread handle type.  This is also opaque.  */
+  typedef struct td_thrhandle
+  {
+    td_thragent_t *th_ta_p;
+    psaddr_t th_unique;
+  } td_thrhandle_t;
+
+go figure
+
+GDB doesn't touch either, except one inconsequential time:
+
+  molly:[src]$ grep -r 'th_\(ta_p\|unique\)' gdb
+  gdb/linux-thread-db.c:  th.th_unique = 0;
+  gdb/nat/glibc_thread_db.h:  td_thragent_t *th_ta_p;
+  gdb/nat/glibc_thread_db.h:  psaddr_t th_unique;
+
+So we can return just "psaddr_t th_unique" and use that as our "handle"
+
+---
+
+For td_thr_get_info GDB passes in a pointer to a td_thrinfo_t structure.
+(which has lots of elements, grrr)
+return a ton of values and let the caller fill in the struct?
+this is where referencing functions by typed names will be handy...
+for cross-core debugging the struct size&offsets might not be the same, so...
+
+infinity-thread-db.c
+collects new func notifications (per inferior? per whatever makes sense 
+for thread-db?)
+and provides 4 i8_thread_db_* functions which wrap all this
+(into td_thrhandle_t stuff too?
+with same signatures as libthread_db funcs)
+

@@ -1,0 +1,21 @@
+infinity-thread-db.c will enable thread-debugging per-pspace,
+linux-thread-db.c tracks libthread_db instances by PID:
+
+  static struct thread_db_info *get_thread_db_info (int pid)
+
+What I did in the original gbenson/infinity branch was right.
+
+* Have infinity-thread-db.c watch functions arriving and collect them
+  in some per-pspace struct (which has some is_complete field which
+  the i8func observers maintain).
+
+* Whenever linux-thread-db.c sees a new objfile (hopefully AFTER
+  infinity(-notes).c saw it!) it's thread_db_new_objfile observer
+  calls check_for_thread_db which calls thread_db_load.
+
+* thread_db_load can grab a (fake, per-pid/per-pspace) "dlopen" handle
+  from infinity-thread-db.c that it can pass to thread_db_load_* as
+  before.  Also infinity-thread-db.c should have some hacky dlsym
+  and dlclose wrappers. (maybe dlopen too, for completeness).
+
+Boom, done.

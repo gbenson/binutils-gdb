@@ -1,0 +1,18 @@
+make function names provider::name(2)0 or provider::name(ai)ia ?
+- allows for different versions of the same function (with different
+  args, rets)
+- conveniently uses four extra bytes in each symbol table slot
+  (reserved for function typearray offsets if we allow for functions
+  calling functions in the future... notes with nonzero in them can
+  for now be skipped as unhandled)
+- allows consumers to select functions with one strcmp
+- allows for pre-processing arguments and post-processing returns
+  (e.g. will they need widening, narrowing, sign-extension, that shit?)
+
+rename i8_make_fullname as symbol_note_make_fullname,
+and replace provider, name in infinity_function with fullname
+
+make the two slots (and num_args, num_rets)
+be string table offsets
+(empty one is easy: the end of another string??,
+ or a special value (0xffff???->0x0000 is a valid string table offset!))

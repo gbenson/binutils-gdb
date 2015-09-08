@@ -1,0 +1,2 @@
+If x86_64 map_lwp2thr can be rewritten using DW_OP_bregx %fs.base, 0
+then that could be a significant performance boost.

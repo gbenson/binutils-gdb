@@ -1,0 +1,120 @@
+accessor for symbol slots (requires address size baked into func?)
+
+dwarf2expr.c
+============
+
+from execute_stack_op:
+  /* Old-style "untyped" DWARF values need special treatment in a
+     couple of places, specifically DW_OP_mod and DW_OP_shr.  We need
+     a special type for these values so we can distinguish them from
+     values that have an explicit type, because explicitly-typed
+     values do not need special treatment.  This special type must be
+     different (in the `==' sense) from any base type coming from the
+     CU.  */
+  -> DWARF is typed?
+
+case DW_OP_bregx:
+    op_ptr = safe_read_uleb128 (op_ptr, op_end, &reg);
+    op_ptr = safe_read_sleb128 (op_ptr, op_end, &offset);
+    result = (ctx->funcs->read_addr_from_reg) (ctx->baton, reg);
+    result += offset;
+    result_val = value_from_ulongest (address_type, result);
+    ...
+    dwarf_expr_push (ctx, result_val, in_stack_memory);
+
+dwarf2loc.c
+===========
+
+static CORE_ADDR
+dwarf_expr_read_addr_from_reg (void *baton, int dwarf_regnum)
+{
+  struct dwarf_expr_baton *debaton = (struct dwarf_expr_baton *) baton;
+  struct gdbarch *gdbarch = get_frame_arch (debaton->frame);
+  int regnum = gdbarch_dwarf2_reg_to_regnum (gdbarch, dwarf_regnum);
+
+  return address_from_register (regnum, debaton->frame);
+}
+
+amd64-tdep.c
+============
+  oh! oh! this isn't in gdbserver!
+
+  set_gdbarch_dwarf2_reg_to_regnum (gdbarch, amd64_dwarf_reg_to_regnum);
+
+  ...
+
+  /* DWARF Register Number Mapping as defined in the System V psABI,
+   section 3.6.  */
+  static int amd64_dwarf_regmap[] =...
+
+
+http://www.x86-64.org/documentation/abi.pdf
+===========================================
+
+  Figure 3.36: DWARF Register Number Mapping:
+
+    Register Name    	 Number   Abbreviation
+    ------------------------------------------
+    Segment Register FS      54   %fs
+    Segment Register GS	     55   %gs
+    ...
+    FS Base address          58   %fs.base
+    GS Base address          59   %gs.base
+
+
+DWARF4 spec
+===========
+
+  "The DW_OP_plus_uconst operation pops the top stack entry, adds it to
+  the unsigned LEB128 constant operand and pushes the result.  This
+  operation is supplied specifically to be able to encode more field
+  offsets in two bytes than can be done with “DW_OP_litn DW_OP_plus”."
+
+https://en.wikipedia.org/wiki/LEB128
+====================================
+
+To encode a number using LEB128:
+ 1) a) zero extend the number up to a multiple of 7 bits (for ULEB128)
+    b) sign extend the number up to a multiple of 7 bits (for SLEB128)
+ 2) Break the number up into groups of 7 bits.
+ 3) Output one encoded byte for each 7 bit group, from least
+    significant to most significant group.
+ 4) Set the most significant bit on each byte except the last byte.
+
+So
+==
+  "breg 0(%fs)" -> DW_OP_bregx, 54, 0
+w00t :)
+
+
+Oh
+==
+There's *lots* of GDB in dwarf2expr
+but, see dwarf2_compile_expr_to_ax in dwarf2loc.c
+(we would have to disable anything that used the
+struct dwarf2_per_cu_data *per_cu argument,
+it's opaque to dwarf2read.c)
+Could we compile dwarf to ax and squirt that at gdbserver?
+(then all the common-infinity stuff could go up to GDB *sigh*
+
+To do
+=====
+1. put actual bytecode into glibc's map_lwp2thr
+2. execute it hackily in GDB side-by-side with the real func
+3. try converting to ax and squirting that at gdbserver??
+   (see above re disabling ops that use per_cu)
+
+Might be easier to write a second dwarf interpreter
+===================================================
+- existing one is pretty heavyweight (lots of GDB in there,
+   gdbarch
+   tdep for register numbers
+   values
+  and lots of DWARF that doesn't exist for just some bytecode)
+  Also, it's designed to execute millions of expressions once
+  whereas I need something to execute a few expressions
+  millions of times so some pre-execution analysis might help
+  eg I can allocate memory (which would slow the other down)
+  and pre-read all the LEB128, do stack overflow checks, etc
+
+- can print disassembly in pre-analysis for debugging!

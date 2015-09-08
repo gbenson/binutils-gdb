@@ -1,0 +1,44 @@
+td_ta_map_lwp2thr:
+ - always needs to call ps_getpid (currently passed as an argument)
+ - needs to access inferior memory (done)
+ - generally needs to call ps_get_thread_area (SYSTEM FUNC CALLS)
+ - returns multiple values
+
+td_ta_thr_iter:
+ - walks linked lists in inferior
+ - calls a user-supplied function:   (SYSTEM FUNC CALLS VIA ARG)
+   Args:
+     - (supposedly) opaque (to caller) thread handle
+     - opaque to libthread_db void *callback_data (just passed in)
+   Returns:
+     - just some int to indicate an error
+ - also calls ps_getpid (could easily be passed as an argument)
+
+td_thr_get_info:
+ - writes into a structure passed as an argument
+   (probably no portable way to do this -- sizes, offsets different)
+   maybe just return a lot of values
+ - also calls ps_getpid (less obvious as an argument but why not?)
+
+td_thr_tls_get_addr:
+ - accesses link map (which is not in the same solib... need an
+   INFINTY_EXPORT there)
+ - basically a wrapper for td_thr_tlsbase (I8FUNC-I8FUNC FUNC CALLS)
+
+td_thr_tlsbase:
+ - Calls __td_ta_lookup_th_unique (part of map_lwp2thr!)
+ - dtv_slotinfo???
+
+Basically need to have functions as first class objects.
+All the function calls could be rolled into DW_OP_GNU_i8call
+
+Need some (convention? enforcement?) to say "these functions
+are internal"
+
+I think it has to be convention, there's no way to group functions
+together other than by provider (no cross-provider calling of internal
+functions? but we're allowing cross-provider symbol reference so...)
+
+Thread handles from td_ta_map_lwp2thr/td_ta_thr_iter and to
+td_thr_get_info will likely be just the th_unique member of
+td_thrhandle_t.
