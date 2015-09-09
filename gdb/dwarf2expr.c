@@ -26,6 +26,7 @@
 #include "gdbcore.h"
 #include "dwarf2.h"
 #include "dwarf2expr.h"
+#include <gdb_proc_service.h> /* XXX */
 
 /* Local prototypes.  */
 
@@ -669,6 +670,14 @@ execute_stack_op (struct dwarf_expr_context *ctx,
       /* The DWARF expression might have a bug causing an infinite
 	 loop.  In that case, quitting is the only way out.  */
       QUIT;
+
+      {
+	/* XXX */
+	extern int debug_infinity;
+
+	if (debug_infinity)
+	  debug_printf ("\t\x1B[35m%s\x1B[0m\n", get_DW_OP_name (op));
+      }
 
       switch (op)
 	{
@@ -1481,6 +1490,31 @@ execute_stack_op (struct dwarf_expr_context *ctx,
 	  result = (ctx->funcs->get_object_address) (ctx->baton);
 	  result_val = value_from_ulongest (address_type, result);
 	  break;
+
+	case DW_OP_GNU_get_thread_area:
+	  {
+	    struct ps_prochandle *ph
+	      = (struct ps_prochandle *) ctx->baton; /* XXX */
+	    lwpid_t lwpid;
+	    int index;
+	    psaddr_t result;
+	    ps_err_e status;
+
+	    if (ctx->stack_len < 2)
+	       error (_("Not enough elements for DW_OP_GNU_"
+			"get_thread_area.  Need 2, have %d."),
+		      ctx->stack_len);
+
+	    index = dwarf_expr_fetch_address (ctx, 0);
+	    lwpid = dwarf_expr_fetch_address (ctx, 1);
+	    ctx->stack_len -= 2;
+
+	    status = ps_get_thread_area (ph, lwpid, index, &result);
+
+	    dwarf_expr_push_address (ctx, (intptr_t) result, 0);
+	    dwarf_expr_push_address (ctx, status, 0);
+	    goto no_push;
+	  }
 
 	default:
 	  error (_("Unhandled dwarf expression opcode 0x%x"), op);
