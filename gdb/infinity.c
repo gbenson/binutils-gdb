@@ -769,11 +769,11 @@ i8psd_add_note (struct infinity_pspace_data *psd,
   type = i8_extract_uint (elfnote->data, 2);
   switch (type)
     {
-    case INFINITY_NOTE_SYMBOL:
+    case ELF_NOTE_I8_SYMBOL:
       ops = &symbol_note_ops;
       break;
 
-    case INFINITY_NOTE_FUNCTION:
+    case ELF_NOTE_I8_FUNCTION:
       ops = &function_note_ops;
       break;
 
